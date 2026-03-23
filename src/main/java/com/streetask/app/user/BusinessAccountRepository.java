@@ -12,6 +12,8 @@ public interface BusinessAccountRepository extends CrudRepository<BusinessAccoun
 
     Optional<BusinessAccount> findByTaxId(String taxId);
 
+    Optional<BusinessAccount> findByEmailAndTaxId(String email, String taxId);
+
     Boolean existsByTaxId(String taxId);
 
     List<BusinessAccount> findAllByRequestStatus(RequestStatus requestStatus);

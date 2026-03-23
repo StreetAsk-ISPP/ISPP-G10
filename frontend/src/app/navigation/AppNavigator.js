@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 import LoginScreen from '../../features/auth/ui/LoginScreen';
 import SignUpScreen from '../../features/auth/ui/SignUpScreen';
 import BusinessSignupScreen from '../../features/auth/ui/BusinessSignupScreen';
 import ForgotPasswordScreen from '../../features/auth/ui/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../features/auth/ui/ResetPasswordScreen';
-import PaymentGatewayPlaceholderScreen from '../../features/payments/ui/PaymentGatewayPlaceholderScreen';
 import HomeScreen from '../../features/home/ui/HomeScreen';
 import CreateQuestionScreen from '../../features/questions/ui/CreateQuestionScreen';
 import SubscriptionPlansScreen from '../../features/subscriptions/ui/SubscriptionPlansScreen';
@@ -25,11 +24,63 @@ import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
 import SettingsScreen from '../../features/profile/SettingsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
+import apiClient from '../../shared/services/http/apiClient';
 
 const Stack = createNativeStackNavigator();
+const PENDING_BUSINESS_CHECKOUT_KEY = 'streetask.pendingBusinessCheckout';
 
 export default function AppNavigator() {
     const { isAuthenticated, isLoadingAuth, user } = useAuth();
+    const stripeCallbackHandledRef = useRef(false);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const paymentState = params.get('payment');
+        const sessionId = params.get('session_id');
+
+        if (!paymentState || stripeCallbackHandledRef.current) {
+            return;
+        }
+
+        stripeCallbackHandledRef.current = true;
+
+        const clearUrlParams = () => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        };
+
+        const processStripeCallback = async () => {
+            try {
+                if (paymentState === 'success' && sessionId) {
+                    if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
+                        await apiClient.post('/api/v1/business-subscriptions/me/stripe/confirm-session', { sessionId });
+                    } else {
+                        const rawPendingData = window.localStorage.getItem(PENDING_BUSINESS_CHECKOUT_KEY);
+                        if (rawPendingData) {
+                            const pendingData = JSON.parse(rawPendingData);
+                            if (pendingData?.email && pendingData?.taxId) {
+                                await apiClient.post('/api/v1/business-subscriptions/stripe/confirm-session', {
+                                    email: pendingData.email,
+                                    taxId: pendingData.taxId,
+                                    sessionId,
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Stripe callback processing failed:', error);
+            } finally {
+                window.localStorage.removeItem(PENDING_BUSINESS_CHECKOUT_KEY);
+                clearUrlParams();
+            }
+        };
+
+        processStripeCallback();
+    }, [user?.roles]);
 
     if (isLoadingAuth) {
         return (
@@ -48,7 +99,6 @@ export default function AppNavigator() {
                     <Stack.Screen name="BusinessSignup" component={BusinessSignupScreen} />
                     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                     <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-                    <Stack.Screen name="PaymentGatewayPlaceholder" component={PaymentGatewayPlaceholderScreen} />
                 </>
             ) : (
                 <>

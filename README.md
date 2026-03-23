@@ -188,6 +188,8 @@ cp .env.example .env  # Windows: copy .env.example .env
 | `BREVO_SMTP_USERNAME` | `tu-login@smtp-brevo.com` | Login SMTP Brevo                    |
 | `BREVO_SMTP_PASSWORD` | `tu-smtp-key`             | Clave SMTP Brevo                    |
 | `BREVO_MAIL_FROM`     | `streetask0@gmail.com`    | Remitente de emails transaccionales |
+| `STRIPE_SECRET_KEY`    | `sk_test_...`             | Clave privada de Stripe (backend)   |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_test_...`          | Clave pública de Stripe             |
 
 ### Matriz de configuración por entorno
 
