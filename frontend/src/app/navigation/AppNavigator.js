@@ -25,9 +25,9 @@ import SettingsScreen from '../../features/profile/SettingsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
 import apiClient from '../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
 
 const Stack = createNativeStackNavigator();
-const PENDING_BUSINESS_CHECKOUT_KEY = 'streetask.pendingBusinessCheckout';
 
 export default function AppNavigator() {
     const { isAuthenticated, isLoadingAuth, user } = useAuth();
@@ -58,7 +58,7 @@ export default function AppNavigator() {
                     if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
                         await apiClient.post('/api/v1/business-subscriptions/me/stripe/confirm-session', { sessionId });
                     } else {
-                        const rawPendingData = window.localStorage.getItem(PENDING_BUSINESS_CHECKOUT_KEY);
+                        const rawPendingData = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
                         if (rawPendingData) {
                             const pendingData = JSON.parse(rawPendingData);
                             if (pendingData?.email && pendingData?.taxId) {
@@ -74,7 +74,7 @@ export default function AppNavigator() {
             } catch (error) {
                 console.error('Stripe callback processing failed:', error);
             } finally {
-                window.localStorage.removeItem(PENDING_BUSINESS_CHECKOUT_KEY);
+                window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
                 clearUrlParams();
             }
         };

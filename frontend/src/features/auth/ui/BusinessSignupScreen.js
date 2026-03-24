@@ -7,8 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
-
-const PENDING_BUSINESS_CHECKOUT_KEY = 'streetask.pendingBusinessCheckout';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
 
 export default function BusinessSignupScreen({ navigation, route }) {
 	const { email } = route.params;
@@ -75,7 +74,7 @@ export default function BusinessSignupScreen({ navigation, route }) {
 
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
 				window.localStorage.setItem(
-					PENDING_BUSINESS_CHECKOUT_KEY,
+					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
 					JSON.stringify({ email, taxId: normalizedTaxId })
 				);
 				window.location.assign(checkoutUrl);
