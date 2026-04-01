@@ -1,4 +1,4 @@
-package com.streetask.app.user;
+package com.streetask.app.business;
 
 import java.time.LocalDateTime;
 

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.streetask.app.model.Report;
+import com.streetask.app.business.BusinessAccount;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

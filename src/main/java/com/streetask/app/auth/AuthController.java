@@ -18,7 +18,7 @@ import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.configuration.jwt.JwtUtils;
 import com.streetask.app.configuration.services.UserDetailsImpl;
-import com.streetask.app.user.BusinessAccountRepository;
+import com.streetask.app.business.BusinessAccountRepository;
 import com.streetask.app.user.UserService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

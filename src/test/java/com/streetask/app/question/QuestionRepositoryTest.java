@@ -12,10 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
 import com.streetask.app.user.Authorities;
-import com.streetask.app.user.BusinessAccount;
 import com.streetask.app.user.RegularUser;
 
 /**

@@ -1,9 +1,11 @@
-package com.streetask.app.user;
+package com.streetask.app.business;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import com.streetask.app.model.Event;
+import com.streetask.app.user.Admin;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,4 +1,4 @@
-package com.streetask.app.user;
+package com.streetask.app.business;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -14,6 +14,8 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
+import com.streetask.app.user.User;
+import com.streetask.app.user.UserService;
 
 @Service
 public class BusinessSubscriptionService {

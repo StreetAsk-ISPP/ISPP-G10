@@ -17,8 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.RequestStatus;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.RequestStatus;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.RegularUser;
