@@ -35,7 +35,7 @@ public class BusinessSubscriptionService {
     @Value("${streetask.stripe.currency:eur}")
     private String stripeCurrency;
 
-    @Value("${streetask.stripe.subscription-amount-cents:990}")
+    @Value("${streetask.stripe.subscription-amount-cents:1999}")
     private Integer stripeSubscriptionAmountCents;
 
     @Value("${streetask.stripe.success-url:http://localhost:8081}")
@@ -245,7 +245,7 @@ public class BusinessSubscriptionService {
     }
 
     private Long resolveAmount() {
-        int amount = stripeSubscriptionAmountCents == null ? 990 : stripeSubscriptionAmountCents;
+        int amount = stripeSubscriptionAmountCents == null ? 1999 : stripeSubscriptionAmountCents;
         return (long) Math.max(amount, 1);
     }
 

@@ -23,7 +23,6 @@ import com.streetask.app.user.RegularUser;
  * This tests the database queries using an in-memory database
  */
 
-
 @DataJpaTest
 class QuestionRepositoryTest {
 
@@ -291,65 +290,67 @@ class QuestionRepositoryTest {
 
 	// =============== EXPIRATION QUERY TESTS ===============
 
-    @Test
-    void findAllByActiveTrueAndExpiresAtBefore_shouldReturnExpiredActiveQuestions() {
-        // Arrange
-        // Una pregunta activa pero ya caducada (hace 1 hora)
-        Question expiredActive = new Question();
-        expiredActive.setTitle("Expired Active");
-        expiredActive.setContent("Should be found");
-        expiredActive.setCreator(creator1);
-        expiredActive.setEvent(event1);
-        expiredActive.setActive(true);
-        expiredActive.setCreatedAt(LocalDateTime.now().minusHours(3));
-        expiredActive.setExpiresAt(LocalDateTime.now().minusHours(1));
+	@Test
+	void findAllByActiveTrueAndExpiresAtBefore_shouldReturnExpiredActiveQuestions() {
+		// Arrange
+		// Una pregunta activa pero ya caducada (hace 1 hora)
+		Question expiredActive = new Question();
+		expiredActive.setTitle("Expired Active");
+		expiredActive.setContent("Should be found");
+		expiredActive.setCreator(creator1);
+		expiredActive.setEvent(event1);
+		expiredActive.setActive(true);
+		expiredActive.setCreatedAt(LocalDateTime.now().minusHours(3));
+		expiredActive.setExpiresAt(LocalDateTime.now().minusHours(1));
 		expiredActive.setAnswerCount(0);
-        entityManager.persist(expiredActive);
+		entityManager.persist(expiredActive);
 
-        // Una pregunta activa que caducará en el futuro (en 1 hora)
-        Question futureActive = new Question();
-        futureActive.setTitle("Future Active");
+		// Una pregunta activa que caducará en el futuro (en 1 hora)
+		Question futureActive = new Question();
+		futureActive.setTitle("Future Active");
 		futureActive.setContent("Contenido de prueba");
-        futureActive.setCreator(creator1);
-        futureActive.setEvent(event1);
-        futureActive.setActive(true);
-        futureActive.setExpiresAt(LocalDateTime.now().plusHours(1));
+		futureActive.setCreator(creator1);
+		futureActive.setEvent(event1);
+		futureActive.setActive(true);
+		futureActive.setExpiresAt(LocalDateTime.now().plusHours(1));
 		futureActive.setAnswerCount(0);
-        entityManager.persist(futureActive);
+		entityManager.persist(futureActive);
 
-        // Una pregunta ya inactivada manualmente pero con fecha pasada
-        Question expiredInactive = new Question();
-        expiredInactive.setTitle("Expired Inactive");
+		// Una pregunta ya inactivada manualmente pero con fecha pasada
+		Question expiredInactive = new Question();
+		expiredInactive.setTitle("Expired Inactive");
 		expiredInactive.setContent("Should NOT be found");
-        expiredInactive.setCreator(creator1);
-        expiredInactive.setEvent(event1);
-        expiredInactive.setActive(false);
-        expiredInactive.setExpiresAt(LocalDateTime.now().minusHours(1));
+		expiredInactive.setCreator(creator1);
+		expiredInactive.setEvent(event1);
+		expiredInactive.setActive(false);
+		expiredInactive.setExpiresAt(LocalDateTime.now().minusHours(1));
 		expiredInactive.setAnswerCount(0);
-        entityManager.persist(expiredInactive);
+		entityManager.persist(expiredInactive);
 
-        entityManager.flush();
+		entityManager.flush();
 
-        // Act
-        Iterable<Question> expiredQuestions = questionRepository.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
+		// Act
+		Iterable<Question> expiredQuestions = questionRepository
+				.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
 
-        // Assert
-        List<Question> resultList = (List<Question>) expiredQuestions;
-        
-        // Debe encontrar solo la que está activa Y tiene fecha pasada
-        assertThat(resultList).hasSize(1);
-        assertThat(resultList.get(0).getTitle()).isEqualTo("Expired Active");
-        assertThat(resultList.get(0).getActive()).isTrue();
-    }
+		// Assert
+		List<Question> resultList = (List<Question>) expiredQuestions;
 
-    @Test
-    void findAllByActiveTrueAndExpiresAtBefore_shouldReturnEmptyWhenNoneExpired() {
-        // Act
-        Iterable<Question> expiredQuestions = questionRepository.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
+		// Debe encontrar solo la que está activa Y tiene fecha pasada
+		assertThat(resultList).hasSize(1);
+		assertThat(resultList.get(0).getTitle()).isEqualTo("Expired Active");
+		assertThat(resultList.get(0).getActive()).isTrue();
+	}
 
-        // Assert
-        assertThat(expiredQuestions).isEmpty();
-    }
+	@Test
+	void findAllByActiveTrueAndExpiresAtBefore_shouldReturnEmptyWhenNoneExpired() {
+		// Act
+		Iterable<Question> expiredQuestions = questionRepository
+				.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
+
+		// Assert
+		assertThat(expiredQuestions).isEmpty();
+	}
 
 	// =============== CRUD OPERATIONS TESTS ===============
 
@@ -417,8 +418,8 @@ class QuestionRepositoryTest {
 
 	// =============== HELPER METHODS ===============
 
-	private Question createQuestion(String title, String content, RegularUser creator, 
-									Event event, Boolean active) {
+	private Question createQuestion(String title, String content, RegularUser creator,
+			Event event, Boolean active) {
 		Question question = new Question();
 		question.setTitle(title);
 		question.setContent(content);

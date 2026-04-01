@@ -25,7 +25,8 @@ import lombok.Setter;
 public class BusinessAccount extends User {
 
     // Company legal/commercial name (not unique); the same company can operate in
-    // multiple cities with different platform accounts (unique userName per account).
+    // multiple cities with different platform accounts (unique userName per
+    // account).
     @NotBlank
     @Column(nullable = false)
     private String companyName;
