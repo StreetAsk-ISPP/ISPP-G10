@@ -9,7 +9,6 @@ import {
     ActivityIndicator,
     TextInput,
     Modal,
-    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -224,7 +223,7 @@ export default function AdminBusinessVerificationScreen() {
                         <Text style={styles.modalTitle}>Approve Business</Text>
                         {selectedAccount && (
                             <Text style={styles.modalSubtitle}>
-                                Are you sure you want to approve "{selectedAccount.companyName}"?
+                                Are you sure you want to approve &ldquo;{selectedAccount.companyName}&rdquo;?
                             </Text>
                         )}
                         <View style={styles.modalActions}>
