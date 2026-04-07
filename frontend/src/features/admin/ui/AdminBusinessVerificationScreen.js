@@ -30,6 +30,7 @@ export default function AdminBusinessVerificationScreen() {
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
+    const [approveModalVisible, setApproveModalVisible] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
@@ -46,28 +47,25 @@ export default function AdminBusinessVerificationScreen() {
         fetchAccounts(activeTab);
     }, [activeTab, fetchAccounts]);
 
-    const handleApprove = (account) => {
-        Alert.alert(
-            'Approve Business',
-            `Approve "${account.companyName}"?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Approve',
-                    style: 'default',
-                    onPress: () => {
-                        setActionLoading(true);
-                        apiClient.post(`/api/v1/moderation/businesses/${account.id}/approve`)
-                            .then(() => {
-                                Alert.alert('Success', `${account.companyName} has been approved.`);
-                                fetchAccounts(activeTab);
-                            })
-                            .catch(() => Alert.alert('Error', 'Could not approve business account'))
-                            .finally(() => setActionLoading(false));
-                    },
-                },
-            ]
-        );
+    const handleApproveOpen = (account) => {
+        setSelectedAccount(account);
+        setApproveModalVisible(true);
+    };
+
+    const handleApproveConfirm = () => {
+        if (!selectedAccount) return;
+        setActionLoading(true);
+        apiClient.post(`/api/v1/moderation/businesses/${selectedAccount.id}/approve`)
+            .then(() => {
+                setApproveModalVisible(false);
+                Alert.alert('Success', `${selectedAccount.companyName} has been approved.`);
+                fetchAccounts(activeTab);
+            })
+            .catch((err) => {
+                console.error('Approve error:', err?.response?.data || err.message);
+                Alert.alert('Error', 'Could not approve business account');
+            })
+            .finally(() => setActionLoading(false));
     };
 
     const handleRejectOpen = (account) => {
@@ -140,7 +138,7 @@ export default function AdminBusinessVerificationScreen() {
                 <View style={styles.actionsRow}>
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.approveBtn]}
-                        onPress={() => handleApprove(item)}
+                        onPress={() => handleApproveOpen(item)}
                         disabled={actionLoading}
                     >
                         <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
@@ -169,7 +167,7 @@ export default function AdminBusinessVerificationScreen() {
             {item.requestStatus === 'REJECTED' && (
                 <TouchableOpacity
                     style={[styles.actionBtn, styles.approveBtn, { alignSelf: 'flex-start', marginTop: 10 }]}
-                    onPress={() => handleApprove(item)}
+                    onPress={() => handleApproveOpen(item)}
                     disabled={actionLoading}
                 >
                     <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
@@ -219,6 +217,37 @@ export default function AdminBusinessVerificationScreen() {
                     contentContainerStyle={styles.list}
                 />
             )}
+
+            <Modal visible={approveModalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalBox}>
+                        <Text style={styles.modalTitle}>Approve Business</Text>
+                        {selectedAccount && (
+                            <Text style={styles.modalSubtitle}>
+                                Are you sure you want to approve "{selectedAccount.companyName}"?
+                            </Text>
+                        )}
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalCancelBtn]}
+                                onPress={() => setApproveModalVisible(false)}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, { backgroundColor: '#22c55e' }]}
+                                onPress={handleApproveConfirm}
+                                disabled={actionLoading}
+                            >
+                                {actionLoading
+                                    ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Text style={styles.modalRejectText}>Confirm Approve</Text>
+                                }
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal visible={rejectModalVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
