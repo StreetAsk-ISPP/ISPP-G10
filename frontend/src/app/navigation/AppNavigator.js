@@ -17,6 +17,8 @@ import ProfileStats from '../../features/profile/ProfileStats';
 import AdminFeedbackScreen from '../../features/admin/ui/AdminFeedbackScreen';
 import AdminScreen from '../../features/admin/ui/AdminScreen';
 import AdminUsersScreen from '../../features/admin/ui/AdminUsersScreen';
+import AdminBusinessVerificationScreen from '../../features/admin/ui/AdminBusinessVerificationScreen';
+import BusinessVerificationStatusScreen from '../../features/business/ui/BusinessVerificationStatusScreen';
 import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
@@ -56,6 +58,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name="AdminDashboard" component={AdminScreen} />
                                 <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
                                 <Stack.Screen name="AdminFeedback" component={AdminFeedbackScreen} />
+                                <Stack.Screen name="AdminBusinessVerification" component={AdminBusinessVerificationScreen} />
                                 <Stack.Screen name="Home" component={HomeScreen} />
                                 <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
                                 <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
@@ -76,6 +79,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name="Balance" component={BalanceScreen} options={{ headerShown: false }} />
                                 <Stack.Screen name="MyPurchases" component={MyPurchasesScreen} options={{ headerShown: false }} />
                                 <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+                                <Stack.Screen name="BusinessVerificationStatus" component={BusinessVerificationStatusScreen} options={{ headerShown: false }} />
                             </>
                         )
                     }

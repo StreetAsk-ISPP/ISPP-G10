@@ -1,5 +1,6 @@
 package com.streetask.app.user;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
 
@@ -12,5 +13,7 @@ public interface BusinessAccountRepository extends CrudRepository<BusinessAccoun
     Optional<BusinessAccount> findByTaxId(String taxId);
 
     Boolean existsByTaxId(String taxId);
+
+    List<BusinessAccount> findAllByRequestStatus(RequestStatus requestStatus);
 
 }

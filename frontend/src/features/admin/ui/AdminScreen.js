@@ -57,6 +57,7 @@ export default function AdminScreen() {
 
     const menuItems = [
         { id: 'users', title: 'Manage Users', icon: 'people', route: 'AdminUsers' },
+        { id: 'businesses', title: 'Business Verification', icon: 'business', route: 'AdminBusinessVerification' },
         { id: 'feedback', title: 'Received Feedback', icon: 'chatbox-ellipses', route: 'AdminFeedback' },
         { id: 'app', title: 'Go to App', icon: 'phone-portrait', route: 'Home' },
     ];
