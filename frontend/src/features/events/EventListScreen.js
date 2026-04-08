@@ -8,8 +8,6 @@ export default function EventListScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
-    const [searchText, setSearchText] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState(null);
 
     useEffect(() => {
         loadEvents();
@@ -34,12 +32,6 @@ export default function EventListScreen({ navigation }) {
         await loadEvents();
         setRefreshing(false);
     };
-
-    const filteredEvents = events.filter(event => {
-        const matchesSearch = event.title?.toLowerCase().includes(searchText.toLowerCase());
-        const matchesCategory = !selectedCategory || event.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
 
     const handleEventPress = (eventId) => {
         navigation.navigate('EventDetails', { eventId });
@@ -83,13 +75,13 @@ export default function EventListScreen({ navigation }) {
             <View style={styles.headerContainer}>
                 <Text style={styles.header}>Events</Text>
             </View>
-            {filteredEvents.length === 0 ? (
+            {events.length === 0 ? (
                 <View style={styles.centerContainer}>
                     <Text style={styles.emptyText}>No events found</Text>
                 </View>
             ) : (
                 <FlatList
-                    data={filteredEvents}
+                    data={events}
                     renderItem={renderEventCard}
                     keyExtractor={(item) => item.id}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

@@ -12,7 +12,7 @@ export default function EventDetailsScreen({ route }) {
 
     useEffect(() => {
         loadEventDetails();
-    }, [eventId]);
+    }, [eventId, loadEventDetails]);
 
     const loadEventDetails = async () => {
         try {
