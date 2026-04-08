@@ -73,6 +73,12 @@ public class SecurityConfiguration {
 						.requestMatchers(webSocketHandshakePattern()).permitAll()
 
 						.requestMatchers("/api/v1/auth/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/mock/activate").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/stripe/checkout-session")
+						.permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/stripe/confirm-session")
+						.permitAll()
+						.requestMatchers("/api/v1/business-subscriptions/**").authenticated()
 						.requestMatchers("/api/v1/developers").permitAll()
 						.requestMatchers("/api/v1/plan").permitAll()
 
@@ -111,6 +117,9 @@ public class SecurityConfiguration {
 
 						// Moderation endpoints require ADMIN authority
 						.requestMatchers("/api/v1/moderation/**").hasAuthority(ADMIN)
+
+						// Business verification status - accessible to authenticated business users
+						.requestMatchers("/api/v1/businesses/me/verification").authenticated()
 
 						.anyRequest().denyAll())
 

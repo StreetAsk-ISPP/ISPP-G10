@@ -24,14 +24,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.streetask.app.auth.payload.request.CompleteSignupRequest;
 import com.streetask.app.auth.payload.request.SignupRequest;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessAccountRepository;
+import com.streetask.app.business.RequestStatus;
 import com.streetask.app.user.AccountType;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.AuthoritiesService;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.BusinessAccountRepository;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
-import com.streetask.app.user.RequestStatus;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserService;
 
