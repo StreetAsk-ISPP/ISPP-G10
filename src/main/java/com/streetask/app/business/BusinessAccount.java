@@ -59,6 +59,9 @@ public class BusinessAccount extends User {
     @ManyToOne
     private Admin verifiedBy;
 
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
 }

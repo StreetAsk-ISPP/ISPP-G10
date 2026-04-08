@@ -254,6 +254,15 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.menuItemText}>Settings</Text>
                 </TouchableOpacity>
 
+                {user?.roles?.includes('BUSINESS') && (
+                    <TouchableOpacity
+                        style={[styles.menuItem, { backgroundColor: '#1e40af' }]}
+                        onPress={() => navigation.navigate('BusinessVerificationStatus')}>
+                        <Ionicons name="shield-checkmark-outline" size={24} color="#fff" />
+                        <Text style={styles.menuItemText}>Verification Status</Text>
+                    </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                     style={[styles.menuItem, { backgroundColor: '#4b5563', marginTop: 10 }]}
                     onPress={() => setShowLogoutModal(true)}>

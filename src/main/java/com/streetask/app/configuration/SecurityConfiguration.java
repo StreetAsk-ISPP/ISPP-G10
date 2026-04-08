@@ -118,6 +118,9 @@ public class SecurityConfiguration {
 						// Moderation endpoints require ADMIN authority
 						.requestMatchers("/api/v1/moderation/**").hasAuthority(ADMIN)
 
+						// Business verification status - accessible to authenticated business users
+						.requestMatchers("/api/v1/businesses/me/verification").authenticated()
+
 						.anyRequest().denyAll())
 
 				.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

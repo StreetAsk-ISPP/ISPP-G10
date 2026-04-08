@@ -2,7 +2,11 @@ package com.streetask.app.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -23,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.streetask.app.auth.payload.request.LoginRequest;
 import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
@@ -152,5 +157,85 @@ class AuthControllerUnitTest {
         assertThat(body.getToken()).isEqualTo("jwt-token");
         assertThat(body.getUsername()).isEqualTo("admin1@streetask.com");
         assertThat(body.getRoles()).containsExactly("ADMIN");
+    }
+
+    @Test
+    void completeBusinessUserShouldReturnBadRequestWhenBasicUserRegistrationDoesNotExist() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("missing.business@streetask.com");
+        request.setTaxId("B12345678");
+        request.setCompanyName("StreetAsk Missing Co");
+
+        when(userService.existsUser("missing.business@streetask.com")).thenReturn(false);
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage())
+                .isEqualTo("Error: Basic user registration not found. Please complete the basic signup first.");
+        verifyNoInteractions(businessAccountRepository, authService);
+    }
+
+    @Test
+    void completeBusinessUserShouldReturnBadRequestWhenTaxIdAlreadyExistsAfterNormalization() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business.dup@streetask.com");
+        request.setTaxId("b-1234 5678");
+        request.setCompanyName("StreetAsk Dup Co");
+
+        when(userService.existsUser("business.dup@streetask.com")).thenReturn(true);
+        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(true);
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Error: Tax ID is already registered!");
+        assertThat(request.getTaxId()).isEqualTo("B12345678");
+        verify(userService).existsUser("business.dup@streetask.com");
+        verify(businessAccountRepository).existsByTaxId("B12345678");
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void completeBusinessUserShouldNormalizeTaxIdAndCallServiceWhenPayloadIsValid() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business.ok@streetask.com");
+        request.setTaxId("b-1234 5670");
+        request.setCompanyName("StreetAsk Ok Co");
+
+        when(userService.existsUser("business.ok@streetask.com")).thenReturn(true);
+        when(businessAccountRepository.existsByTaxId("B12345670")).thenReturn(false);
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage())
+                .isEqualTo("Business account registered successfully! Your account is pending admin verification.");
+        assertThat(request.getTaxId()).isEqualTo("B12345670");
+        verify(userService).existsUser("business.ok@streetask.com");
+        verify(businessAccountRepository).existsByTaxId("B12345670");
+        verify(authService).convertToBusinessUser(eq(request));
+    }
+
+    @Test
+    void completeBusinessUserShouldReturnBadRequestWhenServiceThrowsException() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business.fail@streetask.com");
+        request.setTaxId("B12345671");
+        request.setCompanyName("StreetAsk Fail Co");
+
+        when(userService.existsUser("business.fail@streetask.com")).thenReturn(true);
+        when(businessAccountRepository.existsByTaxId("B12345671")).thenReturn(false);
+        doThrow(new IllegalStateException("boom")).when(authService).convertToBusinessUser(any(BusinessSignupRequest.class));
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Error: User not found or already completed!");
+        verify(authService).convertToBusinessUser(eq(request));
     }
 }
