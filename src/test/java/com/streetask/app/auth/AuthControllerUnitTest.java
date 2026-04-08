@@ -2,6 +2,7 @@ package com.streetask.app.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.streetask.app.auth.payload.request.LoginRequest;
+import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.configuration.jwt.JwtUtils;
@@ -152,5 +154,44 @@ class AuthControllerUnitTest {
         assertThat(body.getToken()).isEqualTo("jwt-token");
         assertThat(body.getUsername()).isEqualTo("admin1@streetask.com");
         assertThat(body.getRoles()).containsExactly("ADMIN");
+    }
+
+    @Test
+    void completeBusinessUserShouldReturnBadRequestWhenServiceThrowsException() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business@streetask.com");
+        request.setTaxId("B12345678");
+        request.setCompanyName("StreetAsk Business");
+        request.setAddress("Address 1");
+
+        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(false);
+        doThrow(new RuntimeException("Unexpected conversion error")).when(authService).convertToBusinessUser(any());
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Error: User not found or already completed!");
+    }
+
+    @Test
+    void completeBusinessUserShouldReturnBadRequestWhenUserIsAlreadyBusinessAccount() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business@streetask.com");
+        request.setTaxId("B12345678");
+        request.setCompanyName("StreetAsk Business");
+        request.setAddress("Address 1");
+
+        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(false);
+        doThrow(new IllegalStateException("User is already a business account.")).when(authService)
+                .convertToBusinessUser(any());
+
+        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Error: User is already a business account.");
     }
 }
