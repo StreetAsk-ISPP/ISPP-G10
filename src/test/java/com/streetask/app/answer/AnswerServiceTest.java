@@ -23,8 +23,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent;
+import com.streetask.app.functionalities.notifications.model.NotificationRepository;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.AnswerVote;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
 import com.streetask.app.model.enums.VoteType;
@@ -45,12 +47,19 @@ class AnswerServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private CoinTransactionRepository coinTransactionRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
+
     @InjectMocks
     private AnswerService answerService;
 
     private Answer answer;
     private Question question;
     private RegularUser authenticatedUser;
+    private RegularUser answerOwner;
     private RegularUser regularUser;
     private UUID answerId;
     private UUID questionId;
@@ -80,6 +89,10 @@ class AnswerServiceTest {
         when(regularUserRepository.findByUserNameIgnoreCase(authenticatedUser.getEmail()))
                 .thenReturn(Optional.empty());
 
+        answerOwner = new RegularUser();
+        answerOwner.setId(UUID.randomUUID());
+        answerOwner.setCoinBalance(0);
+
         // Create test question with location and radius
         question = new Question();
         question.setId(questionId);
@@ -97,15 +110,20 @@ class AnswerServiceTest {
         answer.setId(answerId);
         answer.setQuestion(question);
         answer.setContent("Test Answer");
-        answer.setUser(authenticatedUser);
+        answer.setUser(answerOwner);
         answer.setUserLocation(new GeoPoint());
         answer.getUserLocation().setLatitude(37.7749); // Same location as question
         answer.getUserLocation().setLongitude(-122.4194);
         answer.setUpvotes(0);
         answer.setDownvotes(0);
+        answer.setRewardClaimed(false);
 
         regularUser = new RegularUser();
         regularUser.setId(userId);
+        regularUser.setCreatedAt(LocalDateTime.now().minusDays(60));
+        regularUser.setActive(true);
+
+        when(regularUserRepository.findById(userId)).thenReturn(Optional.of(regularUser));
     }
 
     @AfterEach
@@ -436,7 +454,6 @@ class AnswerServiceTest {
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
-        when(regularUserRepository.findById(userId)).thenReturn(Optional.of(regularUser));
         when(answerRepository.save(answer)).thenReturn(answer);
 
         Answer result = answerService.updateVotes(answerId, userId, VoteType.LIKE);
@@ -454,7 +471,6 @@ class AnswerServiceTest {
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
-        when(regularUserRepository.findById(userId)).thenReturn(Optional.of(regularUser));
         when(answerRepository.save(answer)).thenReturn(answer);
 
         Answer result = answerService.updateVotes(answerId, userId, VoteType.DISLIKE);
@@ -530,6 +546,58 @@ class AnswerServiceTest {
 
         verify(answerRepository, times(1)).findById(answerId);
         verify(answerRepository, never()).save(any(Answer.class));
+    }
+
+    @Test
+    void testUpdateVotesRejectsSelfVote() {
+        answer.setUser(authenticatedUser);
+        when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> answerService.updateVotes(answerId, userId, VoteType.LIKE));
+
+        verify(answerVoteRepository, never()).save(any(AnswerVote.class));
+        verify(answerRepository, never()).save(any(Answer.class));
+    }
+
+    @Test
+    void testUpdateVotesRewardsOwnerWhenThresholdReached() {
+        answer.setUpvotes(2);
+        answer.setDownvotes(0);
+        answerOwner.setCoinBalance(10);
+
+        when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
+        when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
+        when(answerRepository.markRewardClaimedIfUnclaimed(answerId)).thenReturn(1);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer result = answerService.updateVotes(answerId, userId, VoteType.LIKE);
+
+        assertEquals(3, result.getUpvotes());
+        assertTrue(result.getRewardClaimed());
+        assertEquals(25, answerOwner.getCoinBalance());
+        assertEquals(15, result.getCoinsEarned());
+        verify(coinTransactionRepository, times(1)).save(any());
+        verify(notificationRepository, times(1)).save(any());
+        verify(answerRepository, times(2)).save(answer);
+    }
+
+    @Test
+    void testUpdateVotesDoesNotDuplicateRewardWhenAlreadyClaimedConcurrently() {
+        answer.setUpvotes(2);
+        answer.setRewardClaimed(false);
+        answerOwner.setCoinBalance(10);
+
+        when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
+        when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
+        when(answerRepository.markRewardClaimedIfUnclaimed(answerId)).thenReturn(0);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        answerService.updateVotes(answerId, userId, VoteType.LIKE);
+
+        assertEquals(10, answerOwner.getCoinBalance());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(notificationRepository, never()).save(any());
     }
 
     @Test

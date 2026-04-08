@@ -4,9 +4,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
 import com.streetask.app.model.Answer;
 
@@ -40,5 +42,9 @@ public interface AnswerRepository extends CrudRepository<Answer, UUID> {
 	List<Object[]> aggregateVotesByUserIds(Collection<UUID> userIds);
 
 	long countByUserId(UUID userId);
+
+	@Modifying
+	@Query("UPDATE Answer a SET a.rewardClaimed = true WHERE a.id = :answerId AND (a.rewardClaimed = false OR a.rewardClaimed IS NULL)")
+	int markRewardClaimedIfUnclaimed(@Param("answerId") UUID answerId);
 
 }
