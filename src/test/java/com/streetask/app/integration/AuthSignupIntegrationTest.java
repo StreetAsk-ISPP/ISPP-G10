@@ -161,6 +161,36 @@ class AuthSignupIntegrationTest {
         }
 
         @Test
+        void signupBusinessShouldReturnBadRequestWhenUserIsAlreadyBusinessAccount() throws Exception {
+                String email = "business.already@streetask.com";
+
+                mockMvc.perform(post("/api/v1/auth/signup/basic")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validBasicPayload(email, "businessAlready"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                validBusinessPayload(email, "B11111111", "Business street 1"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                validBusinessPayload(email, "B22222222", "Business street 2"))))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message")
+                                                .value("Error: User is already a business account."));
+
+                User storedUser = userRepository.findByEmail(email).orElseThrow();
+                assertThat(storedUser).isInstanceOf(BusinessAccount.class);
+                BusinessAccount businessAccount = (BusinessAccount) storedUser;
+                assertThat(businessAccount.getTaxId()).isEqualTo("B11111111");
+                assertThat(businessAccount.getAddress()).isEqualTo("Business street 1");
+        }
+
+        @Test
         void signupBusinessShouldReturnBadRequestWhenTaxIdAlreadyExists() throws Exception {
                 String duplicatedTaxId = "B87654321";
 
