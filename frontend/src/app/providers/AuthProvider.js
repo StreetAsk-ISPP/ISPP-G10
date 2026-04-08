@@ -1,9 +1,51 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const AuthContext = createContext(null);
 const TOKEN_STORAGE_KEY = 'auth_token';
 const USER_STORAGE_KEY = 'auth_user';
+
+// Helper to save to storage (handles both native and web)
+const saveToStorage = async (key, value) => {
+  try {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.localStorage.setItem(key, value);
+    } else {
+      await AsyncStorage.setItem(key, value);
+    }
+  } catch (error) {
+    // Silently fail for storage errors
+  }
+};
+
+// Helper to get from storage (handles both native and web)
+const getFromStorage = async (key) => {
+  try {
+    let value;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      value = window.localStorage.getItem(key);
+    } else {
+      value = await AsyncStorage.getItem(key);
+    }
+    return value;
+  } catch (error) {
+    return null;
+  }
+};
+
+// Helper to remove from storage (handles both native and web)
+const removeFromStorage = async (key) => {
+  try {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.localStorage.removeItem(key);
+    } else {
+      await AsyncStorage.removeItem(key);
+    }
+  } catch (error) {
+    // Silently fail for storage errors
+  }
+};
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,8 +55,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const bootstrapAuth = async () => {
-      const storedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
-      const userData = await AsyncStorage.getItem(USER_STORAGE_KEY);
+      const storedToken = await getFromStorage(TOKEN_STORAGE_KEY);
+      const userData = await getFromStorage(USER_STORAGE_KEY);
 
       setToken(storedToken);
       setIsAuthenticated(Boolean(storedToken));
@@ -23,7 +65,7 @@ export function AuthProvider({ children }) {
         try {
           setUser(JSON.parse(userData));
         } catch (e) {
-          console.error('Error parsing user data:', e);
+          // Silently fail for invalid user data
         }
       }
 
@@ -34,11 +76,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (newToken, userData) => {
-    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    await saveToStorage(TOKEN_STORAGE_KEY, newToken);
     setToken(newToken);
 
     if (userData) {
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+      await saveToStorage(USER_STORAGE_KEY, JSON.stringify(userData));
       setUser(userData);
     }
 
@@ -46,8 +88,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
-    await AsyncStorage.removeItem(USER_STORAGE_KEY);
+    await removeFromStorage(TOKEN_STORAGE_KEY);
+    await removeFromStorage(USER_STORAGE_KEY);
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
