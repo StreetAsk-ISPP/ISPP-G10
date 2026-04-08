@@ -408,7 +408,8 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
-                            questions={showQuestions ? questions : []}
+                            questions={questions}
+                            showQuestions={showQuestions}
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }
@@ -722,14 +723,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-end',
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
     },
     toggleLabel: {
-        flex: 1,
         fontSize: 14,
         fontWeight: '600',
         color: '#a52019',
+        marginRight: 12,
     },
     fab: {
         position: 'absolute',

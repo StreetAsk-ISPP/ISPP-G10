@@ -105,7 +105,7 @@ const getQuestionCoords = (q) => {
     return { lat, lng };
 };
 
-export default function MapComponent({ questions = [], onQuestionPress, onLocationChange, onPermissionChange }) {
+export default function MapComponent({ questions = [], onQuestionPress, onLocationChange, onPermissionChange, showQuestions = true }) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -223,6 +223,12 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
     useEffect(() => {
         const ahora = new Date().getTime();
 
+        // Si showQuestions es false, retornar array vacío
+        if (!showQuestions) {
+            setVisibleQuestions([]);
+            return;
+        }
+
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
         const preguntasActivas = questions.filter((q) => {
             const fechaExpiracion = new Date(q.expiresAt).getTime();
@@ -230,7 +236,7 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
         });
 
         setVisibleQuestions(preguntasActivas);
-    }, [questions]);
+    }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {
         setVisibleQuestions((prev) => prev.filter((q) => q.id !== questionId));
