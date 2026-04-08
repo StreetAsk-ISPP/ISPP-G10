@@ -9,47 +9,80 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streetask.app.configuration.jwt.JwtUtils;
-import com.streetask.app.user.BusinessAccountRepository;
 import com.streetask.app.user.UserService;
 
 import org.springframework.security.authentication.AuthenticationManager;
 
-@WebMvcTest(AuthController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class AuthControllerWebMvcTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @MockBean
+    @Mock
     private AuthenticationManager authenticationManager;
 
-    @MockBean
+    @Mock
     private UserService userService;
 
-    @MockBean
+    @Mock
     private JwtUtils jwtUtils;
 
-    @MockBean
+    @Mock
     private AuthService authService;
 
-    @MockBean
-    private BusinessAccountRepository businessAccountRepository;
+    private Object businessAccountRepositoryMock;
+    private final AtomicBoolean taxIdExists = new AtomicBoolean(false);
+
+    @BeforeEach
+    void setUp() throws Exception {
+        Constructor<?> constructor = AuthController.class.getDeclaredConstructors()[0];
+        Class<?>[] parameterTypes = constructor.getParameterTypes();
+        Object[] args = new Object[parameterTypes.length];
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> parameterType = parameterTypes[i];
+            if (parameterType.equals(AuthenticationManager.class)) {
+                args[i] = authenticationManager;
+            } else if (parameterType.equals(UserService.class)) {
+                args[i] = userService;
+            } else if (parameterType.equals(JwtUtils.class)) {
+                args[i] = jwtUtils;
+            } else if (parameterType.equals(AuthService.class)) {
+                args[i] = authService;
+            } else if (parameterType.getSimpleName().equals("BusinessAccountRepository")) {
+                businessAccountRepositoryMock = Mockito.mock(parameterType, invocation -> {
+                    if ("existsByTaxId".equals(invocation.getMethod().getName())) {
+                        return taxIdExists.get();
+                    }
+                    return Mockito.RETURNS_DEFAULTS.answer(invocation);
+                });
+                args[i] = businessAccountRepositoryMock;
+            } else {
+                args[i] = Mockito.mock(parameterType);
+            }
+        }
+
+        AuthController authController = (AuthController) constructor.newInstance(args);
+        mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+    }
 
     @Test
     void signupBusinessShouldReturnBadRequestWhenBasicUserDoesNotExist() throws Exception {
@@ -70,7 +103,7 @@ class AuthControllerWebMvcTest {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
         when(userService.existsUser("business@streetask.com")).thenReturn(true);
-        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(true);
+        taxIdExists.set(true);
 
         mockMvc.perform(post("/api/v1/auth/signup/business")
                 .contentType(APPLICATION_JSON)
@@ -84,7 +117,7 @@ class AuthControllerWebMvcTest {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
         when(userService.existsUser("business@streetask.com")).thenReturn(true);
-        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(false);
+        taxIdExists.set(false);
         doThrow(new IllegalStateException("User is already a business account."))
                 .when(authService).convertToBusinessUser(any());
 
@@ -100,7 +133,7 @@ class AuthControllerWebMvcTest {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
         when(userService.existsUser("business@streetask.com")).thenReturn(true);
-        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(false);
+        taxIdExists.set(false);
         doThrow(new RuntimeException("Unexpected conversion error"))
                 .when(authService).convertToBusinessUser(any());
 
@@ -116,7 +149,7 @@ class AuthControllerWebMvcTest {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
         when(userService.existsUser("business@streetask.com")).thenReturn(true);
-        when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(false);
+        taxIdExists.set(false);
 
         mockMvc.perform(post("/api/v1/auth/signup/business")
                 .contentType(APPLICATION_JSON)
