@@ -228,6 +228,7 @@ public class AuthService {
 	public void convertToBusinessUser(@Valid BusinessSignupRequest request) {
 		// Find the basic user created in the first step
 		User basicUser = userService.findUser(request.getEmail());
+		validatePendingBasicSignup(basicUser);
 
 		BusinessAccount businessAccount = new BusinessAccount();
 
@@ -247,6 +248,8 @@ public class AuthService {
 		businessAccount.setDescription(request.getDescription());
 
 		businessAccount.setVerified(false);
+		businessAccount.setVerifiedAt(null);
+		businessAccount.setVerifiedBy(null);
 		businessAccount.setRating(0.0f);
 		businessAccount.setRequestStatus(RequestStatus.PENDING);
 		businessAccount.setSubscriptionActive(false);
@@ -260,6 +263,30 @@ public class AuthService {
 		entityManager.flush();
 
 		businessAccountRepository.save(businessAccount);
+	}
+
+	public boolean isPendingBasicSignup(String email) {
+		if (email == null || email.isBlank()) {
+			return false;
+		}
+
+		try {
+			User user = userService.findUser(email.trim());
+			return isPendingBasicSignup(user);
+		} catch (Exception exception) {
+			return false;
+		}
+	}
+
+	private void validatePendingBasicSignup(User user) {
+		if (!isPendingBasicSignup(user)) {
+			throw new IllegalStateException("User is not eligible for business signup.");
+		}
+	}
+
+	private boolean isPendingBasicSignup(User user) {
+		return user != null && user.getAccountType() == null && Boolean.FALSE.equals(user.getActive())
+				&& user.hasAuthority("USER");
 	}
 
 }

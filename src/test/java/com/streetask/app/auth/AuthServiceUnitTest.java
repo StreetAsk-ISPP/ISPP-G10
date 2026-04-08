@@ -175,6 +175,11 @@ class AuthServiceUnitTest {
         basicUser.setFirstName("Business");
         basicUser.setLastName("Owner");
         basicUser.setCreatedAt(LocalDateTime.of(2026, 3, 10, 10, 30));
+        basicUser.setActive(false);
+
+        Authorities userAuthority = new Authorities();
+        userAuthority.setAuthority("USER");
+        basicUser.setAuthority(userAuthority);
 
         when(userService.findUser("business@streetask.com")).thenReturn(basicUser);
         when(authoritiesService.findByAuthority("BUSINESS")).thenReturn(businessAuthority);

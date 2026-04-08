@@ -120,7 +120,7 @@ public class AuthController {
 	public ResponseEntity<MessageResponse> completeBusinessUser(
 			@Valid @RequestBody BusinessSignupRequest signUpRequest) {
 		// Validate email exists and is a basic user
-		if (!userService.existsUser(signUpRequest.getEmail())) {
+		if (!authService.isPendingBasicSignup(signUpRequest.getEmail())) {
 			return ResponseEntity.badRequest()
 					.body(new MessageResponse(
 							"Error: Basic user registration not found. Please complete the basic signup first."));

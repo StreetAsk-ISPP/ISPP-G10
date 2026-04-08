@@ -40,16 +40,16 @@ public class BusinessAccount extends User {
 
     private String logo;
 
-    private Boolean verified;
+    private Boolean verified = false;
 
-    private Float rating;
+    private Float rating = 0.0f;
 
     private LocalDateTime verifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private RequestStatus requestStatus;
+    private RequestStatus requestStatus = RequestStatus.PENDING;
 
-    private Boolean subscriptionActive;
+    private Boolean subscriptionActive = false;
 
     private LocalDateTime subscriptionExpiresAt;
 
