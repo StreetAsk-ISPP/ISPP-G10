@@ -21,7 +21,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     public WebSocketConfig(
             @Value("${streetask.websocket.endpoint:/ws}") String endpoint,
-            @Value("${streetask.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*, https://streetask.expo.app, https://sprint2-streetask.expo.app, https://streetask-preprod-frontend.onrender.com/}") String[] allowedOriginPatterns,
+            @Value("${streetask.websocket.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*, https://streetask.expo.app, https://sprint2-streetask.expo.app, https://sprint3-streetask.expo.app, https://streetask-preprod-frontend.onrender.com/}") String[] allowedOriginPatterns,
             WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor) {
         this.endpoint = endpoint;
         this.allowedOriginPatterns = allowedOriginPatterns;

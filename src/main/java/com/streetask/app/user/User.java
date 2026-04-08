@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size; // Importado para la bio
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -62,9 +63,14 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private java.util.List<com.streetask.app.functionalities.feedback.FeedbackMessage> feedbackMessages;
 
+	  @com.fasterxml.jackson.annotation.JsonIgnore
+	  @OneToMany(mappedBy = "issuedBy", cascade = CascadeType.REMOVE)
+	  private List<com.streetask.app.model.Strike> issuedStrikes;
+
     @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private java.util.List<com.streetask.app.model.UserLocation> locations;
+
 
     public Boolean hasAuthority(String auth) {
         return authority.getAuthority().equals(auth);
