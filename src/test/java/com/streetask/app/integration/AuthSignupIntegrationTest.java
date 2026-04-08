@@ -162,6 +162,7 @@ class AuthSignupIntegrationTest {
                 assertThat(businessAccount.getAddress()).isEqualTo("Gran Via 1");
                 assertThat(businessAccount.getAuthority().getAuthority()).isEqualTo("BUSINESS");
                 assertThat(businessAccount.getActive()).isFalse();
+
                                 assertThat(businessAccount.getVerified()).isFalse();
                                 assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
                                 assertThat(businessAccount.getSubscriptionActive()).isFalse();
@@ -190,6 +191,7 @@ class AuthSignupIntegrationTest {
                                         .andExpect(status().isBadRequest())
                                         .andExpect(jsonPath("$.message").value(
                                                         "Error: Basic user registration not found. Please complete the basic signup first."));
+
                 assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
         }
 
