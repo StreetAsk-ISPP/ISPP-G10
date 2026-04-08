@@ -17,8 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.RequestStatus;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.RequestStatus;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.RegularUser;
@@ -204,7 +204,8 @@ class AuthSignupIntegrationTest {
 
                 mockMvc.perform(post("/api/v1/auth/signup/basic")
                                 .contentType(APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(validBasicPayload(firstEmail, "businessCase1"))))
+                                .content(objectMapper
+                                                .writeValueAsString(validBasicPayload(firstEmail, "businessCase1"))))
                                 .andExpect(status().isOk());
 
                 mockMvc.perform(post("/api/v1/auth/signup/business")
@@ -215,7 +216,8 @@ class AuthSignupIntegrationTest {
 
                 mockMvc.perform(post("/api/v1/auth/signup/basic")
                                 .contentType(APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(validBasicPayload(secondEmail, "businessCase2"))))
+                                .content(objectMapper
+                                                .writeValueAsString(validBasicPayload(secondEmail, "businessCase2"))))
                                 .andExpect(status().isOk());
 
                 mockMvc.perform(post("/api/v1/auth/signup/business")
@@ -294,7 +296,8 @@ class AuthSignupIntegrationTest {
 
         @Test
         void signupBusinessShouldReturnBadRequestWhenEmailIsMissing() throws Exception {
-                Map<String, Object> payload = validBusinessPayload("business.noemail@streetask.com", "B12345688", "Address 6");
+                Map<String, Object> payload = validBusinessPayload("business.noemail@streetask.com", "B12345688",
+                                "Address 6");
                 payload.remove("email");
 
                 mockMvc.perform(post("/api/v1/auth/signup/business")

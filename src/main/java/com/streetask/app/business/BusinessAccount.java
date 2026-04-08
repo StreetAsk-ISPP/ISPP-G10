@@ -1,9 +1,11 @@
-package com.streetask.app.user;
+package com.streetask.app.business;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import com.streetask.app.model.Event;
+import com.streetask.app.user.Admin;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +25,8 @@ import lombok.Setter;
 public class BusinessAccount extends User {
 
     // Company legal/commercial name (not unique); the same company can operate in
-    // multiple cities with different platform accounts (unique userName per account).
+    // multiple cities with different platform accounts (unique userName per
+    // account).
     @NotBlank
     @Column(nullable = false)
     private String companyName;
