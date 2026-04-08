@@ -3,8 +3,8 @@ package com.streetask.app.moderation;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.RequestStatus;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.RequestStatus;
 
 import lombok.Getter;
 

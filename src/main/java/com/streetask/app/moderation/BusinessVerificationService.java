@@ -14,9 +14,9 @@ import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.functionalities.notifications.realtime.FrontendNotificationGateway;
 import com.streetask.app.functionalities.notifications.realtime.FrontendNotificationMessage;
 import com.streetask.app.user.Admin;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.BusinessAccountRepository;
-import com.streetask.app.user.RequestStatus;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessAccountRepository;
+import com.streetask.app.business.RequestStatus;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserService;
 
