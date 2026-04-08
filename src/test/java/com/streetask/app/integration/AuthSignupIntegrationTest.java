@@ -1,6 +1,7 @@
 package com.streetask.app.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -159,6 +160,7 @@ class AuthSignupIntegrationTest {
                 assertThat(businessAccount.getAddress()).isEqualTo("Gran Via 1");
                 assertThat(businessAccount.getAuthority().getAuthority()).isEqualTo("BUSINESS");
                 assertThat(businessAccount.getActive()).isFalse();
+
                                 assertThat(businessAccount.getVerified()).isFalse();
                                 assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
                                 assertThat(businessAccount.getSubscriptionActive()).isFalse();
@@ -187,6 +189,8 @@ class AuthSignupIntegrationTest {
                                         .andExpect(status().isBadRequest())
                                         .andExpect(jsonPath("$.message").value(
                                                         "Error: Basic user registration not found. Please complete the basic signup first."));
+
+                assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
         }
 
         @Test
@@ -219,6 +223,35 @@ class AuthSignupIntegrationTest {
                                 .content(objectMapper.writeValueAsString(
                                                 validBusinessPayload("business.two@streetask.com", duplicatedTaxId,
                                                                 "Address 2"))))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Error: Tax ID is already registered!"));
+        }
+
+        @Test
+        void signupBusinessShouldRejectDuplicateTaxIdIgnoringCase() throws Exception {
+                String firstEmail = "business.case.first@streetask.com";
+                String secondEmail = "business.case.second@streetask.com";
+
+                mockMvc.perform(post("/api/v1/auth/signup/basic")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validBasicPayload(firstEmail, "businessCase1"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                validBusinessPayload(firstEmail, "B76543210", "Address One"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(post("/api/v1/auth/signup/basic")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validBasicPayload(secondEmail, "businessCase2"))))
+                                .andExpect(status().isOk());
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(
+                                                validBusinessPayload(secondEmail, "b76543210", "Address Two"))))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message").value("Error: Tax ID is already registered!"));
         }
@@ -266,7 +299,39 @@ class AuthSignupIntegrationTest {
                 mockMvc.perform(post("/api/v1/auth/signup/business")
                                 .contentType(APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(payload)))
-                                .andExpect(status().isBadRequest());
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("companyName")));
+        }
+
+        @Test
+        void signupBusinessShouldReturnBadRequestWhenTaxIdIsMissing() throws Exception {
+                String email = "business.notaxid@streetask.com";
+
+                mockMvc.perform(post("/api/v1/auth/signup/basic")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(validBasicPayload(email, "noTaxIdUser"))))
+                                .andExpect(status().isOk());
+
+                Map<String, Object> payload = validBusinessPayload(email, "B12345679", "Address 5");
+                payload.remove("taxId");
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(payload)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("taxId")));
+        }
+
+        @Test
+        void signupBusinessShouldReturnBadRequestWhenEmailIsMissing() throws Exception {
+                Map<String, Object> payload = validBusinessPayload("business.noemail@streetask.com", "B12345688", "Address 6");
+                payload.remove("email");
+
+                mockMvc.perform(post("/api/v1/auth/signup/business")
+                                .contentType(APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(payload)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("email")));
         }
 
         @Test
