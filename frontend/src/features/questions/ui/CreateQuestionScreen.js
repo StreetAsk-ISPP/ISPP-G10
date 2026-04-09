@@ -329,16 +329,7 @@ export default function CreateQuestionScreen({ navigation }) {
     setPickMode(false);
   };
 
-  const onRadiusInputChange = (text) => {
-    if (!isPremium) {
-      return;
-    }
-    setRadiusInput(text);
-    const parsedMeters = parseRadiusMeters(text);
-    if (parsedMeters !== null) {
-      setRadiusKm(parsedMeters / 1000);
-    }
-  };
+
 
   const onHoursInputChange = (text) => {
     if (!isPremium) {
