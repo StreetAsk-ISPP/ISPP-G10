@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
 import EventService from '../../shared/services/EventService';
 import { theme } from '../../shared/ui/theme/theme';
@@ -10,11 +10,7 @@ export default function EventDetailsScreen({ route }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        loadEventDetails();
-    }, [eventId, loadEventDetails]);
-
-    const loadEventDetails = async () => {
+    const loadEventDetails = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -32,7 +28,11 @@ export default function EventDetailsScreen({ route }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [eventId]);
+
+    useEffect(() => {
+        loadEventDetails();
+    }, [eventId, loadEventDetails]);
 
     if (loading) {
         return (
