@@ -166,7 +166,7 @@ class AuthControllerUnitTest {
         request.setTaxId("B12345678");
         request.setCompanyName("StreetAsk Missing Co");
 
-        when(userService.existsUser("missing.business@streetask.com")).thenReturn(false);
+        when(authService.isPendingBasicSignup("missing.business@streetask.com")).thenReturn(false);
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
 
@@ -174,7 +174,8 @@ class AuthControllerUnitTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage())
                 .isEqualTo("Error: Basic user registration not found. Please complete the basic signup first.");
-        verifyNoInteractions(businessAccountRepository, authService);
+        verify(authService).isPendingBasicSignup("missing.business@streetask.com");
+        verifyNoInteractions(businessAccountRepository);
     }
 
     @Test
@@ -184,7 +185,7 @@ class AuthControllerUnitTest {
         request.setTaxId("b-1234 5678");
         request.setCompanyName("StreetAsk Dup Co");
 
-        when(userService.existsUser("business.dup@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business.dup@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(true);
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
@@ -193,9 +194,9 @@ class AuthControllerUnitTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage()).isEqualTo("Error: Tax ID is already registered!");
         assertThat(request.getTaxId()).isEqualTo("B12345678");
-        verify(userService).existsUser("business.dup@streetask.com");
+        verify(authService).isPendingBasicSignup("business.dup@streetask.com");
         verify(businessAccountRepository).existsByTaxId("B12345678");
-        verifyNoInteractions(authService);
+        verify(authService, org.mockito.Mockito.never()).convertToBusinessUser(any(BusinessSignupRequest.class));
     }
 
     @Test
@@ -205,7 +206,7 @@ class AuthControllerUnitTest {
         request.setTaxId("b-1234 5670");
         request.setCompanyName("StreetAsk Ok Co");
 
-        when(userService.existsUser("business.ok@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business.ok@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345670")).thenReturn(false);
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
@@ -215,7 +216,7 @@ class AuthControllerUnitTest {
         assertThat(response.getBody().getMessage())
                 .isEqualTo("Business account registered successfully! Your account is pending admin verification.");
         assertThat(request.getTaxId()).isEqualTo("B12345670");
-        verify(userService).existsUser("business.ok@streetask.com");
+        verify(authService).isPendingBasicSignup("business.ok@streetask.com");
         verify(businessAccountRepository).existsByTaxId("B12345670");
         verify(authService).convertToBusinessUser(eq(request));
     }
@@ -227,7 +228,7 @@ class AuthControllerUnitTest {
         request.setTaxId("B12345671");
         request.setCompanyName("StreetAsk Fail Co");
 
-        when(userService.existsUser("business.fail@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business.fail@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345671")).thenReturn(false);
         doThrow(new IllegalStateException("boom")).when(authService).convertToBusinessUser(any(BusinessSignupRequest.class));
 

@@ -160,7 +160,35 @@ class AuthSignupIntegrationTest {
                 assertThat(businessAccount.getAddress()).isEqualTo("Gran Via 1");
                 assertThat(businessAccount.getAuthority().getAuthority()).isEqualTo("BUSINESS");
                 assertThat(businessAccount.getActive()).isFalse();
-                assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
+
+                                assertThat(businessAccount.getVerified()).isFalse();
+                                assertThat(businessAccount.getRequestStatus()).isEqualTo(RequestStatus.PENDING);
+                                assertThat(businessAccount.getSubscriptionActive()).isFalse();
+                                assertThat(businessAccount.getVerifiedAt()).isNull();
+                                assertThat(businessAccount.getVerifiedBy()).isNull();
+        }
+
+                @Test
+                void signupBusinessShouldRejectAlreadyCompletedUser() throws Exception {
+                        String email = "business.completed@streetask.com";
+
+                        mockMvc.perform(post("/api/v1/auth/signup/basic")
+                                        .contentType(APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(validBasicPayload(email, "completedUser"))))
+                                        .andExpect(status().isOk());
+
+                        mockMvc.perform(post("/api/v1/auth/signup/regular")
+                                        .contentType(APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(Map.of("email", email))))
+                                        .andExpect(status().isOk());
+
+                        mockMvc.perform(post("/api/v1/auth/signup/business")
+                                        .contentType(APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(
+                                                        validBusinessPayload(email, "B12345680", "Address Completed"))))
+                                        .andExpect(status().isBadRequest())
+                                        .andExpect(jsonPath("$.message").value(
+                                                        "Error: Basic user registration not found. Please complete the basic signup first."));
         }
 
         @Test
