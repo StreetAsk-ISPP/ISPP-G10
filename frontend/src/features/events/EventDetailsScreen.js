@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import EventService from '../../shared/services/EventService';
 import { theme } from '../../shared/ui/theme/theme';
 
-export default function EventDetailsScreen({ route }) {
+export default function EventDetailsScreen({ route, navigation }) {
     const { eventId } = route.params;
     const [event, setEvent] = useState(null);
     const [attendees, setAttendees] = useState([]);
@@ -36,20 +37,34 @@ export default function EventDetailsScreen({ route }) {
 
     if (loading) {
         return (
-            <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color={theme.colors?.primary || '#0066cc'} />
-            </View>
+            <SafeAreaView style={styles.screen}>
+                <View style={styles.headerRed}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={theme.colors?.primary || '#0066cc'} />
+                </View>
+            </SafeAreaView>
         );
     }
 
     if (error || !event) {
         return (
-            <View style={styles.centerContainer}>
-                <Text style={styles.errorText}>{error || 'Event not found'}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={loadEventDetails}>
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
+            <SafeAreaView style={styles.screen}>
+                <View style={styles.headerRed}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>{error || 'Event not found'}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={loadEventDetails}>
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         );
     }
 
@@ -61,8 +76,14 @@ export default function EventDetailsScreen({ route }) {
     );
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={styles.screen}>
+            <View style={styles.headerRed}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.container}>
+                <View style={styles.header}>
                 <Text style={styles.title}>{event.title}</Text>
                 <View style={styles.categoryBadge}>
                     <Text style={styles.category}>{event.category}</Text>
@@ -115,11 +136,16 @@ export default function EventDetailsScreen({ route }) {
                     <Text style={styles.detail}>{event.creator.email}</Text>
                 </View>
             )}
-        </ScrollView>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container: {
         flex: 1,
         backgroundColor: theme.colors?.background || '#fff',
@@ -128,6 +154,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    headerRed: {
+        backgroundColor: '#d90429',
+        padding: 16,
+    },
+    backBtn: {
+        marginBottom: 8,
     },
     header: {
         backgroundColor: theme.colors?.primary || '#0066cc',

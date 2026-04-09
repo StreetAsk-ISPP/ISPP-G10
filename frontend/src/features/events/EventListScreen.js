@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import EventService from '../../shared/services/EventService';
 import { theme } from '../../shared/ui/theme/theme';
 
@@ -53,46 +54,71 @@ export default function EventListScreen({ navigation }) {
 
     if (loading) {
         return (
-            <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color={theme.colors?.primary || '#0066cc'} />
-            </View>
+            <SafeAreaView style={styles.screen}>
+                <View style={styles.headerRed}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={theme.colors?.primary || '#0066cc'} />
+                </View>
+            </SafeAreaView>
         );
     }
 
     if (error) {
         return (
-            <View style={styles.centerContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={loadEvents}>
-                    <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
+            <SafeAreaView style={styles.screen}>
+                <View style={styles.headerRed}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={loadEvents}>
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.headerContainer}>
-                <Text style={styles.header}>Events</Text>
+        <SafeAreaView style={styles.screen}>
+            <View style={styles.headerRed}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
             </View>
-            {events.length === 0 ? (
-                <View style={styles.centerContainer}>
-                    <Text style={styles.emptyText}>No events found</Text>
+            <View style={styles.container}>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.header}>Events</Text>
                 </View>
-            ) : (
-                <FlatList
-                    data={events}
-                    renderItem={renderEventCard}
-                    keyExtractor={(item) => item.id}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                    contentContainerStyle={styles.listContent}
-                />
-            )}
-        </View>
+                {events.length === 0 ? (
+                    <View style={styles.centerContainer}>
+                        <Text style={styles.emptyText}>No events found</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={events}
+                        renderItem={renderEventCard}
+                        keyExtractor={(item) => item.id}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                        contentContainerStyle={styles.listContent}
+                    />
+                )}
+            </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container: {
         flex: 1,
         backgroundColor: theme.colors?.background || '#fff',
@@ -101,6 +127,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    headerRed: {
+        backgroundColor: '#d90429',
+        padding: 16,
+    },
+    backBtn: {
+        marginBottom: 8,
     },
     headerContainer: {
         borderBottomWidth: 3,
