@@ -170,8 +170,8 @@ export default function MapComponent({
     onPermissionChange,
     onMapBoundsChange,
     onVisibleQuestionsChange,
+    showQuestions = true,
 }) {
-export default function MapComponent({ questions = [], onQuestionPress, onLocationChange, onPermissionChange, showQuestions = true }) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
     const [loading, setLoading] = useState(true);
