@@ -16,9 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.Event;
 import com.streetask.app.user.Authorities;
-import com.streetask.app.user.BusinessAccount;
 import com.streetask.app.user.UserRepository;
 
 import jakarta.transaction.Transactional;
