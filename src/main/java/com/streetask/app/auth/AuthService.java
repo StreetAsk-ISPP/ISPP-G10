@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.streetask.app.auth.payload.request.CompleteSignupRequest;
 import com.streetask.app.auth.payload.request.SignupRequest;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessAccountRepository;
+import com.streetask.app.business.RequestStatus;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.AuthoritiesService;
 import com.streetask.app.user.AccountType;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.BusinessAccountRepository;
-import com.streetask.app.user.RequestStatus;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.UserService;
@@ -231,6 +231,7 @@ public class AuthService {
 		if (basicUser instanceof BusinessAccount) {
 			throw new IllegalStateException("User is already a business account.");
 		}
+		validatePendingBasicSignup(basicUser);
 
 		BusinessAccount businessAccount = new BusinessAccount();
 
@@ -250,6 +251,8 @@ public class AuthService {
 		businessAccount.setDescription(request.getDescription());
 
 		businessAccount.setVerified(false);
+		businessAccount.setVerifiedAt(null);
+		businessAccount.setVerifiedBy(null);
 		businessAccount.setRating(0.0f);
 		businessAccount.setRequestStatus(RequestStatus.PENDING);
 		businessAccount.setSubscriptionActive(false);
@@ -263,6 +266,33 @@ public class AuthService {
 		entityManager.flush();
 
 		businessAccountRepository.save(businessAccount);
+	}
+
+	public boolean isPendingBasicSignup(String email) {
+		if (email == null || email.isBlank()) {
+			return false;
+		}
+
+		try {
+			User user = userService.findUser(email.trim());
+			if (user instanceof BusinessAccount) {
+				return true;
+			}
+			return isPendingBasicSignup(user);
+		} catch (Exception exception) {
+			return false;
+		}
+	}
+
+	private void validatePendingBasicSignup(User user) {
+		if (!isPendingBasicSignup(user)) {
+			throw new IllegalStateException("User is not eligible for business signup.");
+		}
+	}
+
+	private boolean isPendingBasicSignup(User user) {
+		return user != null && user.getAccountType() == null && Boolean.FALSE.equals(user.getActive())
+				&& user.hasAuthority("USER");
 	}
 
 }

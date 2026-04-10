@@ -88,7 +88,7 @@ class AuthControllerWebMvcTest {
     void signupBusinessShouldReturnBadRequestWhenBasicUserDoesNotExist() throws Exception {
         Map<String, Object> payload = validBusinessPayload("missing.user@streetask.com", "B12345678", "Address 1");
 
-        when(userService.existsUser("missing.user@streetask.com")).thenReturn(false);
+        when(authService.isPendingBasicSignup("missing.user@streetask.com")).thenReturn(false);
 
         mockMvc.perform(post("/api/v1/auth/signup/business")
                 .contentType(APPLICATION_JSON)
@@ -102,7 +102,7 @@ class AuthControllerWebMvcTest {
     void signupBusinessShouldReturnBadRequestWhenTaxIdAlreadyExists() throws Exception {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
-        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business@streetask.com")).thenReturn(true);
         taxIdExists.set(true);
 
         mockMvc.perform(post("/api/v1/auth/signup/business")
@@ -116,7 +116,7 @@ class AuthControllerWebMvcTest {
     void signupBusinessShouldReturnBadRequestWhenUserIsAlreadyBusinessAccount() throws Exception {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
-        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business@streetask.com")).thenReturn(true);
         taxIdExists.set(false);
         doThrow(new IllegalStateException("User is already a business account."))
                 .when(authService).convertToBusinessUser(any());
@@ -132,7 +132,7 @@ class AuthControllerWebMvcTest {
     void signupBusinessShouldReturnBadRequestWhenConversionFails() throws Exception {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
-        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business@streetask.com")).thenReturn(true);
         taxIdExists.set(false);
         doThrow(new RuntimeException("Unexpected conversion error"))
                 .when(authService).convertToBusinessUser(any());
@@ -148,7 +148,7 @@ class AuthControllerWebMvcTest {
     void signupBusinessShouldReturnOkWhenPayloadIsValid() throws Exception {
         Map<String, Object> payload = validBusinessPayload("business@streetask.com", "B12345678", "Address 1");
 
-        when(userService.existsUser("business@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business@streetask.com")).thenReturn(true);
         taxIdExists.set(false);
 
         mockMvc.perform(post("/api/v1/auth/signup/business")
