@@ -30,6 +30,15 @@ VALUES (
     '11111111-1111-1111-1111-111111111111'
 );
 
+-- Admin profile row required by JOINED inheritance (User -> Admin)
+INSERT INTO admins (id, role, permissions, assigned_at)
+VALUES (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'SUPER_ADMIN',
+    '{"canModerate": true, "canManageUsers": true}',
+    CURRENT_TIMESTAMP
+);
+
 -- Regular user: user1@streetask.com / password: 4dm1n
 -- MySQL/Aiven manual script in DBeaver:
 -- INSERT INTO appusers (id, email, user_name, password, first_name, last_name, authority, account_type, active, created_at)
