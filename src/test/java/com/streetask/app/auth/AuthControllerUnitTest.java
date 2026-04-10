@@ -230,7 +230,8 @@ class AuthControllerUnitTest {
 
         when(authService.isPendingBasicSignup("business.fail@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345671")).thenReturn(false);
-        doThrow(new IllegalStateException("boom")).when(authService).convertToBusinessUser(any(BusinessSignupRequest.class));
+        doThrow(new RuntimeException("Unexpected conversion error")).when(authService)
+                .convertToBusinessUser(any(BusinessSignupRequest.class));
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
 

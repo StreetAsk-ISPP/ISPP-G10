@@ -183,6 +183,8 @@ class BusinessAccountCreationUnitTest {
         basicUser.setPassword("encoded-password");
         basicUser.setFirstName("Pending");
         basicUser.setLastName("Owner");
+        basicUser.setAccountType(null);
+        basicUser.setActive(false);
         basicUser.setCreatedAt(LocalDateTime.of(2026, 4, 8, 12, 0));
         basicUser.setActive(false);
 
@@ -192,6 +194,8 @@ class BusinessAccountCreationUnitTest {
 
         Authorities businessAuthority = new Authorities();
         businessAuthority.setAuthority("BUSINESS");
+
+        basicUser.setAuthority(basicAuthority);
 
         when(userService.findUser("business.pending@streetask.com")).thenReturn(basicUser);
         when(authoritiesService.findByAuthority("BUSINESS")).thenReturn(businessAuthority);

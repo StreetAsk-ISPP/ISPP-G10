@@ -106,6 +106,7 @@ public class SecurityConfiguration {
 
 						// Questions & Answers require auth
 						.requestMatchers("/api/v1/questions/**").authenticated()
+						.requestMatchers("/api/v1/events/**").authenticated()
 						.requestMatchers("/api/v1/answers", "/api/v1/answers/**").authenticated()
 						.requestMatchers("/api/v1/reports/**").authenticated()
 
