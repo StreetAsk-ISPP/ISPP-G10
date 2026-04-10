@@ -558,11 +558,6 @@ export default function QuestionThreadScreen({ route, navigation }) {
         }
     };
 
-    const openMapPick = () => {
-        setTempLat(userLocation?.latitude || null);
-        setTempLng(userLocation?.longitude || null);
-        setPickMode(true);
-    };
     const cancelMapPick = () => { setPickMode(false); setTempLat(null); setTempLng(null); };
     const confirmMapPick = () => {
         if (typeof tempLat !== 'number' || typeof tempLng !== 'number') {

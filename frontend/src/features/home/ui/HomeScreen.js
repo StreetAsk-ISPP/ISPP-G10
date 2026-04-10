@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapComponent from './components/MapComponent';
+import QuestionsSidebar from './components/QuestionsSidebar';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import { useNotifications } from '../../../app/providers/NotificationProvider';
 import ConfirmationModal from '../../../shared/components/ConfirmationModal';
@@ -50,6 +51,11 @@ export default function HomeScreen({ navigation }) {
     const [feedbackSuccessMessage, setFeedbackSuccessMessage] = useState('');
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Estados para el sidebar de preguntas
+    const [sidebarVisible, setSidebarVisible] = useState(false);
+    const [mapCenter, setMapCenter] = useState(null);
+    const [visibleQuestionsIds, setVisibleQuestionsIds] = useState([]);
 
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
@@ -408,14 +414,46 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
-                            questions={showQuestions ? questions : []}
+                            questions={questions}
+                            showQuestions={showQuestions}
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }
                             onLocationChange={setCurrentLocation}
                             onPermissionChange={setHasLocationPermission}
+                            onMapBoundsChange={setMapCenter}
+                            onVisibleQuestionsChange={setVisibleQuestionsIds}
                         />
                     </View>
+
+                    {/* Botón para mostrar/ocultar sidebar - Posicionado absolutamente */}
+                    {!sidebarVisible && (
+                        <TouchableOpacity
+                            style={styles.sidebarToggleBtn}
+                            onPress={() => setSidebarVisible(!sidebarVisible)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name="list-outline"
+                                size={24}
+                                color="#fff"
+                            />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Sidebar de preguntas */}
+                    <QuestionsSidebar
+                        visible={sidebarVisible}
+                        questions={showQuestions ? questions : []}
+                        visibleQuestionsIds={visibleQuestionsIds}
+                        mapCenter={mapCenter}
+                        userLocation={currentLocation}
+                        onToggle={() => setSidebarVisible(!sidebarVisible)}
+                        onQuestionPress={(qId) => {
+                            setSidebarVisible(false);
+                            navigation.navigate('QuestionThread', { questionId: qId });
+                        }}
+                    />
 
                     <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
                         <Text style={styles.toggleLabel}>Show Questions</Text>
@@ -716,20 +754,39 @@ const styles = StyleSheet.create({
         flex: 1,
         overflow: 'hidden',
     },
+    sidebarToggleBtn: {
+        position: 'absolute',
+        top: '50%',
+        left: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#a52019',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 5,
+        zIndex: 101,
+        transform: [{ translateY: -24 }],
+    },
     footer: {
         backgroundColor: '#fff',
         paddingVertical: 12,
         paddingHorizontal: 20,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-end',
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
     },
     toggleLabel: {
-        flex: 1,
         fontSize: 14,
         fontWeight: '600',
         color: '#a52019',
+        marginRight: 12,
     },
     fab: {
         position: 'absolute',

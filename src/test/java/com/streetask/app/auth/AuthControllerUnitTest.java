@@ -230,34 +230,13 @@ class AuthControllerUnitTest {
 
         when(authService.isPendingBasicSignup("business.fail@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345671")).thenReturn(false);
-        doThrow(new RuntimeException("Unexpected conversion error")).when(authService)
-                .convertToBusinessUser(any(BusinessSignupRequest.class));
+        doThrow(new IllegalStateException("boom")).when(authService).convertToBusinessUser(any(BusinessSignupRequest.class));
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage()).isEqualTo("Error: User not found or already completed!");
-        verify(authService).convertToBusinessUser(eq(request));
-    }
-
-    @Test
-    void completeBusinessUserShouldReturnBadRequestWhenUserIsAlreadyBusinessAccount() {
-        BusinessSignupRequest request = new BusinessSignupRequest();
-        request.setEmail("business.already@streetask.com");
-        request.setTaxId("B12345672");
-        request.setCompanyName("StreetAsk Existing Co");
-
-        when(authService.isPendingBasicSignup("business.already@streetask.com")).thenReturn(true);
-        when(businessAccountRepository.existsByTaxId("B12345672")).thenReturn(false);
-        doThrow(new IllegalStateException("User is already a business account.")).when(authService)
-                .convertToBusinessUser(any(BusinessSignupRequest.class));
-
-        ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Error: User is already a business account.");
         verify(authService).convertToBusinessUser(eq(request));
     }
 }

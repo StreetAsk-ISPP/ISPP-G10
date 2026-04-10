@@ -4,5 +4,6 @@ public enum NotificationType {
     NEARBY_QUESTION,
     NEARBY_EVENT,
     ANSWER_TO_QUESTION,
-    STRIKE
+    STRIKE,
+    BUSINESS_VERIFICATION
 }

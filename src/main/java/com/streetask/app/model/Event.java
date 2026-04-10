@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.streetask.app.model.enums.EventCategory;
-import com.streetask.app.user.BusinessAccount;
+import com.streetask.app.business.BusinessAccount;
 
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
