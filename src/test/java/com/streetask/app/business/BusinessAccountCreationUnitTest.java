@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -189,12 +188,9 @@ class BusinessAccountCreationUnitTest {
         basicUser.setCreatedAt(LocalDateTime.of(2026, 4, 8, 12, 0));
         basicUser.setActive(false);
 
-        Authorities userAuthority = new Authorities();
-        userAuthority.setAuthority("USER");
-        basicUser.setAuthority(userAuthority);
-
         Authorities basicAuthority = new Authorities();
         basicAuthority.setAuthority("USER");
+        basicUser.setAuthority(basicAuthority);
 
         Authorities businessAuthority = new Authorities();
         businessAuthority.setAuthority("BUSINESS");
