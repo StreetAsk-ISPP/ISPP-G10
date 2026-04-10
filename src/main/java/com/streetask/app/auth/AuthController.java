@@ -138,6 +138,8 @@ public class AuthController {
 			authService.convertToBusinessUser(signUpRequest);
 			return ResponseEntity.ok(new MessageResponse(
 					"Business account registered successfully! Your account is pending admin verification."));
+		} catch (IllegalStateException exception) {
+			return ResponseEntity.badRequest().body(new MessageResponse("Error: User is already a business account."));
 		} catch (Exception e) {
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: User not found or already completed!"));
 		}

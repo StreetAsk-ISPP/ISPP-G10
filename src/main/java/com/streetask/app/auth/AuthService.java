@@ -228,6 +228,9 @@ public class AuthService {
 	public void convertToBusinessUser(@Valid BusinessSignupRequest request) {
 		// Find the basic user created in the first step
 		User basicUser = userService.findUser(request.getEmail());
+		if (basicUser instanceof BusinessAccount) {
+			throw new IllegalStateException("User is already a business account.");
+		}
 		validatePendingBasicSignup(basicUser);
 
 		BusinessAccount businessAccount = new BusinessAccount();
@@ -272,6 +275,9 @@ public class AuthService {
 
 		try {
 			User user = userService.findUser(email.trim());
+			if (user instanceof BusinessAccount) {
+				return true;
+			}
 			return isPendingBasicSignup(user);
 		} catch (Exception exception) {
 			return false;
