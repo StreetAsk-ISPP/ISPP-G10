@@ -3,6 +3,7 @@ package com.streetask.app.business;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.Event;
 import com.streetask.app.user.Admin;
 import com.streetask.app.user.User;
@@ -59,9 +60,11 @@ public class BusinessAccount extends User {
     @ManyToOne
     private Admin verifiedBy;
 
+    @JsonIgnore
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
 }

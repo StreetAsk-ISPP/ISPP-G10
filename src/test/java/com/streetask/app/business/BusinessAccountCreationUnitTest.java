@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -109,7 +109,7 @@ class BusinessAccountCreationUnitTest {
         request.setCompanyName("StreetAsk Business");
         request.setAddress("Main Street 123");
 
-        when(userService.existsUser("business.ok@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business.ok@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345670")).thenReturn(false);
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
@@ -143,7 +143,7 @@ class BusinessAccountCreationUnitTest {
         request.setTaxId("b-1234 5678");
         request.setCompanyName("StreetAsk Duplicated");
 
-        when(userService.existsUser("business.dup@streetask.com")).thenReturn(true);
+        when(authService.isPendingBasicSignup("business.dup@streetask.com")).thenReturn(true);
         when(businessAccountRepository.existsByTaxId("B12345678")).thenReturn(true);
 
         ResponseEntity<MessageResponse> response = authController.completeBusinessUser(request);
@@ -151,7 +151,8 @@ class BusinessAccountCreationUnitTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage()).isEqualTo("Error: Tax ID is already registered!");
-        verifyNoInteractions(authService);
+        verify(authService).isPendingBasicSignup("business.dup@streetask.com");
+        verify(authService, never()).convertToBusinessUser(any(BusinessSignupRequest.class));
     }
 
     @Test
@@ -182,10 +183,17 @@ class BusinessAccountCreationUnitTest {
         basicUser.setPassword("encoded-password");
         basicUser.setFirstName("Pending");
         basicUser.setLastName("Owner");
+        basicUser.setAccountType(null);
+        basicUser.setActive(false);
         basicUser.setCreatedAt(LocalDateTime.of(2026, 4, 8, 12, 0));
+
+        Authorities basicAuthority = new Authorities();
+        basicAuthority.setAuthority("USER");
 
         Authorities businessAuthority = new Authorities();
         businessAuthority.setAuthority("BUSINESS");
+
+        basicUser.setAuthority(basicAuthority);
 
         when(userService.findUser("business.pending@streetask.com")).thenReturn(basicUser);
         when(authoritiesService.findByAuthority("BUSINESS")).thenReturn(businessAuthority);
