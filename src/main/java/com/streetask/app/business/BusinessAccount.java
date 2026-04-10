@@ -64,6 +64,7 @@ public class BusinessAccount extends User {
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
 }
