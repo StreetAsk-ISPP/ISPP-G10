@@ -3,6 +3,7 @@ package com.streetask.app.user;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.Event;
 
 import jakarta.persistence.Column;
@@ -23,7 +24,8 @@ import lombok.Setter;
 public class BusinessAccount extends User {
 
     // Company legal/commercial name (not unique); the same company can operate in
-    // multiple cities with different platform accounts (unique userName per account).
+    // multiple cities with different platform accounts (unique userName per
+    // account).
     @NotBlank
     @Column(nullable = false)
     private String companyName;
@@ -56,6 +58,7 @@ public class BusinessAccount extends User {
     @ManyToOne
     private Admin verifiedBy;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
 }
