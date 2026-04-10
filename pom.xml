@@ -99,6 +99,14 @@
             <artifactId>angus-mail</artifactId>
             <version>2.0.1</version>
         </dependency>
+                <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
 
         <!-- H2 Database - for development and testing -->
         <dependency>
@@ -196,6 +204,12 @@
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>
             <version>5.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>28.4.0</version>
         </dependency>
 
     </dependencies>

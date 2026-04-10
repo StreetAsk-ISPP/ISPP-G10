@@ -48,6 +48,8 @@ public class Answer extends BaseEntity {
     @PositiveOrZero(message = "Coins earned must be zero or positive")
     private Integer coinsEarned;
 
+    private Boolean rewardClaimed;
+
     @Embedded
     @Valid
     private GeoPoint userLocation;

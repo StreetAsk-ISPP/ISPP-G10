@@ -33,6 +33,64 @@ if (Platform.OS === 'web') {
     }
 }
 
+// Componente que detecta cambios en los bounds del mapa
+const MapBoundsTrackerComponent = ({ questions = [], onBoundsChange, onVisibleQuestionsChange, mapRef }) => {
+    useEffect(() => {
+        if (!mapRef?.current) return;
+
+        const map = mapRef.current;
+
+        const updateBounds = () => {
+            try {
+                const bounds = map.getBounds();
+                const center = map.getCenter();
+
+                onBoundsChange?.({
+                    lat: center.lat,
+                    lng: center.lng,
+                    north: bounds.getNorthEast().lat,
+                    south: bounds.getSouthWest().lat,
+                    east: bounds.getNorthEast().lng,
+                    west: bounds.getSouthWest().lng,
+                });
+
+                // Filtrar preguntas dentro de los bounds
+                const visibleIds = questions
+                    .filter((q) => {
+                        const coords = getQuestionCoords(q);
+                        if (!coords) return false;
+                        return coords.lat >= bounds.getSouthWest().lat &&
+                            coords.lat <= bounds.getNorthEast().lat &&
+                            coords.lng >= bounds.getSouthWest().lng &&
+                            coords.lng <= bounds.getNorthEast().lng;
+                    })
+                    .map((q) => q.id);
+
+                onVisibleQuestionsChange?.(visibleIds);
+            } catch (error) {
+                console.warn('Error updating bounds:', error);
+            }
+        };
+
+        // Agregar event listeners
+        map.on('moveend', updateBounds);
+        map.on('zoomend', updateBounds);
+        map.on('load', updateBounds);
+
+        // Actualizar al cargar por primera vez
+        const timeout = setTimeout(updateBounds, 100);
+
+        return () => {
+            clearTimeout(timeout);
+            map.off('moveend', updateBounds);
+            map.off('zoomend', updateBounds);
+            map.off('load', updateBounds);
+        };
+    }, [mapRef, questions, onBoundsChange, onVisibleQuestionsChange]);
+
+    return null;
+};
+
 // Función para crear iconos SVG personalizados
 const createCustomIcon = (color) => {
     if (!L) return undefined;
@@ -152,6 +210,9 @@ export default function MapComponent({
     onQuestionPress,
     onLocationChange,
     onPermissionChange,
+    onMapBoundsChange,
+    onVisibleQuestionsChange,
+    showQuestions = true,
 }) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
@@ -270,6 +331,12 @@ export default function MapComponent({
     useEffect(() => {
         const ahora = new Date().getTime();
 
+        // Si showQuestions es false, retornar array vacío
+        if (!showQuestions) {
+            setVisibleQuestions([]);
+            return;
+        }
+
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
         const preguntasActivas = questions.filter((q) => {
             const fechaExpiracion = new Date(q.expiresAt).getTime();
@@ -277,7 +344,7 @@ export default function MapComponent({
         });
 
         setVisibleQuestions(preguntasActivas);
-    }, [questions]);
+    }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {
         setVisibleQuestions((prev) => prev.filter((q) => q.id !== questionId));
@@ -361,6 +428,14 @@ export default function MapComponent({
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+
+                    {/* Rastreador de bounds del mapa */}
+                    <MapBoundsTrackerComponent
+                        questions={visibleQuestions}
+                        onBoundsChange={onMapBoundsChange}
+                        onVisibleQuestionsChange={onVisibleQuestionsChange}
+                        mapRef={mapRef}
                     />
 
                     {/* Marcador de tu ubicación */}

@@ -1,10 +1,12 @@
-package com.streetask.app.user;
+package com.streetask.app.business;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.Event;
+import com.streetask.app.user.Admin;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,16 +44,16 @@ public class BusinessAccount extends User {
 
     private String logo;
 
-    private Boolean verified;
+    private Boolean verified = false;
 
-    private Float rating;
+    private Float rating = 0.0f;
 
     private LocalDateTime verifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private RequestStatus requestStatus;
+    private RequestStatus requestStatus = RequestStatus.PENDING;
 
-    private Boolean subscriptionActive;
+    private Boolean subscriptionActive = false;
 
     private LocalDateTime subscriptionExpiresAt;
 
@@ -59,6 +61,9 @@ public class BusinessAccount extends User {
     private Admin verifiedBy;
 
     @JsonIgnore
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
 }

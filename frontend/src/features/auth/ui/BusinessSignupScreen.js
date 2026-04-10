@@ -2,11 +2,12 @@ import { useState } from 'react';
 import {
 	Keyboard, Platform, ScrollView, StyleSheet, Text,
 	TextInput, TouchableOpacity, TouchableWithoutFeedback,
-	View, useWindowDimensions,
+	View, useWindowDimensions, Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
 
 export default function BusinessSignupScreen({ navigation, route }) {
 	const { email } = route.params;
@@ -60,14 +61,28 @@ export default function BusinessSignupScreen({ navigation, route }) {
 				description: description.trim() || null,
 			});
 
-			navigation.navigate('PaymentGatewayPlaceholder', {
+			const checkoutResponse = await apiClient.post('/api/v1/business-subscriptions/stripe/checkout-session', {
 				email,
 				taxId: normalizedTaxId,
-				companyName: companyName.trim(),
-				address: address.trim() || null,
-				website: website.trim() || null,
-				description: description.trim() || null,
 			});
+
+			const checkoutUrl = checkoutResponse?.data?.checkoutUrl;
+			if (!checkoutUrl) {
+				setError('Stripe checkout session could not be initialized.');
+				return;
+			}
+
+			if (Platform.OS === 'web' && typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
+					JSON.stringify({ email, taxId: normalizedTaxId })
+				);
+				window.location.assign(checkoutUrl);
+				return;
+			}
+
+			await Linking.openURL(checkoutUrl);
+			setError('Complete the payment in Stripe and return to the app.');
 		} catch (err) {
 			let msg = err.response?.data?.message || err.response?.data || err.message || 'Registration failed.';
 			msg = typeof msg === 'string' ? msg : JSON.stringify(msg);
