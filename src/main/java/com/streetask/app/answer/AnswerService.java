@@ -10,7 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
@@ -52,6 +51,9 @@ public class AnswerService {
 	private static final int ANSWER_BASE_REWARD = 1;
 	private static final int ANSWER_POSITIVE_VOTE_BONUS = 1;
 	private static final int ANSWER_NEGATIVE_VOTE_PENALTY = -1;
+	private static final int MIN_ANSWER_LENGTH = 10;
+	private static final int MAX_ANSWERS_IN_WINDOW = 5;
+	private static final int RATE_LIMIT_WINDOW_MINUTES = 5;
 
 	@Autowired
 	public AnswerService(AnswerRepository answerRepository, AnswerVoteRepository answerVoteRepository,
@@ -67,8 +69,8 @@ public class AnswerService {
 	@Transactional
 	public Answer saveAnswer(@Valid Answer answer, Question question) throws DataAccessException {
 		attachAuthenticatedUser(answer);
-		// Validate location before saving
 		validateAnswerLocation(answer, question);
+		validateAnswerRateLimit(answer);
 		applyDefaults(answer);
 		Answer savedAnswer = answerRepository.save(answer);
 		savedAnswer = reconcileAnswerCoins(savedAnswer);
@@ -361,6 +363,16 @@ public class AnswerService {
 	}
 
 	private int calculateTargetCoinsEarned(Answer answer) {
+		if (isSelfAnswer(answer)) {
+			return 0;
+		}
+		if (hasAlreadyAnsweredQuestion(answer)) {
+			return 0;
+		}
+		if (isTooShort(answer)) {
+			return 0;
+		}
+
 		int likes = answer.getUpvotes() == null ? 0 : answer.getUpvotes();
 		int dislikes = answer.getDownvotes() == null ? 0 : answer.getDownvotes();
 
@@ -371,6 +383,43 @@ public class AnswerService {
 			return ANSWER_BASE_REWARD + ANSWER_NEGATIVE_VOTE_PENALTY;
 		}
 		return ANSWER_BASE_REWARD;
+	}
+
+	private boolean isSelfAnswer(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return false;
+		}
+		if (answer.getQuestion() == null || answer.getQuestion().getCreator() == null
+				|| answer.getQuestion().getCreator().getId() == null) {
+			return false;
+		}
+		return answer.getUser().getId().equals(answer.getQuestion().getCreator().getId());
+	}
+
+	private boolean hasAlreadyAnsweredQuestion(Answer answer) {
+		if (answer.getId() == null || answer.getUser() == null || answer.getUser().getId() == null
+				|| answer.getQuestion() == null || answer.getQuestion().getId() == null) {
+			return false;
+		}
+		return answerRepository.countByQuestionIdAndUserIdAndIdNot(
+				answer.getQuestion().getId(), answer.getUser().getId(), answer.getId()) > 0;
+	}
+
+	private boolean isTooShort(Answer answer) {
+		String content = answer.getContent();
+		return content == null || content.trim().length() < MIN_ANSWER_LENGTH;
+	}
+
+	private void validateAnswerRateLimit(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return;
+		}
+		OffsetDateTime windowStart = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(RATE_LIMIT_WINDOW_MINUTES);
+		long recentCount = answerRepository.countByUserIdAndCreatedAtAfter(answer.getUser().getId(), windowStart);
+		if (recentCount >= MAX_ANSWERS_IN_WINDOW) {
+			throw new IllegalArgumentException(
+					"You are posting too quickly. Please wait before submitting another answer");
+		}
 	}
 
 	private void attachAuthenticatedUser(Answer answer) {

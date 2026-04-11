@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -150,6 +151,78 @@ class AnswerServiceTest {
         ArgumentCaptor<AnswerCreatedEvent> eventCaptor = ArgumentCaptor.forClass(AnswerCreatedEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
         assertEquals(answerId, eventCaptor.getValue().answerId());
+    }
+
+    @Test
+    void testSaveAnswerByQuestionCreatorEarnsNoCoins() {
+        // Set question creator to the authenticated user — this is a self-answer
+        question.setCreator(authenticatedUser);
+        authenticatedUser.setCoinBalance(5);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        assertEquals(5, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
+    }
+
+    @Test
+    void testSaveAnswerByDifferentUserEarnsCoins() {
+        // Question creator is a different user — reward should be granted
+        RegularUser questionCreator = new RegularUser();
+        questionCreator.setId(UUID.randomUUID());
+        question.setCreator(questionCreator);
+        authenticatedUser.setCoinBalance(0);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(1, savedAnswer.getCoinsEarned());
+        assertEquals(1, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testSaveAnswerWithTooShortContentSavesButEarnsNoCoins() {
+        answer.setContent("Short");
+        authenticatedUser.setCoinBalance(0);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        assertEquals(0, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
+    }
+
+    @Test
+    void testSaveAnswerRateLimitExceededThrows() {
+        when(answerRepository.countByUserIdAndCreatedAtAfter(eq(userId), any(OffsetDateTime.class)))
+                .thenReturn(5L);
+
+        assertThrows(IllegalArgumentException.class, () -> answerService.saveAnswer(answer, question));
+
+        verify(answerRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void testSaveAnswerDuplicateToSameQuestionEarnsNoCoins() {
+        // User already has another answer to the same question
+        when(answerRepository.countByQuestionIdAndUserIdAndIdNot(questionId, userId, answerId))
+                .thenReturn(1L);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
     }
 
     @Test
