@@ -36,6 +36,7 @@ export default function HomeScreen({ navigation }) {
     const isNarrow = width < 500;
 
     const [questions, setQuestions] = useState([]);
+    const [events, setEvents] = useState([]);
     const [showQuestions, setShowQuestions] = useState(true);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
@@ -86,8 +87,19 @@ export default function HomeScreen({ navigation }) {
         }
     }, []);
 
+    const loadEvents = useCallback(async () => {
+        try {
+            const res = await apiClient.get('/api/v1/events?active=true');
+            const raw = res.data;
+            setEvents(Array.isArray(raw) ? raw : []);
+        } catch (e) {
+            console.warn('Failed to load events', e);
+        }
+    }, []);
+
     useFocusEffect(useCallback(() => {
         loadQuestions();
+        loadEvents();
 
         let isMounted = true;
         const checkPremium = async () => {
@@ -101,7 +113,7 @@ export default function HomeScreen({ navigation }) {
         };
         checkPremium();
         return () => { isMounted = false; };
-    }, [loadQuestions, user?.id]));
+    }, [loadEvents, loadQuestions, user?.id]));
 
     useEffect(() => {
         const unsub = observeNotifications((n) => {
@@ -109,6 +121,10 @@ export default function HomeScreen({ navigation }) {
 
             if (n?.type === 'NEARBY_QUESTION') {
                 loadQuestions();
+            }
+
+            if (n?.type === 'NEARBY_EVENT') {
+                loadEvents();
             }
 
             if (
@@ -121,7 +137,7 @@ export default function HomeScreen({ navigation }) {
         });
 
         return unsub;
-    }, [isFocused, loadQuestions, observeNotifications]);
+    }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
 
     useEffect(() => {
         async function initPush() {
@@ -266,6 +282,7 @@ export default function HomeScreen({ navigation }) {
     const handleRefresh = async () => {
         try {
             await loadQuestions();
+            await loadEvents();
         } catch (e) {
             console.warn('Error refreshing data', e);
         }
@@ -414,8 +431,8 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
-                            questions={questions}
-                            showQuestions={showQuestions}
+                            questions={showQuestions ? questions : []}
+                            events={events}
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.streetask.app.model.Report;
 import com.streetask.app.business.BusinessAccount;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,8 +31,10 @@ public class Admin extends User {
     private LocalDateTime assignedAt;
 
     @OneToMany(mappedBy = "resolvedBy")
+    @JsonIgnore
     private List<Report> resolvedReports;
 
     @OneToMany(mappedBy = "verifiedBy")
+    @JsonIgnore
     private List<BusinessAccount> verifiedBusinessAccounts;
 }
