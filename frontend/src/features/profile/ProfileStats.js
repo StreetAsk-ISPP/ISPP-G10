@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -15,6 +15,7 @@ export default function ProfileStats() {
         answers: 0,
         username: '',
         role: '',
+        coinBalance: 0,
         likes: 0,
         dislikes: 0,
         reputation: 0,
@@ -23,6 +24,7 @@ export default function ProfileStats() {
     const [userQuestions, setUserQuestions] = useState([]);
     const [userAnswers, setUserAnswers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showCoinInfo, setShowCoinInfo] = useState(false);
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -45,6 +47,7 @@ export default function ProfileStats() {
                         answers: data.answersCount || 0,
                         username: data.username || user.username,
                         role: data.role === 'ADMIN' ? 'Moderator' : 'Local Expert',
+                        coinBalance: data.coinBalance || 0,
                         likes: data.likesCount || 0,
                         dislikes: data.dislikesCount || 0,
                         reputation: data.reputation || 0,
@@ -123,7 +126,15 @@ export default function ProfileStats() {
                     <View style={styles.coinsRow}>
                         <View style={styles.coinBadge}>
                             <Ionicons name="star" size={16} color="#FFD700" />
-                            <Text style={styles.coinsText}>{serverStats.likes * 10} StreetCoins</Text>
+                            <Text style={styles.coinsText}>{serverStats.coinBalance} StreetCoins</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowCoinInfo(true)}
+                                style={styles.infoButton}
+                                accessibilityRole="button"
+                                accessibilityLabel="How StreetCoins work"
+                            >
+                                <Text style={styles.infoButtonText}>?</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -192,6 +203,31 @@ export default function ProfileStats() {
                 </View>
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            <Modal
+                visible={showCoinInfo}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowCoinInfo(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>How StreetCoins work</Text>
+
+                        <Text style={styles.modalLine}>- +1 coin for each answer you post.</Text>
+                        <Text style={styles.modalLine}>- +1 extra if likes are greater than dislikes.</Text>
+                        <Text style={styles.modalLine}>- -1 if dislikes are greater than likes.</Text>
+
+                        <Text style={styles.modalNote}>
+                            Coins update automatically when votes change.
+                        </Text>
+
+                        <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowCoinInfo(false)}>
+                            <Text style={styles.modalCloseText}>Got it</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -229,6 +265,16 @@ const styles = StyleSheet.create({
     coinsRow: { marginTop: 15 },
     coinBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff9db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#ffec99' },
     coinsText: { color: '#856404', marginLeft: 6, fontSize: 15, fontWeight: '700' },
+    infoButton: {
+        marginLeft: 8,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#856404',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    infoButtonText: { color: '#fff', fontSize: 12, fontWeight: '900' },
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 },
     statBox: {
         backgroundColor: '#fff',
@@ -281,5 +327,29 @@ const styles = StyleSheet.create({
     itemTitle: { fontSize: 14, fontWeight: '700', color: '#2d3436', lineHeight: 20 },
     itemFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
     itemDate: { fontSize: 11, color: '#999', marginLeft: 4, fontWeight: '500' },
-    emptyText: { textAlign: 'center', color: '#adb5bd', marginTop: 30, fontStyle: 'italic', fontSize: 14 }
+    emptyText: { textAlign: 'center', color: '#adb5bd', marginTop: 30, fontStyle: 'italic', fontSize: 14 },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalCard: {
+        width: '100%',
+        maxWidth: 360,
+        backgroundColor: '#fff',
+        borderRadius: 18,
+        padding: 20,
+    },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: '#1a1a1a', marginBottom: 12 },
+    modalLine: { fontSize: 14, color: '#343a40', marginBottom: 8, lineHeight: 20 },
+    modalNote: { fontSize: 12, color: '#6c757d', marginTop: 6, marginBottom: 16 },
+    modalCloseButton: {
+        backgroundColor: '#d90429',
+        borderRadius: 12,
+        paddingVertical: 10,
+        alignItems: 'center',
+    },
+    modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });

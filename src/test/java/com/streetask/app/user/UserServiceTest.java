@@ -506,6 +506,7 @@ class UserServiceTest {
         RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
         user.setTotalLikesReceived(8);
         user.setTotalDislikesReceived(2);
+        user.setCoinBalance(13);
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(user));
         when(questionRepository.countByCreatorId(testUserId)).thenReturn(5L);
         when(answerRepository.countByUserId(testUserId)).thenReturn(10L);
@@ -519,6 +520,7 @@ class UserServiceTest {
         assertEquals("USER", stats.get("role"));
         assertEquals(8, stats.get("likesCount"));
         assertEquals(2, stats.get("dislikesCount"));
+        assertEquals(13, stats.get("coinBalance"));
         assertNotNull(stats.get("reputation"));
         assertEquals(4.0, stats.get("rating"));
         verify(questionRepository).countByCreatorId(testUserId);
@@ -531,6 +533,7 @@ class UserServiceTest {
         RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
         user.setTotalLikesReceived(0);
         user.setTotalDislikesReceived(0);
+        user.setCoinBalance(0);
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(user));
         when(questionRepository.countByCreatorId(testUserId)).thenReturn(0L);
         when(answerRepository.countByUserId(testUserId)).thenReturn(0L);
@@ -542,6 +545,7 @@ class UserServiceTest {
         assertEquals(0L, stats.get("answersCount"));
         assertEquals(0, stats.get("likesCount"));
         assertEquals(0, stats.get("dislikesCount"));
+        assertEquals(0, stats.get("coinBalance"));
         assertEquals(0.0, stats.get("rating"));
     }
 
