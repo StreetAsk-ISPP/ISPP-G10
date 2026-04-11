@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,22 @@ public class QuestionService {
 		this.regularUserRepository = regularUserRepository;
 		this.eventPublisher = eventPublisher;
 	}
+	public long questionsTodayCount(UUID creatorId) {
+		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
+				.filter(q -> q.getCreatedAt().isAfter(LocalDateTime.now(ZoneId.of("UTC")).minusHours(24)))
+				.count();
+	}
+
+	@Transactional(readOnly = true)
+	public long getTodayQuestionCountForAuthenticatedUser() {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String email = auth.getName();
+		
+		RegularUser ru = regularUserRepository.findByEmail(email)
+				.orElseThrow(() -> new AccessDeniedException("Only regular users can check their question count"));
+		
+		return questionsTodayCount(ru.getId());
+	}
 
 	@Transactional
 	public Question saveQuestion(@Valid Question question) throws DataAccessException {
@@ -58,7 +75,13 @@ public class QuestionService {
 		RegularUser ru = regularUserRepository.findByEmail(email)
 				.orElseThrow(() -> new AccessDeniedException("Only regular users can create questions"));
 		boolean isPremium = Boolean.TRUE.equals(ru.getPremiumActive());
-
+		if (!isPremium) {
+			long userQuestionCount = questionRepository.countByCreatorId(ru.getId());
+			long todayQuestionCount = questionsTodayCount(ru.getId());
+			if (todayQuestionCount >= 3) {
+				throw new UpperPlanFeatureException("Free plan users can only create up to 3 questions.");
+			}
+		}
 		question.setCreator(ru);
 		question.setRadiusKm(resolveRadiusKm(question.getRadiusKm(), isPremium));
 		applyDefaults(question, isPremium);
