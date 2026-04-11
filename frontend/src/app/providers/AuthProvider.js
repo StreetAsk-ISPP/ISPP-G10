@@ -53,6 +53,29 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(false);
   };
 
+  /**
+   * Update user roles after role change.
+   * Called after successful role change from backend.
+   */
+  const updateUserRoles = async (newToken, newRoles) => {
+    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    setToken(newToken);
+
+    // Update user object with new roles
+    setUser((prevUser) => ({
+      ...prevUser,
+      roles: newRoles,
+    }));
+
+    // Also update AsyncStorage
+    const userData = await AsyncStorage.getItem(USER_STORAGE_KEY);
+    if (userData) {
+      const userObj = JSON.parse(userData);
+      userObj.roles = newRoles;
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userObj));
+    }
+  };
+
   const value = useMemo(
     () => ({
       isAuthenticated,
@@ -61,6 +84,7 @@ export function AuthProvider({ children }) {
       token,
       login,
       logout,
+      updateUserRoles,
     }),
     [isAuthenticated, isLoadingAuth, user, token]
   );

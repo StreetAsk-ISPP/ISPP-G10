@@ -92,6 +92,7 @@ public class SecurityConfiguration {
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/stats").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/questions").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/answers").authenticated()
+						.requestMatchers(HttpMethod.PUT, "/api/v1/users/*/role").authenticated()
 						.requestMatchers(HttpMethod.PUT, "/api/v1/users/*").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*").authenticated()
 

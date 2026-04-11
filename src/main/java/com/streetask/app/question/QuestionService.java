@@ -1,8 +1,9 @@
 package com.streetask.app.question;
 
-import java.time.LocalDateTime;
 import java.time.Duration;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.beans.BeanUtils;
@@ -146,7 +147,7 @@ public class QuestionService {
 
 	private void applyDefaults(Question question, boolean isPremium) {
 		if (question.getCreatedAt() == null) {
-			question.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
+			question.setCreatedAt(Instant.now());
 		}
 		if (question.getActive() == null) {
 			question.setActive(true);
@@ -155,11 +156,10 @@ public class QuestionService {
 			question.setAnswerCount(0);
 		}
 		if (question.getExpiresAt() == null) {
-			question.setExpiresAt(question.getCreatedAt().plusHours(FREE_DURATION_HOURS));
+			question.setExpiresAt(question.getCreatedAt().plus(FREE_DURATION_HOURS, ChronoUnit.HOURS));
 		}
-
 		if (!isPremium) {
-			question.setExpiresAt(question.getCreatedAt().plusHours(FREE_DURATION_HOURS));
+			question.setExpiresAt(question.getCreatedAt().plus(FREE_DURATION_HOURS, ChronoUnit.HOURS));
 			return;
 		}
 

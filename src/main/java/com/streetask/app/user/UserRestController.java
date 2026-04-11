@@ -33,6 +33,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.streetask.app.auth.AuthService;
+import com.streetask.app.auth.payload.request.ChangeRoleRequest;
+import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.util.RestPreconditions;
@@ -47,11 +50,13 @@ class UserRestController {
 
     private final UserService userService;
     private final AuthoritiesService authService;
+    private final AuthService authServiceImpl;
 
     @Autowired
-    public UserRestController(UserService userService, AuthoritiesService authService) {
+    public UserRestController(UserService userService, AuthoritiesService authService, AuthService authServiceImpl) {
         this.userService = userService;
         this.authService = authService;
+        this.authServiceImpl = authServiceImpl;
     }
 
     @GetMapping
@@ -102,20 +107,20 @@ class UserRestController {
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
-	@PutMapping(value = "{userId}")
-	@ResponseStatus(HttpStatus.OK)
-	public ResponseEntity<User> update(@PathVariable("userId") UUID id, @RequestBody @Valid User user) {
-		RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);
+    @PutMapping(value = "{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<User> update(@PathVariable("userId") UUID id, @RequestBody @Valid User user) {
+        RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);
 
-		User currentUser = userService.findCurrentUser();
-		boolean isAdmin = currentUser.hasAuthority("ADMIN");
-		boolean isOwner = currentUser.getId().equals(id);
+        User currentUser = userService.findCurrentUser();
+        boolean isAdmin = currentUser.hasAuthority("ADMIN");
+        boolean isOwner = currentUser.getId().equals(id);
 
-		if (!isAdmin && !isOwner) {
-			throw new AccessDeniedException("You don't have permission to edit this profile.");
-		}
-		return new ResponseEntity<>(this.userService.updateUser(user, id), HttpStatus.OK);
-	}
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("You don't have permission to edit this profile.");
+        }
+        return new ResponseEntity<>(this.userService.updateUser(user, id), HttpStatus.OK);
+    }
 
     @DeleteMapping(value = "{userId}")
     @ResponseStatus(HttpStatus.OK)
@@ -132,7 +137,8 @@ class UserRestController {
     public ResponseEntity<Map<String, Object>> getUserStats(@PathVariable("id") UUID id) {
         RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);
 
-        // Este método ya incluye 'bio' y 'profilePictureUrl' en el Map gracias al cambio en UserService
+        // Este método ya incluye 'bio' y 'profilePictureUrl' en el Map gracias al
+        // cambio en UserService
         Map<String, Object> stats = userService.getUserStats(id);
         return new ResponseEntity<>(stats, HttpStatus.OK);
     }
@@ -147,6 +153,32 @@ class UserRestController {
     public ResponseEntity<Iterable<com.streetask.app.model.Answer>> getUserAnswers(@PathVariable("id") UUID id) {
         RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);
         return new ResponseEntity<>(userService.findAnswersByUserId(id), HttpStatus.OK);
+    }
+
+    @PutMapping(value = "/{id}/role")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<JwtResponse> changeUserRole(@PathVariable("id") UUID userId,
+            @RequestBody @Valid ChangeRoleRequest request) {
+        RestPreconditions.checkNotNull(userService.findUser(userId), "User", "ID", userId);
+
+        User currentUser = userService.findCurrentUser();
+        boolean isAdmin = currentUser.hasAuthority("ADMIN");
+        boolean isSelf = currentUser.getId().equals(userId);
+
+        // Only admin or user can change their own role
+        if (!isAdmin && !isSelf) {
+            throw new AccessDeniedException("You don't have permission to change this user's role.");
+        }
+
+        try {
+            JwtResponse jwtResponse = authServiceImpl.changeUserAccountType(userId, request.getNewAccountType(),
+                    isAdmin ? currentUser.getId() : null, request.getReason(), null);
+            return new ResponseEntity<>(jwtResponse, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (AccessDeniedException e) {
+            throw e;
+        }
     }
 
 }

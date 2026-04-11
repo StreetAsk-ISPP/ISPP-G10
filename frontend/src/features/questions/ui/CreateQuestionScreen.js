@@ -49,14 +49,16 @@ const parseHours = (rawValue) => {
 };
 
 const isPremiumRadiusValid = (valueMeters) => {
-  return valueMeters !== null && valueMeters >= PREMIUM_MIN_RADIUS_M && valueMeters <= PREMIUM_MAX_RADIUS_M;
+  return (
+    valueMeters !== null &&
+    valueMeters >= PREMIUM_MIN_RADIUS_M &&
+    valueMeters <= PREMIUM_MAX_RADIUS_M
+  );
 };
 
 const isPremiumHoursValid = (value) => {
   return (
-    value !== null &&
-    value >= PREMIUM_MIN_DURATION_HOURS &&
-    value <= PREMIUM_MAX_DURATION_HOURS
+    value !== null && value >= PREMIUM_MIN_DURATION_HOURS && value <= PREMIUM_MAX_DURATION_HOURS
   );
 };
 
@@ -107,38 +109,40 @@ export default function CreateQuestionScreen({ navigation }) {
     });
   }, []);
 
-  const submitQuestion = useCallback(async (payload) => {
-    setIsSubmitting(true);
-    try {
-      await apiClient.post('/api/v1/questions', payload);
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Question created!',
-        position: 'top',
-      });
-      navigation.goBack();
-    } catch (e) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: e.response?.data?.message || e.message,
-        position: 'top',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [navigation]);
+  const submitQuestion = useCallback(
+    async (payload) => {
+      console.log(payload);
+
+      setIsSubmitting(true);
+      try {
+        await apiClient.post('/api/v1/questions', payload);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Question created!',
+          position: 'top',
+        });
+        navigation.goBack();
+      } catch (e) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: e.response?.data?.message || e.message,
+          position: 'top',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [navigation]
+  );
 
   useEffect(() => {
-    let isMounted = true;
-
     const loadUserPlanSettings = async () => {
       if (!user?.id) return;
       try {
         const response = await apiClient.get(`/api/v1/users/${user.id}`);
-        if (!isMounted) return;
-
+        console.log(response.data);
         const premiumFlag = response?.data?.premiumActive === true;
         setIsPremium(premiumFlag);
 
@@ -153,10 +157,7 @@ export default function CreateQuestionScreen({ navigation }) {
     };
 
     loadUserPlanSettings();
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id]);
+  }, [user?.id, user?.accountType]);
 
   useEffect(() => {
     let isMounted = true;
@@ -219,11 +220,7 @@ export default function CreateQuestionScreen({ navigation }) {
 
   const canPost = useMemo(
     () =>
-      title.trim() &&
-      content.trim() &&
-      premiumRadiusValid &&
-      premiumHoursValid &&
-      !isSubmitting,
+      title.trim() && content.trim() && premiumRadiusValid && premiumHoursValid && !isSubmitting,
     [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting]
   );
 
@@ -234,7 +231,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'info',
         text1: 'Address missing',
         text2: 'Enter a street or place to search.',
-        position: 'top'
+        position: 'top',
       });
       return;
     }
@@ -258,9 +255,8 @@ export default function CreateQuestionScreen({ navigation }) {
           type: 'info',
           text1: 'No results',
           text2: 'No addresses were found. Try being more specific.',
-          position: 'top'
+          position: 'top',
         });
-
       }
       if (items.length === 1) {
         setLatitude(items[0].lat);
@@ -274,7 +270,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'error',
         text1: 'Search error',
         text2: 'The address could not be found. Please try again.',
-        position: 'top'
+        position: 'top',
       });
     } finally {
       setSearching(false);
@@ -317,7 +313,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'info',
         text1: 'Select a point',
         text2: 'Tap on the map to choose a location.',
-        position: 'top'
+        position: 'top',
       });
       return;
     }
@@ -328,8 +324,6 @@ export default function CreateQuestionScreen({ navigation }) {
     setSearchResults([]);
     setPickMode(false);
   };
-
-
 
   const onHoursInputChange = (text) => {
     if (!isPremium) {
@@ -447,14 +441,17 @@ export default function CreateQuestionScreen({ navigation }) {
                     </Text>
                     <Text style={styles.sliderMax}>1000 m</Text>
                   </View>
-                </View>) : (
+                </View>
+              ) : (
                 <View style={styles.lockedBox}>
                   <Ionicons name="lock-closed" size={14} color="#6b7280" />
                   <Text style={styles.lockedText}>Fixed for free plan: 500 m</Text>
                 </View>
               )}
               {showRadiusRangeError ? (
-                <Text style={styles.radiusErrorText}>Premium radius must be between 50 m and 1000 m.</Text>
+                <Text style={styles.radiusErrorText}>
+                  Premium radius must be between 50 m and 1000 m.
+                </Text>
               ) : null}
               <Text style={styles.mapZoneText}>
                 The red circle is the response area for this question.
@@ -497,7 +494,7 @@ export default function CreateQuestionScreen({ navigation }) {
             pickEnabled={false}
             tempLat={tempLat}
             tempLng={tempLng}
-            onPick={() => { }}
+            onPick={() => {}}
           />
         </View>
 
