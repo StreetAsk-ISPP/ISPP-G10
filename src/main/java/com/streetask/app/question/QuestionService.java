@@ -51,8 +51,10 @@ public class QuestionService {
 		this.eventPublisher = eventPublisher;
 	}
 	public long questionsTodayCount(UUID creatorId) {
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
 		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
-				.filter(q -> q.getCreatedAt().isAfter(LocalDateTime.now(ZoneId.of("UTC")).minusHours(24)))
+				.filter(q -> q.getCreatedAt().isAfter(startOfDay))
 				.count();
 	}
 
