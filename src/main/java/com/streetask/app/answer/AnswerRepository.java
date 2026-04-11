@@ -1,5 +1,6 @@
 package com.streetask.app.answer;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +43,10 @@ public interface AnswerRepository extends CrudRepository<Answer, UUID> {
 	List<Object[]> aggregateVotesByUserIds(Collection<UUID> userIds);
 
 	long countByUserId(UUID userId);
+
+	long countByQuestionIdAndUserIdAndIdNot(UUID questionId, UUID userId, UUID id);
+
+	long countByUserIdAndCreatedAtAfter(UUID userId, OffsetDateTime since);
 
 	@Modifying
 	@Query("UPDATE Answer a SET a.rewardClaimed = true WHERE a.id = :answerId AND (a.rewardClaimed = false OR a.rewardClaimed IS NULL)")
