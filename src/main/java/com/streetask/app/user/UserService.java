@@ -35,7 +35,6 @@ public class UserService {
     private static final int LIKE_WEIGHT = 2;
     private static final int DISLIKE_WEIGHT = 1;
 
-
     @Autowired
     public UserService(UserRepository userRepository, AnswerRepository answerRepository,
             QuestionRepository questionRepository, PasswordEncoder passwordEncoder) {
@@ -103,13 +102,13 @@ public class UserService {
 
         String previousPassword = toUpdate.getPassword();
 
-		BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
+        BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
 
-		if (user.getPassword() == null || user.getPassword().isBlank()) {
-			toUpdate.setPassword(previousPassword);
-		} else {
-			toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
-		}
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            toUpdate.setPassword(previousPassword);
+        } else {
+            toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
+        }
 
         userRepository.save(toUpdate);
         return enrichReputation(toUpdate);
@@ -164,42 +163,44 @@ public class UserService {
     public Map<String, Object> getUserStats(UUID userId) {
         User user = findUser(userId);
 
-		long questionsCount = questionRepository.countByCreatorId(userId);
-		long answersCount = answerRepository.countByUserId(userId);
-
+        long questionsCount = questionRepository.countByCreatorId(userId);
+        long answersCount = answerRepository.countByUserId(userId);
 
         int likesCount = 0;
         int dislikesCount = 0;
+        int coinBalance = 0;
         if (user instanceof RegularUser regularUser) {
             likesCount = regularUser.getTotalLikesReceived() == null ? 0 : regularUser.getTotalLikesReceived();
             dislikesCount = regularUser.getTotalDislikesReceived() == null ? 0 : regularUser.getTotalDislikesReceived();
+            coinBalance = regularUser.getCoinBalance() == null ? 0 : regularUser.getCoinBalance();
         }
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("questionsCount", questionsCount);
         stats.put("answersCount", answersCount);
         stats.put("username", user.getUserName());
-        
+
         stats.put("bio", user.getBio());
         stats.put("profilePictureUrl", user.getProfilePictureUrl());
 
         stats.put("role", user.getAuthority().getAuthority());
         stats.put("likesCount", likesCount);
         stats.put("dislikesCount", dislikesCount);
+        stats.put("coinBalance", coinBalance);
         int reputation = (likesCount * LIKE_WEIGHT) - (dislikesCount * DISLIKE_WEIGHT);
         stats.put("reputation", reputation);
 
-		// Calculate rating on a 0-5 scale from vote ratio.
-		// Formula: likes / (likes + dislikes) * 5
-		int totalInteractions = likesCount + dislikesCount;
-		double rating = 0.0;
-		if (totalInteractions > 0) {
-			rating = ((double) likesCount / (double) totalInteractions) * 5.0;
-			if (rating > 5.0) {
-				rating = 5.0;
-			}
-			rating = Math.round(rating * 10.0) / 10.0;
-		}
+        // Calculate rating on a 0-5 scale from vote ratio.
+        // Formula: likes / (likes + dislikes) * 5
+        int totalInteractions = likesCount + dislikesCount;
+        double rating = 0.0;
+        if (totalInteractions > 0) {
+            rating = ((double) likesCount / (double) totalInteractions) * 5.0;
+            if (rating > 5.0) {
+                rating = 5.0;
+            }
+            rating = Math.round(rating * 10.0) / 10.0;
+        }
 
         stats.put("rating", rating);
 
