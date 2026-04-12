@@ -154,7 +154,7 @@ export default function BusinessVerificationStatusScreen() {
 
                                 {verification.requestStatus === 'PENDING' ? (
                                     <Text style={styles.warningText}>
-                                        Payment is not available until your business is approved.
+                                        Your premium access will be activated once your business is approved.
                                     </Text>
                                 ) : null}
 
