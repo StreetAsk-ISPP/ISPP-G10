@@ -84,6 +84,7 @@ export default function CreateQuestionScreen({ navigation }) {
   const [userLng, setUserLng] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [todayQuestionCount, setTodayQuestionCount] = useState(0);
   // const [showFakeAd, setShowFakeAd] = useState(false);
   // const [adSecondsLeft, setAdSecondsLeft] = useState(FAKE_AD_DURATION_SECONDS);
   // const [queuedPayload, setQueuedPayload] = useState(null);
@@ -161,6 +162,26 @@ export default function CreateQuestionScreen({ navigation }) {
   useEffect(() => {
     let isMounted = true;
 
+    const loadTodayQuestionCount = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await apiClient.get('/api/v1/questions/today-count');
+        if (!isMounted) return;
+        setTodayQuestionCount(response?.data ?? 0);
+      } catch (e) {
+        console.warn('Unable to load today question count:', e?.message || e);
+      }
+    };
+
+    loadTodayQuestionCount();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
     const preloadCurrentLocation = async () => {
       const coords = await getCurrentPositionWeb();
       if (!isMounted || !coords) {
@@ -216,6 +237,7 @@ export default function CreateQuestionScreen({ navigation }) {
   const premiumRadiusValid = !isPremium || isPremiumRadiusValid(parsedRadiusMeters);
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
+  const dailyLimitReached = !isPremium && todayQuestionCount >= 3;
 
   const canPost = useMemo(
     () =>
@@ -223,8 +245,9 @@ export default function CreateQuestionScreen({ navigation }) {
       content.trim() &&
       premiumRadiusValid &&
       premiumHoursValid &&
-      !isSubmitting,
-    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting]
+      !isSubmitting &&
+      !dailyLimitReached,
+    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting, dailyLimitReached]
   );
 
   const searchAddress = async () => {
@@ -662,9 +685,37 @@ export default function CreateQuestionScreen({ navigation }) {
                   <Text style={styles.timeChipText}>h</Text>
                 </View>
               ) : (
-                <Text style={styles.timeChipText}>Duration: 2h (fixed in free plan)</Text>
+                <View>
+                  <Text style={styles.timeChipText}>Duration: 2h (fixed in free plan)</Text>
+                  <Text style={styles.timeChipText}>Max 3 questions a day (fixed in free plan)</Text>
+                </View>
               )}
             </View>
+
+            {dailyLimitReached && (
+              <View style={styles.dailyLimitWarning}>
+                <Ionicons name="alert-circle" size={16} color="#dc2626" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.dailyLimitTitle}>Daily limit reached</Text>
+                  <Text style={styles.dailyLimitText}>
+                    You can create a maximum of 3 questions per day. You can add more
+                    by using the coins you gain while answering questions,
+                    or by upgrading to the premium plan.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.shopBtn}
+                  onPress={() => {
+                    // Shop functionality to be implemented
+                    console.log('Shop button pressed');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.shopBtnText}>Shop</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* TODO if (!isPremium && todayQuestionCount >= 3) {*/}
             {/* Legacy free-plan helper (disabled):
             {!isPremium ? (
               <Text style={styles.helperText}>
@@ -1053,4 +1104,40 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   postBtnText: { fontWeight: '700', fontSize: 15, color: '#fff' },
+  dailyLimitWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#fee2e2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 16,
+  },
+  dailyLimitTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#dc2626',
+    marginBottom: 2,
+  },
+  dailyLimitText: {
+    fontSize: 12,
+    color: '#991b1b',
+    lineHeight: 16,
+  },
+  shopBtn: {
+    backgroundColor: '#dc2626',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });

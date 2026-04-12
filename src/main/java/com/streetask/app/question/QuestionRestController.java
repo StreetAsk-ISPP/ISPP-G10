@@ -64,6 +64,12 @@ public class QuestionRestController {
 		return new ResponseEntity<>(questionService.findQuestion(id), HttpStatus.OK);
 	}
 
+	@GetMapping("/today-count")
+	public ResponseEntity<Long> getTodayQuestionCount() {
+		long count = questionService.getTodayQuestionCountForAuthenticatedUser();
+		return new ResponseEntity<>(count, HttpStatus.OK);
+	}
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<Question> create(@RequestBody @Valid Question question) {

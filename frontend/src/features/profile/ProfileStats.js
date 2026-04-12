@@ -214,9 +214,9 @@ export default function ProfileStats() {
                     <View style={styles.modalCard}>
                         <Text style={styles.modalTitle}>How StreetCoins work</Text>
 
-                        <Text style={styles.modalLine}>- +1 coin for each answer you post.</Text>
-                        <Text style={styles.modalLine}>- +1 extra if likes are greater than dislikes.</Text>
-                        <Text style={styles.modalLine}>- -1 if dislikes are greater than likes.</Text>
+                        <Text style={styles.modalLine}>+1 coin for each answer you post (minimum 10 characters).</Text>
+                        <Text style={styles.modalLine}>+1 extra if likes are greater than dislikes.</Text>
+                        <Text style={styles.modalLine}>-1 if dislikes are greater than likes.</Text>
 
                         <Text style={styles.modalNote}>
                             Coins update automatically when votes change.
