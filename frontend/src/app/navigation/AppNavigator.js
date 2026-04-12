@@ -22,7 +22,6 @@ import BusinessVerificationStatusScreen from '../../features/business/ui/Busines
 import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
-import SettingsScreen from '../../features/profile/SettingsScreen';
 import EventListScreen from '../../features/events/EventListScreen';
 import EventDetailsScreen from '../../features/events/EventDetailsScreen';
 import { useAuth } from '../providers/AuthProvider';
@@ -259,7 +258,6 @@ export default function AppNavigator() {
                                 <Stack.Screen name="EditProfile" component={EditProfileScreen} />
                                 <Stack.Screen name="Balance" component={BalanceScreen} options={{ headerShown: false }} />
                                 <Stack.Screen name="MyPurchases" component={MyPurchasesScreen} options={{ headerShown: false }} />
-                                <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
                                 <Stack.Screen name="BusinessVerificationStatus" component={BusinessVerificationStatusScreen} options={{ headerShown: false }} />
                             </>
                         )

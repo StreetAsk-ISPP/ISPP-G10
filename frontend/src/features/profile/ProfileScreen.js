@@ -307,11 +307,6 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.menuItemText}>My purchases</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
-          <Ionicons name="settings-outline" size={24} color="#fff" />
-          <Text style={styles.menuItemText}>Settings</Text>
-        </TouchableOpacity>
-
         {user?.roles?.includes('BUSINESS') && (
           <TouchableOpacity
             style={[styles.menuItem, { backgroundColor: '#1e40af' }]}
