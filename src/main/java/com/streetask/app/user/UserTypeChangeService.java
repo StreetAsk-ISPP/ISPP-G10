@@ -159,10 +159,6 @@ public class UserTypeChangeService {
      * issues.
      */
     private void convertToRegularUser(User user) {
-        if (user instanceof RegularUser) {
-            return; // Already a RegularUser
-        }
-
         // SECURITY: Clean up EventAttendance records that reference this user
         int deletedAttendances = entityManager.createQuery(
                 "DELETE FROM EventAttendance ea WHERE ea.regularUser.id = :userId").setParameter("userId", user.getId())

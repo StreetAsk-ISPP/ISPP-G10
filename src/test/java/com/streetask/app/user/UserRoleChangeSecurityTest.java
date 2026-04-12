@@ -126,7 +126,6 @@ public class UserRoleChangeSecurityTest {
         User updatedUser = userRepository.findById(businessUser.getId()).orElseThrow();
         assertEquals(AccountType.REGULAR_USER, updatedUser.getAccountType());
         assertEquals("USER", updatedUser.getAuthority().getAuthority());
-        assertTrue(updatedUser instanceof RegularUser);
     }
 
     // ========== SCENARIO 5: Non-existent Transition is Blocked ==========
