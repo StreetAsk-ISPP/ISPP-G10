@@ -26,11 +26,12 @@ import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.AnswerVote;
 import com.streetask.app.model.CoinTransaction;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
+import com.streetask.app.model.enums.CoinTransactionStatus;
 import com.streetask.app.model.enums.CoinTransactionType;
 import com.streetask.app.model.enums.VoteType;
-import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
 
@@ -353,9 +354,13 @@ public class AnswerService {
 		coinTransaction.setUser(owner);
 		coinTransaction.setType(delta >= 0 ? CoinTransactionType.EARN : CoinTransactionType.SPEND);
 		coinTransaction.setAmount(delta);
+		coinTransaction.setCurrency("StreetCoins");
+		coinTransaction.setStatus(CoinTransactionStatus.SUCCESS);
 		coinTransaction.setBalanceBefore(balanceBefore);
 		coinTransaction.setBalanceAfter(balanceAfter);
 		coinTransaction.setReferenceId(answer.getId());
+		coinTransaction
+				.setDescription(delta >= 0 ? "Answer reward" : "Answer reward adjustment");
 		coinTransaction.setCreatedAt(LocalDateTime.now());
 		coinTransactionRepository.save(coinTransaction);
 
