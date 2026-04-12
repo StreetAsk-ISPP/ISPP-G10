@@ -117,6 +117,13 @@ class EventRestControllerTest {
     }
 
     @Test
+    void findAll_shouldReturnUnauthorizedWhenUserIsAnonymous() throws Exception {
+        mockMvc.perform(get("/api/v1/events")
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @WithMockUser
     void findById_shouldReturnEventWhenExists() throws Exception {
         mockMvc.perform(get("/api/v1/events/{id}", event1.getId())
@@ -185,6 +192,16 @@ class EventRestControllerTest {
                 .contentType(APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void create_shouldReturnUnauthorizedWhenUserIsAnonymous() throws Exception {
+        Map<String, Object> payload = createValidEventPayload();
+
+        mockMvc.perform(post("/api/v1/events")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
