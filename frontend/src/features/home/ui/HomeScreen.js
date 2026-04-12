@@ -70,6 +70,7 @@ export default function HomeScreen({ navigation }) {
 
     const isFocused = useIsFocused();
     const latestRequestRef = useRef(0);
+    const isBusiness = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
 
     const loadQuestions = useCallback(async () => {
         const requestId = ++latestRequestRef.current;
@@ -482,14 +483,27 @@ export default function HomeScreen({ navigation }) {
                         />
                     </View>
                     {hasLocationPermission && (
-                        <TouchableOpacity
-                            style={[styles.fab, isNarrow && { width: 220 }]}
-                            onPress={() => navigation.navigate('CreateQuestion')}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
-                            <Text style={styles.fabText}>Ask a question</Text>
-                        </TouchableOpacity>
+                        <>
+                            {isBusiness && (
+                                <TouchableOpacity
+                                    style={[styles.fab, styles.fabSecondary, isNarrow && { width: 220 }]}
+                                    onPress={() => navigation.navigate('ManageEvents')}
+                                    activeOpacity={0.85}
+                                >
+                                    <Ionicons name="calendar-outline" size={20} color="#fff" />
+                                    <Text style={styles.fabText}>Manage events</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.fab, isNarrow && { width: 220 }]}
+                                onPress={() => navigation.navigate('CreateQuestion')}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                                <Text style={styles.fabText}>Ask a question</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
 
 
@@ -827,6 +841,11 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 15,
         fontWeight: '700',
+    },
+    fabSecondary: {
+        bottom: 136,
+        backgroundColor: '#0f766e',
+        shadowColor: '#0f766e',
     },
     modalOverlay: {
         flex: 1,

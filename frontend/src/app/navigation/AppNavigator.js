@@ -9,6 +9,7 @@ import ForgotPasswordScreen from '../../features/auth/ui/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../features/auth/ui/ResetPasswordScreen';
 import HomeScreen from '../../features/home/ui/HomeScreen';
 import CreateQuestionScreen from '../../features/questions/ui/CreateQuestionScreen';
+import ManageEventsScreen from '../../features/events/ui/ManageEventsScreen';
 import SubscriptionPlansScreen from '../../features/subscriptions/ui/SubscriptionPlansScreen';
 import QuestionThreadScreen from '../../features/answers/ui/QuestionThreadScreen';
 import ProfileScreen from '../../features/profile/ProfileScreen';
@@ -112,6 +113,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name="Home" component={HomeScreen} />
                                 <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
                                 <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                                <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
                                 <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
                                 <Stack.Screen name="Profile" component={ProfileScreen} />
                                 <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
@@ -122,6 +124,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name="Home" component={HomeScreen} />
                                 <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
                                 <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                                <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
                                 <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
                                 <Stack.Screen name="Profile" component={ProfileScreen} />
                                 <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
