@@ -1,3 +1,34 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator, Platform, View } from 'react-native';
+
+import LoginScreen from '../../features/auth/ui/LoginScreen';
+import SignUpScreen from '../../features/auth/ui/SignUpScreen';
+import BusinessSignupScreen from '../../features/auth/ui/BusinessSignupScreen';
+import ForgotPasswordScreen from '../../features/auth/ui/ForgotPasswordScreen';
+import ResetPasswordScreen from '../../features/auth/ui/ResetPasswordScreen';
+import HomeScreen from '../../features/home/ui/HomeScreen';
+import CreateQuestionScreen from '../../features/questions/ui/CreateQuestionScreen';
+import SubscriptionPlansScreen from '../../features/subscriptions/ui/SubscriptionPlansScreen';
+import QuestionThreadScreen from '../../features/answers/ui/QuestionThreadScreen';
+import ProfileScreen from '../../features/profile/ProfileScreen';
+import ProfileStats from '../../features/profile/ProfileStats';
+import AdminFeedbackScreen from '../../features/admin/ui/AdminFeedbackScreen';
+import AdminScreen from '../../features/admin/ui/AdminScreen';
+import AdminUsersScreen from '../../features/admin/ui/AdminUsersScreen';
+import AdminBusinessVerificationScreen from '../../features/admin/ui/AdminBusinessVerificationScreen';
+import BusinessVerificationStatusScreen from '../../features/business/ui/BusinessVerificationStatusScreen';
+import EditProfileScreen from '../../features/profile/EditProfileScreen';
+import BalanceScreen from '../../features/profile/BalanceScreen';
+import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
+import SettingsScreen from '../../features/profile/SettingsScreen';
+import { useAuth } from '../providers/AuthProvider';
+import { theme } from '../../shared/ui/theme/theme';
+import apiClient from '../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
+
+const Stack = createNativeStackNavigator();
+
 export default function AppNavigator() {
     const { isAuthenticated, isLoadingAuth, user } = useAuth();
     const stripeCallbackHandledRef = useRef(false);
@@ -33,7 +64,7 @@ export default function AppNavigator() {
 
             try {
                 // =========================
-                // STREETCOINS FLOW
+                // STREETCOINS FLOW (feature/buy-streetcoins)
                 // =========================
                 const rawPendingStreetCoins = window.localStorage.getItem(
                     STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT
@@ -52,6 +83,7 @@ export default function AppNavigator() {
 
                 if (paymentState === 'success' && effectiveSessionId) {
                     if (flow === 'streetcoins') {
+                        // Handle streetcoins purchase
                         const response = await apiClient.post(
                             '/api/v1/streetcoins/purchase/confirm',
                             { sessionId: effectiveSessionId }
@@ -80,17 +112,13 @@ export default function AppNavigator() {
                         }
 
                         callbackSucceeded = true;
-
-                        // reset navegación (feature branch)
                         setNavigationResetVersion((v) => v + 1);
-
-                        // evitar estado roto
                         window.location.replace(cleanUrl);
                         return;
                     }
 
                     // =========================
-                    // BUSINESS FLOW
+                    // BUSINESS FLOW (feature/buy-streetcoins + trunk)
                     // =========================
                     if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
                         await apiClient.post(
@@ -100,7 +128,7 @@ export default function AppNavigator() {
                         callbackSucceeded = true;
                     } else {
                         // =========================
-                        // PREMIUM USER (TRUNK)
+                        // PREMIUM USER (trunk)
                         // =========================
                         const pendingRegularPremiumCheckout =
                             window.localStorage.getItem(
@@ -165,7 +193,7 @@ export default function AppNavigator() {
                     clearUrlParams();
                 }
 
-                // comportamiento de trunk (refrescar UI)
+                // Comportamiento de trunk: refrescar UI después de éxito (excepto streetcoins)
                 if (callbackSucceeded && flow !== 'streetcoins') {
                     window.location.reload();
                 }
@@ -174,3 +202,61 @@ export default function AppNavigator() {
 
         processStripeCallback();
     }, [isAuthenticated, isLoadingAuth, user?.roles]);
+
+    if (isLoadingAuth) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors?.background }}>
+                <ActivityIndicator size="large" color={theme.colors?.primary || '#0000ff'} />
+            </View>
+        );
+    }
+
+    return (
+        <Stack.Navigator
+            key={`app-stack-${isAuthenticated ? 'auth' : 'guest'}-${navigationResetVersion}`}
+            screenOptions={{ headerShown: false }}
+        >
+            {!isAuthenticated ? (
+                <>
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="SignUp" component={SignUpScreen} />
+                    <Stack.Screen name="BusinessSignup" component={BusinessSignupScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+                </>
+            ) : (
+                <>
+                    {user?.roles?.includes('ADMIN') ? (
+                        <>
+                            <Stack.Screen name="AdminDashboard" component={AdminScreen} />
+                            <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+                            <Stack.Screen name="AdminFeedback" component={AdminFeedbackScreen} />
+                            <Stack.Screen name="AdminBusinessVerification" component={AdminBusinessVerificationScreen} />
+                            <Stack.Screen name="Home" component={HomeScreen} />
+                            <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                            <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                            <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
+                            <Stack.Screen name="Profile" component={ProfileScreen} />
+                            <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
+                            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                        </>
+                    ) : (
+                        <>
+                            <Stack.Screen name="Home" component={HomeScreen} />
+                            <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                            <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                            <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
+                            <Stack.Screen name="Profile" component={ProfileScreen} />
+                            <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
+                            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                            <Stack.Screen name="Balance" component={BalanceScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="MyPurchases" component={MyPurchasesScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="BusinessVerificationStatus" component={BusinessVerificationStatusScreen} options={{ headerShown: false }} />
+                        </>
+                    )}
+                </>
+            )}
+        </Stack.Navigator>
+    );
+}
