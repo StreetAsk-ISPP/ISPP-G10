@@ -9,7 +9,7 @@ import {
   Platform,
   ScrollView,
   useWindowDimensions,
-  // Modal,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
@@ -25,7 +25,7 @@ const PREMIUM_MAX_RADIUS_M = 1000;
 const FREE_DURATION_HOURS = 6;
 const PREMIUM_MIN_DURATION_HOURS = 1;
 const PREMIUM_MAX_DURATION_HOURS = 24;
-// const FAKE_AD_DURATION_SECONDS = 30;
+const FAKE_AD_DURATION_SECONDS = 30;
 const DEFAULT_FALLBACK_LAT = 37.3886;
 const DEFAULT_FALLBACK_LNG = -5.9823;
 
@@ -85,9 +85,10 @@ export default function CreateQuestionScreen({ navigation }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [todayQuestionCount, setTodayQuestionCount] = useState(0);
-  // const [showFakeAd, setShowFakeAd] = useState(false);
-  // const [adSecondsLeft, setAdSecondsLeft] = useState(FAKE_AD_DURATION_SECONDS);
-  // const [queuedPayload, setQueuedPayload] = useState(null);
+  const [showFakeAd, setShowFakeAd] = useState(false);
+  const [adSecondsLeft, setAdSecondsLeft] = useState(FAKE_AD_DURATION_SECONDS);
+  const [queuedPayload, setQueuedPayload] = useState(null);
+  const [canSkipAd, setCanSkipAd] = useState(false);
 
   const getCurrentPositionWeb = useCallback(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -199,38 +200,33 @@ export default function CreateQuestionScreen({ navigation }) {
     preloadCurrentLocation();
 
     return () => {
-      isMounted = false;
-    };
-  }, [getCurrentPositionWeb]);
+        isMounted = false;
+      };
+    }, [getCurrentPositionWeb]);
 
-  // Legacy fake-ad countdown flow (disabled):
-  // useEffect(() => {
-  //   if (!showFakeAd) {
-  //     return undefined;
-  //   }
-  //
-  //   if (adSecondsLeft <= 0) {
-  //     return undefined;
-  //   }
-  //
-  //   const timerId = setTimeout(() => {
-  //     setAdSecondsLeft((prev) => prev - 1);
-  //   }, 1000);
-  //
-  //   return () => clearTimeout(timerId);
-  // }, [showFakeAd, adSecondsLeft]);
-  //
-  // useEffect(() => {
-  //   if (!showFakeAd || adSecondsLeft > 0 || !queuedPayload) {
-  //     return;
-  //   }
-  //
-  //   setShowFakeAd(false);
-  //   setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
-  //   const payloadToSubmit = queuedPayload;
-  //   setQueuedPayload(null);
-  //   submitQuestion(payloadToSubmit);
-  // }, [showFakeAd, adSecondsLeft, queuedPayload, submitQuestion]);
+useEffect(() => {
+  if (!showFakeAd) return;
+
+  setCanSkipAd(false);
+
+  const timer = setTimeout(() => {
+    setCanSkipAd(true);
+  }, 2000);
+
+  return () => clearTimeout(timer);
+}, [showFakeAd]);
+    
+  useEffect(() => {
+    if (!showFakeAd || adSecondsLeft > 0 || !queuedPayload) {
+      return;
+    }
+
+    setShowFakeAd(false);
+    setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+    const payloadToSubmit = queuedPayload;
+    setQueuedPayload(null);
+    submitQuestion(payloadToSubmit);
+  }, [showFakeAd, adSecondsLeft, queuedPayload, submitQuestion]);
 
   const parsedRadiusMeters = parseRadiusMeters(radiusInput);
   const parsedHours = parseHours(hoursInput);
@@ -361,6 +357,18 @@ export default function CreateQuestionScreen({ navigation }) {
     setHoursInput(text);
   };
 
+  const skipAd = () => {
+    if (!canSkipAd || !queuedPayload) return;
+
+    setShowFakeAd(false);
+    setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+    setCanSkipAd(false);
+
+    const payloadToSubmit = queuedPayload;
+    setQueuedPayload(null);
+    submitQuestion(payloadToSubmit);
+  };
+
   const onPost = async () => {
     if (!canPost) return;
 
@@ -402,13 +410,13 @@ export default function CreateQuestionScreen({ navigation }) {
       location: { latitude, longitude },
     };
 
-    // Legacy free-plan ad gate (disabled):
-    // if (!isPremium) {
-    //   setQueuedPayload(payload);
-    //   setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
-    //   setShowFakeAd(true);
-    //   return;
-    // }
+
+    if (!isPremium) {
+      setQueuedPayload(payload);
+      setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+      setShowFakeAd(true);
+      return;
+    }
 
     submitQuestion(payload);
   };
@@ -746,7 +754,6 @@ export default function CreateQuestionScreen({ navigation }) {
           </View>
         </ScrollView>
       </View>
-      {/*
       <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => { }}>
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
@@ -759,91 +766,95 @@ export default function CreateQuestionScreen({ navigation }) {
             </View>
             <Text style={styles.adHelperText}>Your question will only be created when this countdown finishes.</Text>
             <Text style={styles.adCountdown}>Your question will be published in {adSecondsLeft}s</Text>
+            {canSkipAd && (
+            <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
+                <Text style={styles.adSkipText}>X</Text>
+                <Text style={styles.adSkipLabel}>Dev skip</Text>
+            </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
-      */}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f3f4f6' },
-  // Legacy ad modal styles (disabled):
-  // adOverlay: {
-  //   flex: 1,
-  //   backgroundColor: 'rgba(17,24,39,0.72)',
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  //   padding: 24,
-  // },
-  // adCard: {
-  //   width: '100%',
-  //   maxWidth: 360,
-  //   backgroundColor: '#fff',
-  //   borderRadius: 24,
-  //   padding: 24,
-  //   shadowColor: '#000',
-  //   shadowOffset: { width: 0, height: 10 },
-  //   shadowOpacity: 0.2,
-  //   shadowRadius: 24,
-  //   elevation: 8,
-  // },
-  // adBadge: {
-  //   alignSelf: 'flex-start',
-  //   paddingHorizontal: 10,
-  //   paddingVertical: 6,
-  //   borderRadius: 999,
-  //   backgroundColor: '#fee2e2',
-  //   color: '#b91c1c',
-  //   fontSize: 11,
-  //   fontWeight: '800',
-  //   textTransform: 'uppercase',
-  //   letterSpacing: 0.6,
-  // },
-  // adTitle: {
-  //   marginTop: 16,
-  //   fontSize: 24,
-  //   fontWeight: '800',
-  //   color: '#111827',
-  // },
-  // adText: {
-  //   marginTop: 8,
-  //   fontSize: 14,
-  //   color: '#4b5563',
-  //   lineHeight: 20,
-  // },
-  // adVisual: {
-  //   marginTop: 18,
-  //   borderRadius: 18,
-  //   padding: 18,
-  //   backgroundColor: '#1d4ed8',
-  // },
-  // adVisualTitle: {
-  //   fontSize: 18,
-  //   fontWeight: '800',
-  //   color: '#fff',
-  // },
-  // adVisualText: {
-  //   marginTop: 8,
-  //   fontSize: 14,
-  //   lineHeight: 20,
-  //   color: '#dbeafe',
-  // },
-  // adHelperText: {
-  //   marginTop: 16,
-  //   textAlign: 'center',
-  //   fontSize: 13,
-  //   lineHeight: 18,
-  //   color: '#4b5563',
-  // },
-  // adCountdown: {
-  //   marginTop: 18,
-  //   textAlign: 'center',
-  //   fontSize: 14,
-  //   fontWeight: '700',
-  //   color: '#92400e',
-  // },
+  adOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17,24,39,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  adCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  adBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#fee2e2',
+    color: '#b91c1c',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  adTitle: {
+    marginTop: 16,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  adText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 20,
+  },
+  adVisual: {
+    marginTop: 18,
+    borderRadius: 18,
+    padding: 18,
+    backgroundColor: '#1d4ed8',
+  },
+  adVisualTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  adVisualText: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#dbeafe',
+  },
+  adHelperText: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#4b5563',
+  },
+  adCountdown: {
+    marginTop: 18,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400e',
+  },
 
   /* ── Map backgrounds ── */
   mapFull: { flex: 1, width: '100%', height: '100%' },
@@ -1140,4 +1151,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+adSkipBtn: {
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  alignItems: 'center',
+},
+
+adSkipText: {
+  fontSize: 18,
+  fontWeight: '800',
+  color: '#111827',
+},
+
+adSkipLabel: {
+  fontSize: 9,
+  color: '#6b7280',
+},
 });
