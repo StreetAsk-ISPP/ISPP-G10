@@ -429,7 +429,6 @@ export default function ManageEventsScreen({ navigation }) {
 
         try {
             setSubmitting(true);
-
             if (editorMode === 'create') {
                 const createPayload = {
                     ...payload,
