@@ -510,6 +510,14 @@ export default function HomeScreen({ navigation }) {
                                 </TouchableOpacity>
                             ) : (
                                 <>
+                                    <TouchableOpacity
+                                        style={styles.iconBtn}
+                                        activeOpacity={0.7}
+                                        onPress={() => navigation.navigate('EventList')}
+                                    >
+                                        <Ionicons name="calendar-outline" size={20} color="#374151" />
+                                    </TouchableOpacity>
+
                                     {user?.roles?.includes('ADMIN') && (
                                         <TouchableOpacity
                                             style={styles.iconBtn}
@@ -585,6 +593,14 @@ export default function HomeScreen({ navigation }) {
                     <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
                         <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)}>
                             <Animated.View style={[styles.menuContent, { transform: [{ translateY: menuAnimValue }] }]}>
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => { navigation.navigate('EventList'); setMenuOpen(false); }}
+                                >
+                                    <Ionicons name="calendar-outline" size={18} color="#374151" />
+                                    <Text style={styles.menuItemLabel}>Events</Text>
+                                </TouchableOpacity>
+
                                 <TouchableOpacity
                                     style={styles.menuItem}
                                     onPress={() => { navigation.navigate('Profile'); setMenuOpen(false); }}
