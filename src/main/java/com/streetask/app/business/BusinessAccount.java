@@ -15,6 +15,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -67,4 +68,16 @@ public class BusinessAccount extends User {
     @JsonIgnore
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
+
+    @Transient
+    public Boolean getPremiumActive() {
+        return hasEffectivePremiumAccess();
+    }
+
+    public boolean hasEffectivePremiumAccess() {
+        return Boolean.TRUE.equals(verified)
+                && Boolean.TRUE.equals(subscriptionActive)
+                && subscriptionExpiresAt != null
+                && subscriptionExpiresAt.isAfter(LocalDateTime.now());
+    }
 }
