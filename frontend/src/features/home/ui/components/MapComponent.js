@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -459,7 +459,7 @@ export default function MapComponent({
         } catch (error) {
             Alert.alert(
                 'Error',
-                error?.response?.data?.message || 'No se pudo actualizar tu asistencia.'
+                error?.response?.data?.message || 'Could not update your attendance.'
             );
         } finally {
             setTogglingEventId(null);

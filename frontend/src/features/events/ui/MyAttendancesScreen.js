@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+﻿import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -18,9 +18,9 @@ import { useAuth } from '../../../app/providers/AuthProvider';
 import ConfirmationModal from '../../../shared/components/ConfirmationModal';
 
 const formatDateTime = (value) => {
-    if (!value) return 'Sin fecha';
+    if (!value) return 'No date';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Sin fecha';
+    if (Number.isNaN(date.getTime())) return 'No date';
     return date.toLocaleString();
 };
 
@@ -92,7 +92,7 @@ export default function MyAttendancesScreen({ navigation }) {
             setEvents(rawEvents.filter((event) => event?.myAttendance === true));
         } catch (error) {
             console.error('Error loading attending events:', error);
-            Alert.alert('Error', 'No se pudieron cargar tus eventos.');
+            Alert.alert('Error', 'Could not load your events.');
         } finally {
             setLoading(false);
         }
@@ -122,7 +122,7 @@ export default function MyAttendancesScreen({ navigation }) {
         } catch (error) {
             Alert.alert(
                 'Error',
-                error?.response?.data?.message || 'No se pudo actualizar tu asistencia.'
+                error?.response?.data?.message || 'Could not update your attendance.'
             );
         } finally {
             setUpdatingEventId(null);

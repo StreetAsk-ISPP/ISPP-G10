@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        backgroundColor: '#b91c1c',
+        backgroundColor: '#2563eb',
     },
     eventActionBtnJoin: {
         backgroundColor: '#0f766e',
