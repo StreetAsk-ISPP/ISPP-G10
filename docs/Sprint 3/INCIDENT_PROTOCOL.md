@@ -66,3 +66,27 @@ El éxito de la presentación depende de la estabilidad del Miércoles:
 * **Supervisión:** Monitorizar que nadie esté bloqueado más de 4 horas sin recibir respuesta.
 * **Mediación:** Resolver conflictos de merge complejos que el subgrupo no pueda manejar.
 * **Control de Calidad:** Asegurar que los comentarios en las Issues bloqueadas sean claros para su revisión en la reunión post-clase.
+
+## 8. Plan de Mejora de Fluidez y Eficacia de la Comunicación
+
+En respuesta al feedback de los grupos de interés, este plan busca garantizar que la información fluya sin interrupciones y que existan métricas claras para evaluar nuestra coordinación.
+
+### 8.1. Estrategias de Mejora de Fluidez
+* **Sincronización Inter-Grupos:** Los **4 Scrum Masters** realizarán un resumen de los avances de sus respectivos subgrupos en el **Grupo General** cada martes a las 20:00. Esto garantiza una visión global antes del cierre del miércoles.
+* **Compromiso de Disponibilidad y Entrega:** Una vez asignadas las Issues el **Sábado a mediodía**, cada miembro debe comunicar en su subgrupo de WhatsApp el plazo estimado en el que prevé terminar su tarea. Esto permite detectar cuellos de botella desde el inicio del ciclo.
+* **Registro de Decisiones en GitHub:** Cualquier decisión técnica tomada por WhatsApp que afecte al desarrollo debe quedar reflejada como comentario en la Issue correspondiente. La "verdad oficial" del proyecto reside en GitHub.
+
+### 8.2. Umbrales de Medición de Efectividad (KPIs)
+Para medir si la comunicación es eficaz, evaluaremos semanalmente los siguientes indicadores:
+
+| Indicador (Métrica) | Umbral de Éxito | Método de Medición |
+| :--- | :--- | :--- |
+| **Compromiso de Entrega** | 100% de los miembros | El sábado tras la reunión, todos deben haber dado una fecha estimada en su subgrupo. |
+| **Consistencia GitHub/Clockify** | 100% | Todas las horas de Clockify deben coincidir con una Issue activa y con descripción clara. |
+| **Resolución de Bloqueos** | < 24 horas | Tiempo desde que una Issue se marca como "Blocked" hasta que se registra una solución o avance. |
+| **Alineación de Presentación** | 0 incidencias críticas | El Grupo 4 confirma los jueves que no ha habido falta de información para la demo. |
+
+### 8.3. Acciones Correctoras
+Si los umbrales de éxito bajan del 80% en cualquiera de los puntos anteriores (salvo los de cumplimiento 100% obligatorio):
+1. Los Scrum Masters analizarán si el problema es de un subgrupo o una falta de herramientas.
+2. Se realizará una "Retrospectiva de Emergencia" el sábado para ajustar el flujo y evitar que el problema se repita en el siguiente ciclo.
