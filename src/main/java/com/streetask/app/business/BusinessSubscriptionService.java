@@ -261,6 +261,8 @@ public class BusinessSubscriptionService {
                 businessAccount.getEmail(),
                 businessAccount.getCompanyName(),
                 Boolean.TRUE.equals(businessAccount.getVerified()),
+                businessAccount.getRequestStatus(),
+                businessAccount.getRejectionReason(),
                 Boolean.TRUE.equals(businessAccount.getSubscriptionActive()),
                 businessAccount.getSubscriptionExpiresAt(),
                 businessPremiumAccessGuard.hasPremiumAccess(businessAccount));

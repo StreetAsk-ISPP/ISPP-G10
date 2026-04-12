@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../app/providers/AuthProvider';
@@ -17,71 +17,12 @@ export default function ProfileScreen({ navigation }) {
         profilePictureUrl: null
     });
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [businessSubscription, setBusinessSubscription] = useState(null);
-    const [isStartingCheckout, setIsStartingCheckout] = useState(false);
-    const [subscriptionActionError, setSubscriptionActionError] = useState('');
 
     const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
-
-    const subscriptionExpiresAt = businessSubscription?.subscriptionExpiresAt
-        ? new Date(businessSubscription.subscriptionExpiresAt)
-        : null;
-    const subscriptionNotExpired = subscriptionExpiresAt && !Number.isNaN(subscriptionExpiresAt.getTime())
-        ? subscriptionExpiresAt.getTime() > Date.now()
-        : false;
-    const hasPremiumAccess = Boolean(businessSubscription?.premiumEligible);
-    const isVerifiedBusiness = Boolean(businessSubscription?.verified);
-    const canActivateOrRenew = isVerifiedBusiness && !hasPremiumAccess;
-
-    const activationButtonLabel = businessSubscription?.subscriptionActive && !subscriptionNotExpired
-        ? 'Renew with Stripe payment'
-        : 'Activate with Stripe payment';
-
-    const formatDateTime = (value) => {
-        if (!value) {
-            return 'N/A';
-        }
-
-        const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) {
-            return 'N/A';
-        }
-
-        return parsed.toLocaleString();
-    };
 
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
         await logout();
-    };
-
-    const startBusinessStripeCheckout = async () => {
-        setSubscriptionActionError('');
-        setIsStartingCheckout(true);
-
-        try {
-            const response = await apiClient.post('/api/v1/business-subscriptions/me/stripe/checkout-session', {});
-            const checkoutUrl = response?.data?.checkoutUrl;
-
-            if (!checkoutUrl) {
-                setSubscriptionActionError('Stripe checkout session could not be initialized.');
-                return;
-            }
-
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.location.assign(checkoutUrl);
-                return;
-            }
-
-            await Linking.openURL(checkoutUrl);
-            setSubscriptionActionError('Complete the payment in Stripe and return to the app.');
-        } catch (error) {
-            const rawMessage = error?.response?.data?.message || error?.response?.data || error?.message;
-            const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
-            setSubscriptionActionError(message || 'Unable to start Stripe checkout.');
-        } finally {
-            setIsStartingCheckout(false);
-        }
     };
 
 
@@ -104,19 +45,7 @@ export default function ProfileScreen({ navigation }) {
             .catch((err) => {
                 console.error("Error al refrescar el perfil:", err);
             });
-
-        if (isBusinessUser) {
-            apiClient.get('/api/v1/business-subscriptions/me')
-                .then((res) => {
-                    setBusinessSubscription(res?.data || null);
-                })
-                .catch(() => {
-                    setBusinessSubscription(null);
-                });
-        } else {
-            setBusinessSubscription(null);
-        }
-    }, [isBusinessUser, user?.id]);
+    }, [user?.id]);
 
     // Este hook se dispara cada vez que la pantalla gana el "foco" (al volver atrás)
     useFocusEffect(
@@ -186,45 +115,6 @@ export default function ProfileScreen({ navigation }) {
                     onPress={() => navigation.navigate('EditProfile')}>
                     <Text style={styles.editBtnText}>EDIT PROFILE</Text>
                 </TouchableOpacity>
-
-                {isBusinessUser && businessSubscription ? (
-                    <View style={styles.subscriptionCard}>
-                        <Text style={styles.subscriptionTitle}>Business Subscription</Text>
-                        <Text style={styles.subscriptionItem}>Verified: {businessSubscription.verified ? 'Yes' : 'No'}</Text>
-                        <Text style={styles.subscriptionItem}>Active: {businessSubscription.subscriptionActive ? 'Yes' : 'No'}</Text>
-                        <Text style={styles.subscriptionItem}>Premium access: {businessSubscription.premiumEligible ? 'Enabled' : 'Disabled'}</Text>
-                        <Text style={styles.subscriptionItem}>Expires at: {formatDateTime(businessSubscription.subscriptionExpiresAt)}</Text>
-
-                        {!isVerifiedBusiness ? (
-                            <Text style={styles.subscriptionHint}>
-                                Your business is pending admin verification.
-                            </Text>
-                        ) : null}
-
-                        {hasPremiumAccess ? (
-                            <Text style={styles.subscriptionHintSuccess}>
-                                Your premium access is active. No additional payment is required right now.
-                            </Text>
-                        ) : null}
-
-                        {canActivateOrRenew ? (
-                            <TouchableOpacity
-                                style={[styles.subscriptionActionBtn, isStartingCheckout && styles.disabledButton]}
-                                onPress={startBusinessStripeCheckout}
-                                disabled={isStartingCheckout}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.subscriptionActionBtnText}>
-                                    {isStartingCheckout ? 'Redirecting to Stripe...' : activationButtonLabel}
-                                </Text>
-                            </TouchableOpacity>
-                        ) : null}
-
-                        {subscriptionActionError ? (
-                            <Text style={styles.subscriptionHint}>{subscriptionActionError}</Text>
-                        ) : null}
-                    </View>
-                ) : null}
 
                 <TouchableOpacity
                     style={styles.menuItem}
@@ -328,52 +218,6 @@ const styles = StyleSheet.create({
         marginBottom: 25
     },
     editBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-    subscriptionCard: {
-        backgroundColor: '#fff7ed',
-        borderColor: '#fdba74',
-        borderWidth: 1,
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 16,
-    },
-    subscriptionTitle: {
-        color: '#9a3412',
-        fontWeight: '700',
-        fontSize: 16,
-        marginBottom: 8,
-    },
-    subscriptionItem: {
-        color: '#7c2d12',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    subscriptionActionBtn: {
-        marginTop: 10,
-        backgroundColor: '#c2410c',
-        borderRadius: 8,
-        paddingVertical: 10,
-        alignItems: 'center',
-    },
-    subscriptionActionBtnText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    disabledButton: {
-        opacity: 0.7,
-    },
-    subscriptionHint: {
-        marginTop: 10,
-        color: '#9a3412',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    subscriptionHintSuccess: {
-        marginTop: 10,
-        color: '#166534',
-        fontSize: 12,
-        fontWeight: '600',
-    },
     menuItem: {
         backgroundColor: '#bcbcbc',
         flexDirection: 'row',
