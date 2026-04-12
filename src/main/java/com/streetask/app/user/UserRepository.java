@@ -1,5 +1,7 @@
 package com.streetask.app.user;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
 
@@ -30,5 +32,8 @@ public interface UserRepository extends CrudRepository<User, UUID> {
 
 	@Query("SELECT u FROM User u WHERE u.authority.authority = :auth")
 	Iterable<User> findAllByAuthority(String auth);
+
+	@Query("SELECT u FROM User u WHERE u.accountType IS NULL AND u.active = false AND u.authority.authority = 'USER' AND u.createdAt < :cutoff")
+	List<User> findStalePendingBasicUsers(LocalDateTime cutoff);
 
 }

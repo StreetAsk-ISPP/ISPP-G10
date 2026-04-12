@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -168,7 +169,7 @@ class UserReputationVotesIntegrationTest {
         question.setCreator(creator);
         question.setTitle("Question " + UUID.randomUUID());
         question.setContent("Question content");
-        question.setCreatedAt(LocalDateTime.now());
+        question.setCreatedAt(Instant.now());
         question.setActive(true);
         question.setAnswerCount(0);
         return questionRepository.save(question);

@@ -2,7 +2,8 @@ package com.streetask.app.question;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -300,8 +301,8 @@ class QuestionRepositoryTest {
 		expiredActive.setCreator(creator1);
 		expiredActive.setEvent(event1);
 		expiredActive.setActive(true);
-		expiredActive.setCreatedAt(LocalDateTime.now().minusHours(3));
-		expiredActive.setExpiresAt(LocalDateTime.now().minusHours(1));
+		expiredActive.setCreatedAt(Instant.now().plus(-3, ChronoUnit.HOURS));
+		expiredActive.setExpiresAt(Instant.now().plus(-1, ChronoUnit.HOURS));
 		expiredActive.setAnswerCount(0);
 		entityManager.persist(expiredActive);
 
@@ -312,7 +313,7 @@ class QuestionRepositoryTest {
 		futureActive.setCreator(creator1);
 		futureActive.setEvent(event1);
 		futureActive.setActive(true);
-		futureActive.setExpiresAt(LocalDateTime.now().plusHours(1));
+		futureActive.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
 		futureActive.setAnswerCount(0);
 		entityManager.persist(futureActive);
 
@@ -323,7 +324,7 @@ class QuestionRepositoryTest {
 		expiredInactive.setCreator(creator1);
 		expiredInactive.setEvent(event1);
 		expiredInactive.setActive(false);
-		expiredInactive.setExpiresAt(LocalDateTime.now().minusHours(1));
+		expiredInactive.setExpiresAt(Instant.now().plus(-1, ChronoUnit.HOURS));
 		expiredInactive.setAnswerCount(0);
 		entityManager.persist(expiredInactive);
 
@@ -331,7 +332,7 @@ class QuestionRepositoryTest {
 
 		// Act
 		Iterable<Question> expiredQuestions = questionRepository
-				.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
+				.findAllByActiveTrueAndExpiresAtBefore(Instant.now());
 
 		// Assert
 		List<Question> resultList = (List<Question>) expiredQuestions;
@@ -346,7 +347,7 @@ class QuestionRepositoryTest {
 	void findAllByActiveTrueAndExpiresAtBefore_shouldReturnEmptyWhenNoneExpired() {
 		// Act
 		Iterable<Question> expiredQuestions = questionRepository
-				.findAllByActiveTrueAndExpiresAtBefore(LocalDateTime.now());
+				.findAllByActiveTrueAndExpiresAtBefore(Instant.now());
 
 		// Assert
 		assertThat(expiredQuestions).isEmpty();
@@ -426,8 +427,8 @@ class QuestionRepositoryTest {
 		question.setCreator(creator);
 		question.setEvent(event);
 		question.setActive(active);
-		question.setCreatedAt(LocalDateTime.now());
-		question.setExpiresAt(LocalDateTime.now().plusHours(2));
+		question.setCreatedAt(Instant.now());
+		question.setExpiresAt(Instant.now().plus(2, ChronoUnit.HOURS));
 		question.setAnswerCount(0);
 		return entityManager.persist(question);
 	}

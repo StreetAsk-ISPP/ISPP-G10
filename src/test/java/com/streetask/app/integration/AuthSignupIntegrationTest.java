@@ -54,7 +54,7 @@ class AuthSignupIntegrationTest {
         }
 
         @Test
-        void signupBasicShouldReturnBadRequestWhenEmailAlreadyExists() throws Exception {
+        void signupBasicShouldReturnOkWhenEmailBelongsToPendingBasicSignup() throws Exception {
                 String email = "duplicated.email@streetask.com";
 
                 mockMvc.perform(post("/api/v1/auth/signup/basic")
@@ -65,8 +65,9 @@ class AuthSignupIntegrationTest {
                 mockMvc.perform(post("/api/v1/auth/signup/basic")
                                 .contentType(APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(validBasicPayload(email, "dupUser2"))))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("Error: Email is already registered!"));
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.message")
+                                                .value("Basic user data saved! Complete your registration."));
         }
 
         @Test
@@ -212,7 +213,7 @@ class AuthSignupIntegrationTest {
                                                 validBusinessPayload(email, "B22222222", "Business street 2"))))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message")
-                                                .value("Error: User is already a business account."));
+                                                .value("Error: Basic user registration not found. Please complete the basic signup first."));
 
                 User storedUser = userRepository.findByEmail(email).orElseThrow();
                 assertThat(storedUser).isInstanceOf(BusinessAccount.class);

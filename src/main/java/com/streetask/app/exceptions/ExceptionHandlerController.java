@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -53,14 +54,16 @@ public class ExceptionHandlerController {
 		return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
 	}
 
-//	@ExceptionHandler(value = TokenRefreshException.class)
-//	@ResponseStatus(HttpStatus.FORBIDDEN)
-//	public ResponseEntity<ErrorMessage> handleTokenRefreshException(TokenRefreshException ex, WebRequest request) {
-//		ErrorMessage message = new ErrorMessage(HttpStatus.FORBIDDEN.value(), new Date(), ex.getMessage(),
-//				request.getDescription(false));
-//
-//		return new ResponseEntity<ErrorMessage>(message, HttpStatus.FORBIDDEN);
-//	}
+	// @ExceptionHandler(value = TokenRefreshException.class)
+	// @ResponseStatus(HttpStatus.FORBIDDEN)
+	// public ResponseEntity<ErrorMessage>
+	// handleTokenRefreshException(TokenRefreshException ex, WebRequest request) {
+	// ErrorMessage message = new ErrorMessage(HttpStatus.FORBIDDEN.value(), new
+	// Date(), ex.getMessage(),
+	// request.getDescription(false));
+	//
+	// return new ResponseEntity<ErrorMessage>(message, HttpStatus.FORBIDDEN);
+	// }
 
 	@ExceptionHandler(value = LimitReachedException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
@@ -92,7 +95,24 @@ public class ExceptionHandlerController {
 		return new ResponseEntity<>(message, HttpStatus.FORBIDDEN);
 	}
 
+	@ExceptionHandler(value = IllegalArgumentException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity<ErrorMessage> handleIllegalArgumentException(IllegalArgumentException ex,
+			WebRequest request) {
+		ErrorMessage message = new ErrorMessage(HttpStatus.BAD_REQUEST.value(), new Date(), ex.getMessage(),
+				request.getDescription(false));
+
+		return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(value = DataIntegrityViolationException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public ResponseEntity<ErrorMessage> handleDataIntegrityViolationException(DataIntegrityViolationException ex,
+			WebRequest request) {
+		ErrorMessage message = new ErrorMessage(HttpStatus.CONFLICT.value(), new Date(),
+				"Conflict while persisting data.", request.getDescription(false));
+
+		return new ResponseEntity<>(message, HttpStatus.CONFLICT);
+	}
+
 }
-
-
-
