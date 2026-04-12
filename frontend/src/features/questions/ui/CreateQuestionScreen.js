@@ -49,14 +49,16 @@ const parseHours = (rawValue) => {
 };
 
 const isPremiumRadiusValid = (valueMeters) => {
-  return valueMeters !== null && valueMeters >= PREMIUM_MIN_RADIUS_M && valueMeters <= PREMIUM_MAX_RADIUS_M;
+  return (
+    valueMeters !== null &&
+    valueMeters >= PREMIUM_MIN_RADIUS_M &&
+    valueMeters <= PREMIUM_MAX_RADIUS_M
+  );
 };
 
 const isPremiumHoursValid = (value) => {
   return (
-    value !== null &&
-    value >= PREMIUM_MIN_DURATION_HOURS &&
-    value <= PREMIUM_MAX_DURATION_HOURS
+    value !== null && value >= PREMIUM_MIN_DURATION_HOURS && value <= PREMIUM_MAX_DURATION_HOURS
   );
 };
 
@@ -84,6 +86,7 @@ export default function CreateQuestionScreen({ navigation }) {
   const [userLng, setUserLng] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [todayQuestionCount, setTodayQuestionCount] = useState(0);
   // const [showFakeAd, setShowFakeAd] = useState(false);
   // const [adSecondsLeft, setAdSecondsLeft] = useState(FAKE_AD_DURATION_SECONDS);
   // const [queuedPayload, setQueuedPayload] = useState(null);
@@ -107,38 +110,40 @@ export default function CreateQuestionScreen({ navigation }) {
     });
   }, []);
 
-  const submitQuestion = useCallback(async (payload) => {
-    setIsSubmitting(true);
-    try {
-      await apiClient.post('/api/v1/questions', payload);
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Question created!',
-        position: 'top',
-      });
-      navigation.goBack();
-    } catch (e) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: e.response?.data?.message || e.message,
-        position: 'top',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [navigation]);
+  const submitQuestion = useCallback(
+    async (payload) => {
+      console.log(payload);
+
+      setIsSubmitting(true);
+      try {
+        await apiClient.post('/api/v1/questions', payload);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Question created!',
+          position: 'top',
+        });
+        navigation.goBack();
+      } catch (e) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: e.response?.data?.message || e.message,
+          position: 'top',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [navigation]
+  );
 
   useEffect(() => {
-    let isMounted = true;
-
     const loadUserPlanSettings = async () => {
       if (!user?.id) return;
       try {
         const response = await apiClient.get(`/api/v1/users/${user.id}`);
-        if (!isMounted) return;
-
+        console.log(response.data);
         const premiumFlag = response?.data?.premiumActive === true;
         setIsPremium(premiumFlag);
 
@@ -153,6 +158,23 @@ export default function CreateQuestionScreen({ navigation }) {
     };
 
     loadUserPlanSettings();
+  }, [user?.id, user?.accountType]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTodayQuestionCount = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await apiClient.get('/api/v1/questions/today-count');
+        if (!isMounted) return;
+        setTodayQuestionCount(response?.data ?? 0);
+      } catch (e) {
+        console.warn('Unable to load today question count:', e?.message || e);
+      }
+    };
+
+    loadTodayQuestionCount();
     return () => {
       isMounted = false;
     };
@@ -216,6 +238,7 @@ export default function CreateQuestionScreen({ navigation }) {
   const premiumRadiusValid = !isPremium || isPremiumRadiusValid(parsedRadiusMeters);
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
+  const dailyLimitReached = !isPremium && todayQuestionCount >= 3;
 
   const canPost = useMemo(
     () =>
@@ -223,8 +246,9 @@ export default function CreateQuestionScreen({ navigation }) {
       content.trim() &&
       premiumRadiusValid &&
       premiumHoursValid &&
-      !isSubmitting,
-    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting]
+      !isSubmitting &&
+      !dailyLimitReached,
+    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting, dailyLimitReached]
   );
 
   const searchAddress = async () => {
@@ -234,7 +258,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'info',
         text1: 'Address missing',
         text2: 'Enter a street or place to search.',
-        position: 'top'
+        position: 'top',
       });
       return;
     }
@@ -258,9 +282,8 @@ export default function CreateQuestionScreen({ navigation }) {
           type: 'info',
           text1: 'No results',
           text2: 'No addresses were found. Try being more specific.',
-          position: 'top'
+          position: 'top',
         });
-
       }
       if (items.length === 1) {
         setLatitude(items[0].lat);
@@ -274,7 +297,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'error',
         text1: 'Search error',
         text2: 'The address could not be found. Please try again.',
-        position: 'top'
+        position: 'top',
       });
     } finally {
       setSearching(false);
@@ -317,7 +340,7 @@ export default function CreateQuestionScreen({ navigation }) {
         type: 'info',
         text1: 'Select a point',
         text2: 'Tap on the map to choose a location.',
-        position: 'top'
+        position: 'top',
       });
       return;
     }
@@ -329,23 +352,19 @@ export default function CreateQuestionScreen({ navigation }) {
     setPickMode(false);
   };
 
-  const onRadiusInputChange = (text) => {
-    if (!isPremium) {
-      return;
-    }
-    setRadiusInput(text);
-    const parsedMeters = parseRadiusMeters(text);
-    if (parsedMeters !== null) {
-      setRadiusKm(parsedMeters / 1000);
-    }
-  };
-
   const onHoursInputChange = (text) => {
     if (!isPremium) {
       return;
     }
     setHoursInput(text);
   };
+
+  const openStreetCoinsShop = useCallback(() => {
+    navigation.replace('Balance', {
+      openShopModal: true,
+      checkoutOrigin: 'create-question-limit',
+    });
+  }, [navigation]);
 
   const onPost = async () => {
     if (!canPost) return;
@@ -456,14 +475,17 @@ export default function CreateQuestionScreen({ navigation }) {
                     </Text>
                     <Text style={styles.sliderMax}>1000 m</Text>
                   </View>
-                </View>) : (
+                </View>
+              ) : (
                 <View style={styles.lockedBox}>
                   <Ionicons name="lock-closed" size={14} color="#6b7280" />
                   <Text style={styles.lockedText}>Fixed for free plan: 500 m</Text>
                 </View>
               )}
               {showRadiusRangeError ? (
-                <Text style={styles.radiusErrorText}>Premium radius must be between 50 m and 1000 m.</Text>
+                <Text style={styles.radiusErrorText}>
+                  Premium radius must be between 50 m and 1000 m.
+                </Text>
               ) : null}
               <Text style={styles.mapZoneText}>
                 The red circle is the response area for this question.
@@ -506,7 +528,7 @@ export default function CreateQuestionScreen({ navigation }) {
             pickEnabled={false}
             tempLat={tempLat}
             tempLng={tempLng}
-            onPick={() => { }}
+            onPick={() => {}}
           />
         </View>
 
@@ -671,9 +693,34 @@ export default function CreateQuestionScreen({ navigation }) {
                   <Text style={styles.timeChipText}>h</Text>
                 </View>
               ) : (
-                <Text style={styles.timeChipText}>Duration: 2h (fixed in free plan)</Text>
+                <View>
+                  <Text style={styles.timeChipText}>Duration: 2h (fixed in free plan)</Text>
+                  <Text style={styles.timeChipText}>Max 3 questions a day (fixed in free plan)</Text>
+                </View>
               )}
             </View>
+
+            {dailyLimitReached && (
+              <View style={styles.dailyLimitWarning}>
+                <Ionicons name="alert-circle" size={16} color="#dc2626" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.dailyLimitTitle}>Daily limit reached</Text>
+                  <Text style={styles.dailyLimitText}>
+                    You can create a maximum of 3 questions per day. You can add more
+                    by using the coins you gain while answering questions,
+                    or by upgrading to the premium plan.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.shopBtn}
+                  onPress={openStreetCoinsShop}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.shopBtnText}>Shop</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* TODO if (!isPremium && todayQuestionCount >= 3) {*/}
             {/* Legacy free-plan helper (disabled):
             {!isPremium ? (
               <Text style={styles.helperText}>
@@ -1062,4 +1109,40 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   postBtnText: { fontWeight: '700', fontSize: 15, color: '#fff' },
+  dailyLimitWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#fee2e2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 16,
+  },
+  dailyLimitTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#dc2626',
+    marginBottom: 2,
+  },
+  dailyLimitText: {
+    fontSize: 12,
+    color: '#991b1b',
+    lineHeight: 16,
+  },
+  shopBtn: {
+    backgroundColor: '#dc2626',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shopBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });

@@ -558,11 +558,6 @@ export default function QuestionThreadScreen({ route, navigation }) {
         }
     };
 
-    const openMapPick = () => {
-        setTempLat(userLocation?.latitude || null);
-        setTempLng(userLocation?.longitude || null);
-        setPickMode(true);
-    };
     const cancelMapPick = () => { setPickMode(false); setTempLat(null); setTempLng(null); };
     const confirmMapPick = () => {
         if (typeof tempLat !== 'number' || typeof tempLng !== 'number') {
@@ -599,11 +594,11 @@ export default function QuestionThreadScreen({ route, navigation }) {
                     </View>
                     <Text style={styles.threadBody}>{item.text}</Text>
                     <View style={styles.threadActions}>
-                        <Pressable onPress={() => vote(item.id, 'LIKE')} style={[styles.threadVoteBtn, v === 'DISLIKE' && { opacity: 0.3 }]}>
+                        <Pressable disabled={item.userId === user?.id} onPress={() => vote(item.id, 'LIKE')} style={[styles.threadVoteBtn, v === 'DISLIKE' && { opacity: 0.3 }]}>
                             <Ionicons name={v === 'LIKE' ? 'thumbs-up' : 'thumbs-up-outline'} size={18} color={v === 'LIKE' ? '#22c55e' : '#9ca3af'} />
                             <Text style={[styles.threadVoteCount, v === 'LIKE' && { color: '#22c55e' }]}>{item.likes || 0}</Text>
                         </Pressable>
-                        <Pressable onPress={() => vote(item.id, 'DISLIKE')} style={[styles.threadVoteBtn, v === 'LIKE' && { opacity: 0.3 }]}>
+                        <Pressable disabled={item.userId === user?.id} onPress={() => vote(item.id, 'DISLIKE')} style={[styles.threadVoteBtn, v === 'LIKE' && { opacity: 0.3 }]}>
                             <Ionicons name={v === 'DISLIKE' ? 'thumbs-down' : 'thumbs-down-outline'} size={18} color={v === 'DISLIKE' ? '#ef4444' : '#9ca3af'} />
                             <Text style={[styles.threadVoteCount, v === 'DISLIKE' && { color: '#ef4444' }]}>{item.dislikes || 0}</Text>
                         </Pressable>

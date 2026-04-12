@@ -84,16 +84,24 @@ public class SecurityConfiguration {
 
 						.requestMatchers("/api/v1/locations/public/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/locations/user/**").permitAll()
+						.requestMatchers("/api/v1/streetcoins/**").authenticated()
 
 						.requestMatchers("/api/v1/plan").hasAuthority("OWNER")
 
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/me/reputation").authenticated()
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/reputation").authenticated()
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/stats").authenticated()
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/questions").authenticated()
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/answers").authenticated()
-						.requestMatchers(HttpMethod.PUT, "/api/v1/users/*").authenticated()
-						.requestMatchers(HttpMethod.GET, "/api/v1/users/*").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/me/reputation").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/*/reputation").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/*/stats").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/*/questions").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/*/answers").authenticated()
+							.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/activate").authenticated()
+							.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/deactivate").authenticated()
+							.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/stripe/checkout-session")
+							.authenticated()
+							.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/stripe/confirm-session")
+							.authenticated()
+							.requestMatchers(HttpMethod.PUT, "/api/v1/users/*/role").authenticated()
+							.requestMatchers(HttpMethod.PUT, "/api/v1/users/*").authenticated()
+							.requestMatchers(HttpMethod.GET, "/api/v1/users/*").authenticated()
 
 						.requestMatchers(HttpMethod.GET, "/api/v1/users").hasAuthority(ADMIN)
 						.requestMatchers(HttpMethod.POST, "/api/v1/users").hasAuthority(ADMIN)
@@ -106,6 +114,7 @@ public class SecurityConfiguration {
 
 						// Questions & Answers require auth
 						.requestMatchers("/api/v1/questions/**").authenticated()
+						.requestMatchers("/api/v1/events/**").authenticated()
 						.requestMatchers("/api/v1/answers", "/api/v1/answers/**").authenticated()
 						.requestMatchers("/api/v1/reports/**").authenticated()
 

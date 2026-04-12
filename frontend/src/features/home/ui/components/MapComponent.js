@@ -33,6 +33,64 @@ if (Platform.OS === 'web') {
     }
 }
 
+// Componente que detecta cambios en los bounds del mapa
+const MapBoundsTrackerComponent = ({ questions = [], onBoundsChange, onVisibleQuestionsChange, mapRef }) => {
+    useEffect(() => {
+        if (!mapRef?.current) return;
+
+        const map = mapRef.current;
+
+        const updateBounds = () => {
+            try {
+                const bounds = map.getBounds();
+                const center = map.getCenter();
+
+                onBoundsChange?.({
+                    lat: center.lat,
+                    lng: center.lng,
+                    north: bounds.getNorthEast().lat,
+                    south: bounds.getSouthWest().lat,
+                    east: bounds.getNorthEast().lng,
+                    west: bounds.getSouthWest().lng,
+                });
+
+                // Filtrar preguntas dentro de los bounds
+                const visibleIds = questions
+                    .filter((q) => {
+                        const coords = getQuestionCoords(q);
+                        if (!coords) return false;
+                        return coords.lat >= bounds.getSouthWest().lat &&
+                            coords.lat <= bounds.getNorthEast().lat &&
+                            coords.lng >= bounds.getSouthWest().lng &&
+                            coords.lng <= bounds.getNorthEast().lng;
+                    })
+                    .map((q) => q.id);
+
+                onVisibleQuestionsChange?.(visibleIds);
+            } catch (error) {
+                console.warn('Error updating bounds:', error);
+            }
+        };
+
+        // Agregar event listeners
+        map.on('moveend', updateBounds);
+        map.on('zoomend', updateBounds);
+        map.on('load', updateBounds);
+
+        // Actualizar al cargar por primera vez
+        const timeout = setTimeout(updateBounds, 100);
+
+        return () => {
+            clearTimeout(timeout);
+            map.off('moveend', updateBounds);
+            map.off('zoomend', updateBounds);
+            map.off('load', updateBounds);
+        };
+    }, [mapRef, questions, onBoundsChange, onVisibleQuestionsChange]);
+
+    return null;
+};
+
 // Función para crear iconos SVG personalizados
 const createCustomIcon = (color) => {
     if (!L) return undefined;
@@ -79,6 +137,26 @@ const createFeaturedIcon = () => {
     });
 };
 
+const createEventIcon = () => {
+    if (!L) return undefined;
+
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+        <path fill="#0F766E" d="M17 0C9.82 0 4 5.82 4 13c0 8.7 13 31 13 31s13-22.3 13-31C30 5.82 24.18 0 17 0z"/>
+        <rect x="10" y="9" width="14" height="11" rx="2" fill="#FFFFFF"/>
+        <rect x="10" y="9" width="14" height="3" rx="1" fill="#14B8A6"/>
+        <circle cx="13" cy="15" r="1" fill="#0F766E"/>
+        <circle cx="17" cy="15" r="1" fill="#0F766E"/>
+        <circle cx="21" cy="15" r="1" fill="#0F766E"/>
+    </svg>`;
+
+    return L.icon({
+        iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
+        iconSize: [34, 44],
+        iconAnchor: [17, 44],
+        popupAnchor: [0, -44],
+    });
+};
+
 const toNum = (v) => {
     if (typeof v === 'number') return v;
     if (typeof v === 'string') {
@@ -105,7 +183,37 @@ const getQuestionCoords = (q) => {
     return { lat, lng };
 };
 
-export default function MapComponent({ questions = [], onQuestionPress, onLocationChange, onPermissionChange, showQuestions = true }) {
+const getEventCoords = (event) => {
+    const loc = event?.location ?? {};
+    const lat = toNum(loc.latitude) ?? toNum(loc.lat) ?? toNum(event?.latitude) ?? toNum(event?.lat);
+    const lng =
+        toNum(loc.longitude) ??
+        toNum(loc.lng) ??
+        toNum(loc.lon) ??
+        toNum(event?.longitude) ??
+        toNum(event?.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+};
+
+const formatDateTime = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString();
+};
+
+export default function MapComponent({
+    questions = [],
+    events = [],
+    onQuestionPress,
+    onLocationChange,
+    onPermissionChange,
+    onMapBoundsChange,
+    onVisibleQuestionsChange,
+    showQuestions = true,
+}) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -231,11 +339,23 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
 
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
         const preguntasActivas = questions.filter((q) => {
+            if (q?.active === false) {
+                return false;
+            }
+
+            if (!q?.expiresAt) {
+                return true;
+            }
+
             const fechaExpiracion = new Date(q.expiresAt).getTime();
+            if (!Number.isFinite(fechaExpiracion)) {
+                return true;
+            }
+
             return fechaExpiracion > ahora; // Solo dejamos las que expiran en el futuro
         });
 
-        setVisibleQuestions(preguntasActivas);
+        setVisibleQuestions(preguntasActivas.length > 0 ? preguntasActivas : questions.filter((q) => q?.active !== false));
     }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {
@@ -322,6 +442,14 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
+                    {/* Rastreador de bounds del mapa */}
+                    <MapBoundsTrackerComponent
+                        questions={visibleQuestions}
+                        onBoundsChange={onMapBoundsChange}
+                        onVisibleQuestionsChange={onVisibleQuestionsChange}
+                        mapRef={mapRef}
+                    />
+
                     {/* Marcador de tu ubicación */}
                     <Marker position={[location.latitude, location.longitude]} icon={userLocationIcon}>
                         <Popup>
@@ -388,6 +516,59 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
                                         </span>
                                         <br />
                                         <span style={{ color: '#007AFF', fontWeight: 600 }}>Click to open</span>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
+
+                    {/* Event markers */}
+                    {(Array.isArray(events) ? events : []).map((event) => {
+                        const coords = getEventCoords(event);
+                        if (!coords) return null;
+
+                        const startsAt = formatDateTime(event.startsAt);
+                        const endsAt = formatDateTime(event.endsAt);
+
+                        return (
+                            <Marker
+                                key={event.id}
+                                position={[coords.lat, coords.lng]}
+                                icon={createEventIcon()}
+                            >
+                                <Popup>
+                                    <div style={{ fontSize: '12px' }}>
+                                        <strong>Event: {event.title || 'Untitled event'}</strong>
+                                        <br />
+                                        {event.category && (
+                                            <>
+                                                <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                                                    {event.category}
+                                                </span>
+                                                <br />
+                                            </>
+                                        )}
+                                        {startsAt && (
+                                            <>
+                                                <span>Starts: {startsAt}</span>
+                                                <br />
+                                            </>
+                                        )}
+                                        {endsAt && (
+                                            <>
+                                                <span>Ends: {endsAt}</span>
+                                                <br />
+                                            </>
+                                        )}
+                                        {event.address && (
+                                            <>
+                                                <span>{event.address}</span>
+                                                <br />
+                                            </>
+                                        )}
+                                        <span style={{ opacity: 0.8 }}>
+                                            {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                                        </span>
                                     </div>
                                 </Popup>
                             </Marker>

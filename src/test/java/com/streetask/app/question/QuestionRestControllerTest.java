@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -82,8 +84,8 @@ class QuestionRestControllerTest {
 		testQuestion.setCreator(testCreator);
 		testQuestion.setActive(true);
 		testQuestion.setAnswerCount(0);
-		testQuestion.setCreatedAt(LocalDateTime.now());
-		testQuestion.setExpiresAt(LocalDateTime.now().plusHours(2));
+		testQuestion.setCreatedAt(Instant.now());
+		testQuestion.setExpiresAt(Instant.now().plus(2, ChronoUnit.HOURS));
 		testQuestion = questionRepository.save(testQuestion);
 	}
 
@@ -96,7 +98,8 @@ class QuestionRestControllerTest {
 				.contentType(APPLICATION_JSON))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(5)))
-				.andExpect(jsonPath("$[?(@.title == 'Test Question')].content", org.hamcrest.Matchers.hasItem("Test Content")));
+				.andExpect(jsonPath("$[?(@.title == 'Test Question')].content",
+						org.hamcrest.Matchers.hasItem("Test Content")));
 	}
 
 	@Test

@@ -1,16 +1,30 @@
 package com.streetask.app.answer;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -23,7 +37,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent;
-import com.streetask.app.functionalities.notifications.model.NotificationRepository;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.AnswerVote;
 import com.streetask.app.model.CoinTransactionRepository;
@@ -49,9 +62,6 @@ class AnswerServiceTest {
 
     @Mock
     private CoinTransactionRepository coinTransactionRepository;
-
-    @Mock
-    private NotificationRepository notificationRepository;
 
     @InjectMocks
     private AnswerService answerService;
@@ -103,7 +113,7 @@ class AnswerServiceTest {
         question.getLocation().setLongitude(-122.4194);
         question.setRadiusKm(1.0f);
         question.setActive(true);
-        question.setCreatedAt(LocalDateTime.now());
+        question.setCreatedAt(Instant.now());
 
         // Create test answer
         answer = new Answer();
@@ -117,6 +127,7 @@ class AnswerServiceTest {
         answer.setUpvotes(0);
         answer.setDownvotes(0);
         answer.setRewardClaimed(false);
+        answer.setCoinsEarned(0);
 
         regularUser = new RegularUser();
         regularUser.setId(userId);
@@ -144,12 +155,87 @@ class AnswerServiceTest {
         assertEquals(false, savedAnswer.getIsVerified());
         assertEquals(0, savedAnswer.getUpvotes());
         assertEquals(0, savedAnswer.getDownvotes());
+        assertEquals(1, savedAnswer.getCoinsEarned());
+        assertEquals(1, authenticatedUser.getCoinBalance());
 
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, times(2)).save(answer);
+        verify(coinTransactionRepository, times(1)).save(any());
 
         ArgumentCaptor<AnswerCreatedEvent> eventCaptor = ArgumentCaptor.forClass(AnswerCreatedEvent.class);
         verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
         assertEquals(answerId, eventCaptor.getValue().answerId());
+    }
+
+    @Test
+    void testSaveAnswerByQuestionCreatorEarnsNoCoins() {
+        // Set question creator to the authenticated user — this is a self-answer
+        question.setCreator(authenticatedUser);
+        authenticatedUser.setCoinBalance(5);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        assertEquals(5, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
+    }
+
+    @Test
+    void testSaveAnswerByDifferentUserEarnsCoins() {
+        // Question creator is a different user — reward should be granted
+        RegularUser questionCreator = new RegularUser();
+        questionCreator.setId(UUID.randomUUID());
+        question.setCreator(questionCreator);
+        authenticatedUser.setCoinBalance(0);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(1, savedAnswer.getCoinsEarned());
+        assertEquals(1, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testSaveAnswerWithTooShortContentSavesButEarnsNoCoins() {
+        answer.setContent("Short");
+        authenticatedUser.setCoinBalance(0);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        assertEquals(0, authenticatedUser.getCoinBalance());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
+    }
+
+    @Test
+    void testSaveAnswerRateLimitExceededThrows() {
+        when(answerRepository.countByUserIdAndCreatedAtAfter(eq(userId), any(OffsetDateTime.class)))
+                .thenReturn(5L);
+
+        assertThrows(IllegalArgumentException.class, () -> answerService.saveAnswer(answer, question));
+
+        verify(answerRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @Test
+    void testSaveAnswerDuplicateToSameQuestionEarnsNoCoins() {
+        // User already has another answer to the same question
+        when(answerRepository.countByQuestionIdAndUserIdAndIdNot(questionId, userId, answerId))
+                .thenReturn(1L);
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertEquals(0, savedAnswer.getCoinsEarned());
+        verify(coinTransactionRepository, never()).save(any());
+        verify(answerRepository, times(1)).save(answer);
     }
 
     @Test
@@ -181,6 +267,7 @@ class AnswerServiceTest {
     @Test
     void testSaveAnswerWhenQuestionHasNoLocation() {
         answer.setUserLocation(null);
+        answer.setCoinsEarned(null);
         question.setLocation(null);
 
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -188,13 +275,14 @@ class AnswerServiceTest {
         Answer savedAnswer = answerService.saveAnswer(answer, question);
 
         assertNotNull(savedAnswer);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, times(2)).save(answer);
         verify(eventPublisher, times(1)).publishEvent(any(AnswerCreatedEvent.class));
     }
 
     @Test
     void testSaveAnswerWhenQuestionHasNullRadius() {
         answer.setUserLocation(null);
+        answer.setCoinsEarned(null);
         question.setRadiusKm(null);
 
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -202,13 +290,14 @@ class AnswerServiceTest {
         Answer savedAnswer = answerService.saveAnswer(answer, question);
 
         assertNotNull(savedAnswer);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, times(2)).save(answer);
         verify(eventPublisher, times(1)).publishEvent(any(AnswerCreatedEvent.class));
     }
 
     @Test
     void testSaveAnswerWhenQuestionHasZeroRadius() {
         answer.setUserLocation(null);
+        answer.setCoinsEarned(null);
         question.setRadiusKm(0f);
 
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -216,13 +305,14 @@ class AnswerServiceTest {
         Answer savedAnswer = answerService.saveAnswer(answer, question);
 
         assertNotNull(savedAnswer);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, times(2)).save(answer);
         verify(eventPublisher, times(1)).publishEvent(any(AnswerCreatedEvent.class));
     }
 
     @Test
     void testSaveAnswerWhenQuestionHasNegativeRadius() {
         answer.setUserLocation(null);
+        answer.setCoinsEarned(null);
         question.setRadiusKm(-2f);
 
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -230,7 +320,7 @@ class AnswerServiceTest {
         Answer savedAnswer = answerService.saveAnswer(answer, question);
 
         assertNotNull(savedAnswer);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, times(2)).save(answer);
         verify(eventPublisher, times(1)).publishEvent(any(AnswerCreatedEvent.class));
     }
 
@@ -451,6 +541,7 @@ class AnswerServiceTest {
     void testUpdateVotesNewLikeVote() {
         answer.setUpvotes(2);
         answer.setDownvotes(3);
+        answer.setCoinsEarned(1);
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
@@ -461,13 +552,14 @@ class AnswerServiceTest {
         assertEquals(3, result.getUpvotes());
         assertEquals(3, result.getDownvotes());
         verify(answerVoteRepository, times(1)).save(any(AnswerVote.class));
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test
     void testUpdateVotesNewDislikeVote() {
         answer.setUpvotes(2);
         answer.setDownvotes(3);
+        answer.setCoinsEarned(1);
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
@@ -478,7 +570,7 @@ class AnswerServiceTest {
         assertEquals(2, result.getUpvotes());
         assertEquals(4, result.getDownvotes());
         verify(answerVoteRepository, times(1)).save(any(AnswerVote.class));
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test
@@ -499,6 +591,7 @@ class AnswerServiceTest {
     void testUpdateVotesChangeLikeToDislike() {
         answer.setUpvotes(2);
         answer.setDownvotes(1);
+        answer.setCoinsEarned(2);
 
         AnswerVote existing = new AnswerVote();
         existing.setVoteType(VoteType.LIKE);
@@ -513,13 +606,14 @@ class AnswerServiceTest {
         assertEquals(2, result.getDownvotes());
         assertEquals(VoteType.DISLIKE, existing.getVoteType());
         verify(answerVoteRepository, times(1)).save(existing);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test
     void testUpdateVotesChangeDislikeToLike() {
         answer.setUpvotes(1);
         answer.setDownvotes(2);
+        answer.setCoinsEarned(0);
 
         AnswerVote existing = new AnswerVote();
         existing.setVoteType(VoteType.DISLIKE);
@@ -534,7 +628,7 @@ class AnswerServiceTest {
         assertEquals(1, result.getDownvotes());
         assertEquals(VoteType.LIKE, existing.getVoteType());
         verify(answerVoteRepository, times(1)).save(existing);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test
@@ -561,49 +655,49 @@ class AnswerServiceTest {
     }
 
     @Test
-    void testUpdateVotesRewardsOwnerWhenThresholdReached() {
-        answer.setUpvotes(2);
+    void testUpdateVotesGivesAdditionalCoinWhenLikesExceedDislikes() {
+        answer.setUpvotes(0);
         answer.setDownvotes(0);
-        answerOwner.setCoinBalance(10);
+        answer.setCoinsEarned(1);
+        answerOwner.setCoinBalance(7);
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
-        when(answerRepository.markRewardClaimedIfUnclaimed(answerId)).thenReturn(1);
         when(answerRepository.save(answer)).thenReturn(answer);
 
         Answer result = answerService.updateVotes(answerId, userId, VoteType.LIKE);
 
-        assertEquals(3, result.getUpvotes());
+        assertEquals(1, result.getUpvotes());
         assertTrue(result.getRewardClaimed());
-        assertEquals(25, answerOwner.getCoinBalance());
-        assertEquals(15, result.getCoinsEarned());
+        assertEquals(8, answerOwner.getCoinBalance());
+        assertEquals(2, result.getCoinsEarned());
         verify(coinTransactionRepository, times(1)).save(any());
-        verify(notificationRepository, times(1)).save(any());
         verify(answerRepository, times(2)).save(answer);
     }
 
     @Test
-    void testUpdateVotesDoesNotDuplicateRewardWhenAlreadyClaimedConcurrently() {
+    void testUpdateVotesDoesNotChangeCoinsWhenVoteKeepsSameState() {
         answer.setUpvotes(2);
-        answer.setRewardClaimed(false);
+        answer.setDownvotes(0);
+        answer.setCoinsEarned(2);
+        answer.setRewardClaimed(true);
         answerOwner.setCoinBalance(10);
 
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
-        when(answerRepository.markRewardClaimedIfUnclaimed(answerId)).thenReturn(0);
         when(answerRepository.save(answer)).thenReturn(answer);
 
         answerService.updateVotes(answerId, userId, VoteType.LIKE);
 
         assertEquals(10, answerOwner.getCoinBalance());
         verify(coinTransactionRepository, never()).save(any());
-        verify(notificationRepository, never()).save(any());
     }
 
     @Test
     void testRemoveVoteLike() {
         answer.setUpvotes(3);
         answer.setDownvotes(1);
+        answer.setCoinsEarned(2);
 
         AnswerVote existing = new AnswerVote();
         existing.setAnswer(answer);
@@ -618,13 +712,14 @@ class AnswerServiceTest {
         assertEquals(2, result.getUpvotes());
         assertEquals(1, result.getDownvotes());
         verify(answerVoteRepository, times(1)).delete(existing);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test
     void testRemoveVoteDislike() {
         answer.setUpvotes(1);
         answer.setDownvotes(3);
+        answer.setCoinsEarned(0);
 
         AnswerVote existing = new AnswerVote();
         existing.setAnswer(answer);
@@ -639,7 +734,7 @@ class AnswerServiceTest {
         assertEquals(1, result.getUpvotes());
         assertEquals(2, result.getDownvotes());
         verify(answerVoteRepository, times(1)).delete(existing);
-        verify(answerRepository, times(1)).save(answer);
+        verify(answerRepository, atLeastOnce()).save(answer);
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.streetask.app.business;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.Event;
 import com.streetask.app.user.Admin;
 import com.streetask.app.user.User;
@@ -14,6 +15,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,25 +45,39 @@ public class BusinessAccount extends User {
 
     private String logo;
 
-    private Boolean verified;
+    private Boolean verified = false;
 
-    private Float rating;
+    private Float rating = 0.0f;
 
     private LocalDateTime verifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private RequestStatus requestStatus;
+    private RequestStatus requestStatus = RequestStatus.PENDING;
 
-    private Boolean subscriptionActive;
+    private Boolean subscriptionActive = false;
 
     private LocalDateTime subscriptionExpiresAt;
 
     @ManyToOne
     private Admin verifiedBy;
 
+    @JsonIgnore
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "creator")
     private List<Event> createdEvents;
+
+    @Transient
+    public Boolean getPremiumActive() {
+        return hasEffectivePremiumAccess();
+    }
+
+    public boolean hasEffectivePremiumAccess() {
+        return Boolean.TRUE.equals(verified)
+                && Boolean.TRUE.equals(subscriptionActive)
+                && subscriptionExpiresAt != null
+                && subscriptionExpiresAt.isAfter(LocalDateTime.now());
+    }
 }

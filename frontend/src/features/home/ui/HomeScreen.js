@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapComponent from './components/MapComponent';
+import QuestionsSidebar from './components/QuestionsSidebar';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import { useNotifications } from '../../../app/providers/NotificationProvider';
 import ConfirmationModal from '../../../shared/components/ConfirmationModal';
@@ -27,14 +28,45 @@ import apiClient from '../../../shared/services/http/apiClient';
 import { bootstrapWebPushNotifications } from '../../../shared/services/notifications/webPushBootstrap';
 import { updateWebPushZone } from '../../../shared/services/notifications/webPushService';
 import { resolveZoneKey } from '../../../shared/services/notifications/zoneService';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const readCachedArray = (key) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return [];
+    }
+
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeCachedArray = (key, value) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || !Array.isArray(value) || value.length === 0) {
+        return;
+    }
+
+    window.localStorage.setItem(key, JSON.stringify(value));
+};
 
 export default function HomeScreen({ navigation }) {
     const { logout, token, user } = useAuth();
     const { ephemeralNotification, observeNotifications } = useNotifications();
     const { width } = useWindowDimensions();
     const isNarrow = width < 500;
+    const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
 
     const [questions, setQuestions] = useState([]);
+    const [events, setEvents] = useState([]);
     const [showQuestions, setShowQuestions] = useState(true);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
@@ -50,6 +82,12 @@ export default function HomeScreen({ navigation }) {
     const [feedbackSuccessMessage, setFeedbackSuccessMessage] = useState('');
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [streetCoinsNotice, setStreetCoinsNotice] = useState('');
+
+    // Estados para el sidebar de preguntas
+    const [sidebarVisible, setSidebarVisible] = useState(false);
+    const [mapCenter, setMapCenter] = useState(null);
+    const [visibleQuestionsIds, setVisibleQuestionsIds] = useState([]);
 
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
@@ -60,28 +98,105 @@ export default function HomeScreen({ navigation }) {
     const pushSubscriptionRef = useRef(null);
     const menuAnimValue = useRef(new Animated.Value(-350)).current;
     const pushZoneKeyRef = useRef(null);
+    const coinsToastAnim = useRef(new Animated.Value(0)).current;
 
     const isFocused = useIsFocused();
     const latestRequestRef = useRef(0);
+    const isBusiness = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
+    const latestEventsRequestRef = useRef(0);
+
 
     const loadQuestions = useCallback(async () => {
         const requestId = ++latestRequestRef.current;
-        try {
-            const res = await apiClient.get('/api/v1/questions');
-            const raw = res.data;
 
-            if (requestId !== latestRequestRef.current) {
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+                const res = await apiClient.get('/api/v1/questions');
+                const raw = Array.isArray(res?.data) ? res.data : [];
+
+                if (requestId !== latestRequestRef.current) {
+                    return;
+                }
+
+                setQuestions(raw);
+                writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, raw);
                 return;
-            }
+            } catch (e) {
+                if (attempt === 3) {
+                    if (requestId !== latestRequestRef.current) {
+                        return;
+                    }
 
-            setQuestions(Array.isArray(raw) ? raw : []);
-        } catch (e) {
-            console.warn('Failed to load questions', e);
+                    const cachedQuestions = readCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE);
+                    if (cachedQuestions.length > 0) {
+                        setQuestions(cachedQuestions);
+                    }
+                    console.warn('Failed to load questions', e);
+                    return;
+                }
+
+                await sleep(250 * attempt);
+            }
         }
     }, []);
 
+    const loadEvents = useCallback(async () => {
+        const requestId = ++latestEventsRequestRef.current;
+
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+                const res = await apiClient.get('/api/v1/events?active=true');
+                const raw = Array.isArray(res?.data) ? res.data : [];
+
+                if (requestId !== latestEventsRequestRef.current) {
+                    return;
+                }
+
+                setEvents(raw);
+                writeCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE, raw);
+                return;
+            } catch (e) {
+                if (attempt === 3) {
+                    if (requestId !== latestEventsRequestRef.current) {
+                        return;
+                    }
+
+                    const cachedEvents = readCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE);
+                    if (cachedEvents.length > 0) {
+                        setEvents(cachedEvents);
+                    }
+                    console.warn('Failed to load events', e);
+                    return;
+                }
+
+                await sleep(250 * attempt);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        if (questions.length === 0) {
+            const cachedQuestions = readCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE);
+            if (cachedQuestions.length > 0) {
+                setQuestions(cachedQuestions);
+            }
+        }
+
+        if (events.length === 0) {
+            const cachedEvents = readCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE);
+            if (cachedEvents.length > 0) {
+                setEvents(cachedEvents);
+            }
+        }
+    }, [events.length, questions.length]);
+
     useFocusEffect(useCallback(() => {
         loadQuestions();
+        loadEvents();
 
         let isMounted = true;
         const checkPremium = async () => {
@@ -95,7 +210,7 @@ export default function HomeScreen({ navigation }) {
         };
         checkPremium();
         return () => { isMounted = false; };
-    }, [loadQuestions, user?.id]));
+    }, [loadEvents, loadQuestions, user?.id]));
 
     useEffect(() => {
         const unsub = observeNotifications((n) => {
@@ -103,6 +218,10 @@ export default function HomeScreen({ navigation }) {
 
             if (n?.type === 'NEARBY_QUESTION') {
                 loadQuestions();
+            }
+
+            if (n?.type === 'NEARBY_EVENT') {
+                loadEvents();
             }
 
             if (
@@ -115,7 +234,83 @@ export default function HomeScreen({ navigation }) {
         });
 
         return unsub;
-    }, [isFocused, loadQuestions, observeNotifications]);
+    }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
+
+    useEffect(() => {
+        if (!isFocused || Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        const postCheckoutTarget = window.localStorage.getItem(STORAGE_KEYS.STREETCOINS_POST_CHECKOUT_TARGET);
+        if (postCheckoutTarget === 'balance') {
+            window.localStorage.removeItem(STORAGE_KEYS.STREETCOINS_POST_CHECKOUT_TARGET);
+            navigation.navigate('Balance');
+            return;
+        }
+
+        const rawNotice = window.localStorage.getItem(STORAGE_KEYS.STREETCOINS_SUCCESS_NOTICE);
+        if (!rawNotice) {
+            return;
+        }
+
+        try {
+            const parsedNotice = JSON.parse(rawNotice);
+            const addedStreetCoins = Number(parsedNotice?.addedStreetCoins);
+
+            if (Number.isFinite(addedStreetCoins) && addedStreetCoins > 0) {
+                setStreetCoinsNotice(`+ ${addedStreetCoins} streetcoins`);
+                loadQuestions();
+                loadEvents();
+            }
+        } catch (error) {
+            console.warn('Invalid StreetCoins success notice format.', error);
+        } finally {
+            window.localStorage.removeItem(STORAGE_KEYS.STREETCOINS_SUCCESS_NOTICE);
+        }
+    }, [isFocused, loadEvents, loadQuestions, navigation]);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        const handleStreetCoinsPurchaseConfirmed = (event) => {
+            const addedStreetCoins = Number(event?.detail?.addedStreetCoins);
+            if (Number.isFinite(addedStreetCoins) && addedStreetCoins > 0) {
+                setStreetCoinsNotice(`+ ${addedStreetCoins} streetcoins`);
+            }
+            loadQuestions();
+            loadEvents();
+        };
+
+        window.addEventListener('streetcoins:purchase-confirmed', handleStreetCoinsPurchaseConfirmed);
+        return () => {
+            window.removeEventListener('streetcoins:purchase-confirmed', handleStreetCoinsPurchaseConfirmed);
+        };
+    }, [loadEvents, loadQuestions]);
+
+    useEffect(() => {
+        if (!streetCoinsNotice) {
+            return;
+        }
+
+        coinsToastAnim.stopAnimation();
+        Animated.timing(coinsToastAnim, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+        }).start();
+
+        const hideTimer = setTimeout(() => {
+            Animated.timing(coinsToastAnim, {
+                toValue: 0,
+                duration: 220,
+                useNativeDriver: true,
+            }).start(() => setStreetCoinsNotice(''));
+        }, 3200);
+
+        return () => clearTimeout(hideTimer);
+    }, [streetCoinsNotice, coinsToastAnim]);
 
     useEffect(() => {
         async function initPush() {
@@ -260,6 +455,7 @@ export default function HomeScreen({ navigation }) {
     const handleRefresh = async () => {
         try {
             await loadQuestions();
+            await loadEvents();
         } catch (e) {
             console.warn('Error refreshing data', e);
         }
@@ -286,7 +482,7 @@ export default function HomeScreen({ navigation }) {
                         </TouchableOpacity>
 
                         <View style={styles.topBarRight}>
-                            {isPremium ? (
+                            {!isBusinessUser && (isPremium ? (
                                 <TouchableOpacity
                                     style={styles.proBadge}
                                     activeOpacity={0.85}
@@ -302,7 +498,7 @@ export default function HomeScreen({ navigation }) {
                                 >
                                     <Text style={styles.goProText}>👑 GO PRO</Text>
                                 </TouchableOpacity>
-                            )}
+                            ))}
 
                             {isNarrow ? (
                                 <TouchableOpacity
@@ -372,6 +568,28 @@ export default function HomeScreen({ navigation }) {
                         </View>
                     ) : null}
 
+                    {streetCoinsNotice ? (
+                        <Animated.View
+                            style={[
+                                styles.coinsSideToast,
+                                {
+                                    opacity: coinsToastAnim,
+                                    transform: [
+                                        {
+                                            translateX: coinsToastAnim.interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [220, 0],
+                                            }),
+                                        },
+                                    ],
+                                },
+                            ]}
+                        >
+                            <Ionicons name="wallet" size={18} color="#065f46" />
+                            <Text style={styles.coinsSideToastText}>{streetCoinsNotice}</Text>
+                        </Animated.View>
+                    ) : null}
+
                     <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
                         <Pressable style={styles.menuOverlay} onPress={() => setMenuOpen(false)}>
                             <Animated.View style={[styles.menuContent, { transform: [{ translateY: menuAnimValue }] }]}>
@@ -424,15 +642,46 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
-                            questions={questions}
-                            showQuestions={showQuestions}
+                            questions={showQuestions ? questions : []}
+                            events={events}
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }
                             onLocationChange={setCurrentLocation}
                             onPermissionChange={setHasLocationPermission}
+                            onMapBoundsChange={setMapCenter}
+                            onVisibleQuestionsChange={setVisibleQuestionsIds}
                         />
                     </View>
+
+                    {/* Botón para mostrar/ocultar sidebar - Posicionado absolutamente */}
+                    {!sidebarVisible && (
+                        <TouchableOpacity
+                            style={styles.sidebarToggleBtn}
+                            onPress={() => setSidebarVisible(!sidebarVisible)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name="list-outline"
+                                size={24}
+                                color="#fff"
+                            />
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Sidebar de preguntas */}
+                    <QuestionsSidebar
+                        visible={sidebarVisible}
+                        questions={showQuestions ? questions : []}
+                        visibleQuestionsIds={visibleQuestionsIds}
+                        mapCenter={mapCenter}
+                        userLocation={currentLocation}
+                        onToggle={() => setSidebarVisible(!sidebarVisible)}
+                        onQuestionPress={(qId) => {
+                            setSidebarVisible(false);
+                            navigation.navigate('QuestionThread', { questionId: qId });
+                        }}
+                    />
 
                     <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
                         <Text style={styles.toggleLabel}>Show Questions</Text>
@@ -444,14 +693,27 @@ export default function HomeScreen({ navigation }) {
                         />
                     </View>
                     {hasLocationPermission && (
-                        <TouchableOpacity
-                            style={[styles.fab, isNarrow && { width: 220 }]}
-                            onPress={() => navigation.navigate('CreateQuestion')}
-                            activeOpacity={0.85}
-                        >
-                            <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
-                            <Text style={styles.fabText}>Ask a question</Text>
-                        </TouchableOpacity>
+                        <>
+                            {isBusiness && (
+                                <TouchableOpacity
+                                    style={[styles.fab, styles.fabSecondary, isNarrow && { width: 220 }]}
+                                    onPress={() => navigation.navigate('ManageEvents')}
+                                    activeOpacity={0.85}
+                                >
+                                    <Ionicons name="calendar-outline" size={20} color="#fff" />
+                                    <Text style={styles.fabText}>Manage events</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.fab, isNarrow && { width: 220 }]}
+                                onPress={() => navigation.navigate('CreateQuestion')}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                                <Text style={styles.fabText}>Ask a question</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
 
 
@@ -729,9 +991,53 @@ const styles = StyleSheet.create({
         color: '#78350f',
         marginTop: 1,
     },
+    coinsSideToast: {
+        position: 'absolute',
+        right: 14,
+        top: 86,
+        zIndex: 220,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#ecfdf5',
+        borderWidth: 1,
+        borderColor: '#6ee7b7',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    coinsSideToastText: {
+        fontSize: 12,
+        color: '#065f46',
+        fontWeight: '800',
+        textTransform: 'uppercase',
+    },
     mapWrapper: {
         flex: 1,
         overflow: 'hidden',
+    },
+    sidebarToggleBtn: {
+        position: 'absolute',
+        top: '50%',
+        left: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#a52019',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 5,
+        zIndex: 101,
+        transform: [{ translateY: -24 }],
     },
     footer: {
         backgroundColor: '#fff',
@@ -771,6 +1077,11 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 15,
         fontWeight: '700',
+    },
+    fabSecondary: {
+        bottom: 136,
+        backgroundColor: '#0f766e',
+        shadowColor: '#0f766e',
     },
     modalOverlay: {
         flex: 1,

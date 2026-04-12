@@ -38,6 +38,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.streetask.app.answer.AnswerRepository;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.Question;
@@ -506,6 +508,7 @@ class UserServiceTest {
         RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
         user.setTotalLikesReceived(8);
         user.setTotalDislikesReceived(2);
+        user.setCoinBalance(13);
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(user));
         when(questionRepository.countByCreatorId(testUserId)).thenReturn(5L);
         when(answerRepository.countByUserId(testUserId)).thenReturn(10L);
@@ -519,6 +522,7 @@ class UserServiceTest {
         assertEquals("USER", stats.get("role"));
         assertEquals(8, stats.get("likesCount"));
         assertEquals(2, stats.get("dislikesCount"));
+        assertEquals(13, stats.get("coinBalance"));
         assertNotNull(stats.get("reputation"));
         assertEquals(4.0, stats.get("rating"));
         verify(questionRepository).countByCreatorId(testUserId);
@@ -531,6 +535,7 @@ class UserServiceTest {
         RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
         user.setTotalLikesReceived(0);
         user.setTotalDislikesReceived(0);
+        user.setCoinBalance(0);
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(user));
         when(questionRepository.countByCreatorId(testUserId)).thenReturn(0L);
         when(answerRepository.countByUserId(testUserId)).thenReturn(0L);
@@ -542,6 +547,7 @@ class UserServiceTest {
         assertEquals(0L, stats.get("answersCount"));
         assertEquals(0, stats.get("likesCount"));
         assertEquals(0, stats.get("dislikesCount"));
+        assertEquals(0, stats.get("coinBalance"));
         assertEquals(0.0, stats.get("rating"));
     }
 
@@ -642,6 +648,46 @@ class UserServiceTest {
         List<com.streetask.app.model.Answer> resultList = new ArrayList<>();
         result.forEach(resultList::add);
         assertTrue(resultList.isEmpty());
+    }
+
+    // ================= REGULAR PREMIUM ACCESS =================
+
+    @Test
+    @DisplayName("updateCurrentRegularPremiumAccess should allow regular users to activate premium")
+    void updateCurrentRegularPremiumAccess_shouldAllowRegularUser() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+        regularUser.setPremiumActive(false);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        RegularUser updated = userService.updateCurrentRegularPremiumAccess(true);
+
+        assertTrue(Boolean.TRUE.equals(updated.getPremiumActive()));
+        verify(userRepository).save(regularUser);
+    }
+
+    @Test
+    @DisplayName("updateCurrentRegularPremiumAccess should reject business users")
+    void updateCurrentRegularPremiumAccess_shouldRejectBusinessUser() {
+        BusinessAccount businessAccount = new BusinessAccount();
+        businessAccount.setId(testUserId);
+        businessAccount.setEmail(TEST_EMAIL);
+        businessAccount.setUserName(TEST_USERNAME);
+        businessAccount.setFirstName(TEST_FIRST_NAME);
+        businessAccount.setLastName(TEST_LAST_NAME);
+        businessAccount.setPassword("password123");
+        businessAccount.setAccountType(AccountType.BUSINESS);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(businessAccount));
+
+        assertThrows(AccessDeniedException.class,
+                () -> userService.updateCurrentRegularPremiumAccess(true));
+
+        verify(userRepository, never()).save(any(User.class));
     }
 
     // ================= HELPERS =================

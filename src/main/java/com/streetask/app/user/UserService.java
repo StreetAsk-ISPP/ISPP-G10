@@ -3,12 +3,14 @@ package com.streetask.app.user;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,8 +18,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import com.streetask.app.answer.AnswerRepository;
+import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Question;
 import com.streetask.app.question.QuestionRepository;
@@ -34,7 +42,25 @@ public class UserService {
 
     private static final int LIKE_WEIGHT = 2;
     private static final int DISLIKE_WEIGHT = 1;
+    private static final int DEFAULT_REGULAR_PREMIUM_AMOUNT_CENTS = 999;
 
+    @Value("${streetask.stripe.secret-key:}")
+    private String stripeSecretKey;
+
+    @Value("${streetask.stripe.publishable-key:}")
+    private String stripePublishableKey;
+
+    @Value("${streetask.stripe.currency:eur}")
+    private String stripeCurrency;
+
+    @Value("${streetask.stripe.regular-premium-amount-cents:${STRIPE_REGULAR_PREMIUM_AMOUNT_CENTS:999}}")
+    private Integer stripeRegularPremiumAmountCents;
+
+    @Value("${streetask.stripe.success-url:http://localhost:8081}")
+    private String stripeSuccessUrl;
+
+    @Value("${streetask.stripe.cancel-url:http://localhost:8081}")
+    private String stripeCancelUrl;
 
     @Autowired
     public UserService(UserRepository userRepository, AnswerRepository answerRepository,
@@ -103,13 +129,13 @@ public class UserService {
 
         String previousPassword = toUpdate.getPassword();
 
-		BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
+        BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
 
-		if (user.getPassword() == null || user.getPassword().isBlank()) {
-			toUpdate.setPassword(previousPassword);
-		} else {
-			toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
-		}
+        if (user.getPassword() == null || user.getPassword().isBlank()) {
+            toUpdate.setPassword(previousPassword);
+        } else {
+            toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
+        }
 
         userRepository.save(toUpdate);
         return enrichReputation(toUpdate);
@@ -164,42 +190,44 @@ public class UserService {
     public Map<String, Object> getUserStats(UUID userId) {
         User user = findUser(userId);
 
-		long questionsCount = questionRepository.countByCreatorId(userId);
-		long answersCount = answerRepository.countByUserId(userId);
-
+        long questionsCount = questionRepository.countByCreatorId(userId);
+        long answersCount = answerRepository.countByUserId(userId);
 
         int likesCount = 0;
         int dislikesCount = 0;
+        int coinBalance = 0;
         if (user instanceof RegularUser regularUser) {
             likesCount = regularUser.getTotalLikesReceived() == null ? 0 : regularUser.getTotalLikesReceived();
             dislikesCount = regularUser.getTotalDislikesReceived() == null ? 0 : regularUser.getTotalDislikesReceived();
+            coinBalance = regularUser.getCoinBalance() == null ? 0 : regularUser.getCoinBalance();
         }
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("questionsCount", questionsCount);
         stats.put("answersCount", answersCount);
         stats.put("username", user.getUserName());
-        
+
         stats.put("bio", user.getBio());
         stats.put("profilePictureUrl", user.getProfilePictureUrl());
 
         stats.put("role", user.getAuthority().getAuthority());
         stats.put("likesCount", likesCount);
         stats.put("dislikesCount", dislikesCount);
+        stats.put("coinBalance", coinBalance);
         int reputation = (likesCount * LIKE_WEIGHT) - (dislikesCount * DISLIKE_WEIGHT);
         stats.put("reputation", reputation);
 
-		// Calculate rating on a 0-5 scale from vote ratio.
-		// Formula: likes / (likes + dislikes) * 5
-		int totalInteractions = likesCount + dislikesCount;
-		double rating = 0.0;
-		if (totalInteractions > 0) {
-			rating = ((double) likesCount / (double) totalInteractions) * 5.0;
-			if (rating > 5.0) {
-				rating = 5.0;
-			}
-			rating = Math.round(rating * 10.0) / 10.0;
-		}
+        // Calculate rating on a 0-5 scale from vote ratio.
+        // Formula: likes / (likes + dislikes) * 5
+        int totalInteractions = likesCount + dislikesCount;
+        double rating = 0.0;
+        if (totalInteractions > 0) {
+            rating = ((double) likesCount / (double) totalInteractions) * 5.0;
+            if (rating > 5.0) {
+                rating = 5.0;
+            }
+            rating = Math.round(rating * 10.0) / 10.0;
+        }
 
         stats.put("rating", rating);
 
@@ -214,5 +242,114 @@ public class UserService {
     @Transactional(readOnly = true)
     public Iterable<com.streetask.app.model.Answer> findAnswersByUserId(UUID userId) {
         return answerRepository.findByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public StripeCheckoutSessionResponse createCurrentRegularPremiumStripeCheckoutSession() {
+        RegularUser regularUser = getCurrentRegularUser();
+        if (Boolean.TRUE.equals(regularUser.getPremiumActive())) {
+            throw new AccessDeniedException("Regular premium access is already active.");
+        }
+
+        ensureStripeConfigured();
+        Stripe.apiKey = stripeSecretKey;
+
+        SessionCreateParams params = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(appendQuery(stripeSuccessUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(stripeCancelUrl, "payment=cancel"))
+                .putMetadata("regularUserId", regularUser.getId().toString())
+                .addLineItem(
+                        SessionCreateParams.LineItem.builder()
+                                .setQuantity(1L)
+                                .setPriceData(
+                                        SessionCreateParams.LineItem.PriceData.builder()
+                                                .setCurrency(normalizeCurrency())
+                                                .setUnitAmount(resolveRegularPremiumAmount())
+                                                .setProductData(
+                                                        SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                .setName("StreetAsk Premium Plan")
+                                                                .setDescription("Regular user premium activation")
+                                                                .build())
+                                                .build())
+                                .build())
+                .build();
+
+        try {
+            Session session = Session.create(params);
+            return new StripeCheckoutSessionResponse(session.getId(), session.getUrl(), stripePublishableKey);
+        } catch (StripeException ex) {
+            throw new IllegalStateException("Unable to create Stripe checkout session.", ex);
+        }
+    }
+
+    @Transactional
+    public RegularUser confirmCurrentRegularPremiumStripeCheckoutSession(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            throw new IllegalArgumentException("Stripe sessionId is required.");
+        }
+
+        RegularUser regularUser = getCurrentRegularUser();
+        ensureStripeConfigured();
+        Stripe.apiKey = stripeSecretKey;
+
+        try {
+            Session session = Session.retrieve(sessionId.trim());
+            if (!"paid".equalsIgnoreCase(session.getPaymentStatus())) {
+                throw new AccessDeniedException("Payment has not been completed yet.");
+            }
+
+            String metadataRegularUserId = session.getMetadata() == null ? null
+                    : session.getMetadata().get("regularUserId");
+            if (!regularUser.getId().toString().equals(metadataRegularUserId)) {
+                throw new AccessDeniedException("Stripe session does not belong to this regular account.");
+            }
+
+            regularUser.setPremiumActive(true);
+            userRepository.save(regularUser);
+            return regularUser;
+        } catch (StripeException ex) {
+            throw new IllegalStateException("Unable to confirm Stripe checkout session.", ex);
+        }
+    }
+
+    @Transactional
+    public RegularUser updateCurrentRegularPremiumAccess(boolean premiumActive) {
+        RegularUser regularUser = getCurrentRegularUser();
+        regularUser.setPremiumActive(premiumActive);
+        userRepository.save(regularUser);
+        return regularUser;
+    }
+
+    private RegularUser getCurrentRegularUser() {
+        User currentUser = findCurrentUser();
+        if (!(currentUser instanceof RegularUser regularUser)
+                || currentUser.getAccountType() != AccountType.REGULAR_USER) {
+            throw new AccessDeniedException("Only regular users can access this endpoint.");
+        }
+        return regularUser;
+    }
+
+    private void ensureStripeConfigured() {
+        if (!StringUtils.hasText(stripeSecretKey)) {
+            throw new IllegalStateException("Stripe secret key is not configured.");
+        }
+    }
+
+    private String normalizeCurrency() {
+        return StringUtils.hasText(stripeCurrency) ? stripeCurrency.trim().toLowerCase(Locale.ROOT) : "eur";
+    }
+
+    private Long resolveRegularPremiumAmount() {
+        int amount = stripeRegularPremiumAmountCents == null
+                ? DEFAULT_REGULAR_PREMIUM_AMOUNT_CENTS
+                : stripeRegularPremiumAmountCents;
+        return (long) Math.max(amount, 1);
+    }
+
+    private String appendQuery(String baseUrl, String query) {
+        String safeBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "http://localhost:8081";
+        String separator = safeBaseUrl.contains("?") ? "&" : "?";
+        return safeBaseUrl + separator + query;
     }
 }

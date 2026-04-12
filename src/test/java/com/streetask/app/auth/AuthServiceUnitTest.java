@@ -1,8 +1,10 @@
 package com.streetask.app.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -175,6 +177,11 @@ class AuthServiceUnitTest {
         basicUser.setFirstName("Business");
         basicUser.setLastName("Owner");
         basicUser.setCreatedAt(LocalDateTime.of(2026, 3, 10, 10, 30));
+        basicUser.setActive(false);
+
+        Authorities userAuthority = new Authorities();
+        userAuthority.setAuthority("USER");
+        basicUser.setAuthority(userAuthority);
 
         when(userService.findUser("business@streetask.com")).thenReturn(basicUser);
         when(authoritiesService.findByAuthority("BUSINESS")).thenReturn(businessAuthority);
@@ -214,5 +221,33 @@ class AuthServiceUnitTest {
         inOrder.verify(userService).deleteUser(basicUser.getId());
         inOrder.verify(entityManager).flush();
         inOrder.verify(businessAccountRepository).save(any(BusinessAccount.class));
+    }
+
+    @Test
+    void convertToBusinessUserShouldRejectWhenUserIsAlreadyBusinessAccount() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("business@streetask.com");
+        request.setTaxId("B12345678");
+        request.setCompanyName("StreetAsk Business");
+        request.setAddress("Calle Real 123");
+
+        BusinessAccount existingBusiness = new BusinessAccount();
+        existingBusiness.setId(UUID.randomUUID());
+        existingBusiness.setEmail("business@streetask.com");
+        existingBusiness.setUserName("businessUser");
+        existingBusiness.setPassword("encoded-password");
+        existingBusiness.setFirstName("Business");
+        existingBusiness.setLastName("Owner");
+        existingBusiness.setCreatedAt(LocalDateTime.of(2026, 3, 10, 10, 30));
+
+        when(userService.findUser("business@streetask.com")).thenReturn(existingBusiness);
+
+        assertThatThrownBy(() -> authService.convertToBusinessUser(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("User is already a business account.");
+
+        verify(userService).findUser("business@streetask.com");
+        verify(userService, never()).deleteUser(any());
+        verify(businessAccountRepository, never()).save(any(BusinessAccount.class));
     }
 }

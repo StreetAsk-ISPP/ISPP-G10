@@ -10,9 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
@@ -24,18 +22,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.streetask.app.exceptions.ResourceNotFoundException;
-import com.streetask.app.functionalities.notifications.model.Notification;
-import com.streetask.app.functionalities.notifications.model.NotificationRepository;
-import com.streetask.app.functionalities.notifications.model.NotificationType;
 import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.AnswerVote;
 import com.streetask.app.model.CoinTransaction;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
+import com.streetask.app.model.enums.CoinTransactionStatus;
 import com.streetask.app.model.enums.CoinTransactionType;
 import com.streetask.app.model.enums.VoteType;
-import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
 
@@ -52,35 +48,35 @@ public class AnswerService {
 	private final RegularUserRepository regularUserRepository;
 	private final ApplicationEventPublisher eventPublisher;
 	private final CoinTransactionRepository coinTransactionRepository;
-	private final NotificationRepository notificationRepository;
 
-	@Value("${streetask.coins.answer-reward.like-threshold:${STREETASK_ANSWER_REWARD_LIKE_THRESHOLD:3}}")
-	private int answerRewardLikeThreshold = 3;
-
-	@Value("${streetask.coins.answer-reward.amount:${STREETASK_ANSWER_REWARD_AMOUNT:15}}")
-	private int answerRewardAmount = 15;
+	private static final int ANSWER_BASE_REWARD = 1;
+	private static final int ANSWER_POSITIVE_VOTE_BONUS = 1;
+	private static final int ANSWER_NEGATIVE_VOTE_PENALTY = -1;
+	private static final int MIN_ANSWER_LENGTH = 10;
+	private static final int MAX_ANSWERS_IN_WINDOW = 5;
+	private static final int RATE_LIMIT_WINDOW_MINUTES = 5;
 
 	@Autowired
 	public AnswerService(AnswerRepository answerRepository, AnswerVoteRepository answerVoteRepository,
 			RegularUserRepository regularUserRepository, ApplicationEventPublisher eventPublisher,
-			CoinTransactionRepository coinTransactionRepository, NotificationRepository notificationRepository) {
+			CoinTransactionRepository coinTransactionRepository) {
 		this.answerRepository = answerRepository;
 		this.answerVoteRepository = answerVoteRepository;
 		this.regularUserRepository = regularUserRepository;
 		this.eventPublisher = eventPublisher;
 		this.coinTransactionRepository = coinTransactionRepository;
-		this.notificationRepository = notificationRepository;
 	}
 
 	@Transactional
 	public Answer saveAnswer(@Valid Answer answer, Question question) throws DataAccessException {
 		attachAuthenticatedUser(answer);
-		// Validate location before saving
 		validateAnswerLocation(answer, question);
+		validateAnswerRateLimit(answer);
 		applyDefaults(answer);
-		answerRepository.save(answer);
+		Answer savedAnswer = answerRepository.save(answer);
+		savedAnswer = reconcileAnswerCoins(savedAnswer);
 		eventPublisher.publishEvent(new AnswerCreatedEvent(answer.getId()));
-		return answer;
+		return savedAnswer;
 	}
 
 	@Transactional(readOnly = true)
@@ -179,8 +175,6 @@ public class AnswerService {
 				.orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
 		Optional<AnswerVote> existingOpt = answerVoteRepository.findByUserIdAndAnswerId(userId, answerId);
-		boolean likeAdded = false;
-
 		if (existingOpt.isPresent()) {
 			AnswerVote existing = existingOpt.get();
 			if (existing.getVoteType() == voteType) {
@@ -193,7 +187,6 @@ public class AnswerService {
 				answer.setDownvotes(Math.max(0, answer.getDownvotes() - 1));
 				decrementDislikes(answerOwner);
 				incrementLikes(answerOwner);
-				likeAdded = true;
 			} else {
 				answer.setDownvotes(answer.getDownvotes() + 1);
 				answer.setUpvotes(Math.max(0, answer.getUpvotes() - 1));
@@ -213,7 +206,6 @@ public class AnswerService {
 			if (voteType == VoteType.LIKE) {
 				answer.setUpvotes(answer.getUpvotes() + 1);
 				incrementLikes(answerOwner);
-				likeAdded = true;
 			} else {
 				answer.setDownvotes(answer.getDownvotes() + 1);
 				incrementDislikes(answerOwner);
@@ -221,11 +213,7 @@ public class AnswerService {
 		}
 
 		Answer savedAnswer = answerRepository.save(answer);
-		if (likeAdded) {
-			savedAnswer = tryGrantLikeMilestoneReward(savedAnswer);
-		}
-
-		return savedAnswer;
+		return reconcileAnswerCoins(savedAnswer);
 	}
 
 	@Transactional
@@ -242,7 +230,8 @@ public class AnswerService {
 			decrementDislikes(answerOwner);
 		}
 		answerVoteRepository.delete(existing);
-		return answerRepository.save(answer);
+		Answer savedAnswer = answerRepository.save(answer);
+		return reconcileAnswerCoins(savedAnswer);
 	}
 
 	@Transactional(readOnly = true)
@@ -330,55 +319,112 @@ public class AnswerService {
 		if (answer.getDownvotes() == null) {
 			answer.setDownvotes(0);
 		}
+		if (answer.getCoinsEarned() == null) {
+			answer.setCoinsEarned(0);
+		}
 		if (answer.getRewardClaimed() == null) {
 			answer.setRewardClaimed(false);
 		}
 	}
 
-	private Answer tryGrantLikeMilestoneReward(Answer answer) {
-		if (Boolean.TRUE.equals(answer.getRewardClaimed()) || answer.getUser() == null) {
+	private Answer reconcileAnswerCoins(Answer answer) {
+		if (answer.getUser() == null) {
 			return answer;
 		}
 
-		int currentLikes = answer.getUpvotes() == null ? 0 : answer.getUpvotes();
-		if (currentLikes < answerRewardLikeThreshold) {
-			return answer;
-		}
+		int targetCoins = calculateTargetCoinsEarned(answer);
+		int currentCoins = answer.getCoinsEarned() == null ? 0 : answer.getCoinsEarned();
+		int delta = targetCoins - currentCoins;
 
-		int claimedRows = answerRepository.markRewardClaimedIfUnclaimed(answer.getId());
-		if (claimedRows == 0) {
+		if (delta == 0) {
 			return answer;
 		}
 
 		RegularUser owner = answer.getUser();
 		int balanceBefore = owner.getCoinBalance() == null ? 0 : owner.getCoinBalance();
-		int balanceAfter = balanceBefore + answerRewardAmount;
+		int balanceAfter = balanceBefore + delta;
 		owner.setCoinBalance(balanceAfter);
+		regularUserRepository.save(owner);
 
-		int earned = answer.getCoinsEarned() == null ? 0 : answer.getCoinsEarned();
-		answer.setCoinsEarned(earned + answerRewardAmount);
-		answer.setRewardClaimed(true);
+		answer.setCoinsEarned(targetCoins);
+		answer.setRewardClaimed(answer.getUpvotes() != null && answer.getDownvotes() != null
+				&& !answer.getUpvotes().equals(answer.getDownvotes()));
 
 		CoinTransaction coinTransaction = new CoinTransaction();
 		coinTransaction.setUser(owner);
-		coinTransaction.setType(CoinTransactionType.EARN);
-		coinTransaction.setAmount(answerRewardAmount);
+		coinTransaction.setType(delta >= 0 ? CoinTransactionType.EARN : CoinTransactionType.SPEND);
+		coinTransaction.setAmount(delta);
+		coinTransaction.setCurrency("StreetCoins");
+		coinTransaction.setStatus(CoinTransactionStatus.SUCCESS);
 		coinTransaction.setBalanceBefore(balanceBefore);
 		coinTransaction.setBalanceAfter(balanceAfter);
 		coinTransaction.setReferenceId(answer.getId());
+		coinTransaction
+				.setDescription(delta >= 0 ? "Answer reward" : "Answer reward adjustment");
 		coinTransaction.setCreatedAt(LocalDateTime.now());
 		coinTransactionRepository.save(coinTransaction);
 
-		Notification notification = new Notification();
-		notification.setUser(owner);
-		notification.setType(NotificationType.ANSWER_TO_QUESTION);
-		notification.setContent("Your answer helped a lot of people! You earned +" + answerRewardAmount + " coins.");
-		notification.setReferenceId(answer.getId());
-		notification.setReferenceType("ANSWER_REWARD");
-		notification.setSentAt(LocalDateTime.now());
-		notificationRepository.save(notification);
-
 		return answerRepository.save(answer);
+	}
+
+	private int calculateTargetCoinsEarned(Answer answer) {
+		if (isSelfAnswer(answer)) {
+			return 0;
+		}
+		if (hasAlreadyAnsweredQuestion(answer)) {
+			return 0;
+		}
+		if (isTooShort(answer)) {
+			return 0;
+		}
+
+		int likes = answer.getUpvotes() == null ? 0 : answer.getUpvotes();
+		int dislikes = answer.getDownvotes() == null ? 0 : answer.getDownvotes();
+
+		if (likes > dislikes) {
+			return ANSWER_BASE_REWARD + ANSWER_POSITIVE_VOTE_BONUS;
+		}
+		if (dislikes > likes) {
+			return ANSWER_BASE_REWARD + ANSWER_NEGATIVE_VOTE_PENALTY;
+		}
+		return ANSWER_BASE_REWARD;
+	}
+
+	private boolean isSelfAnswer(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return false;
+		}
+		if (answer.getQuestion() == null || answer.getQuestion().getCreator() == null
+				|| answer.getQuestion().getCreator().getId() == null) {
+			return false;
+		}
+		return answer.getUser().getId().equals(answer.getQuestion().getCreator().getId());
+	}
+
+	private boolean hasAlreadyAnsweredQuestion(Answer answer) {
+		if (answer.getId() == null || answer.getUser() == null || answer.getUser().getId() == null
+				|| answer.getQuestion() == null || answer.getQuestion().getId() == null) {
+			return false;
+		}
+		return answerRepository.countByQuestionIdAndUserIdAndIdNot(
+				answer.getQuestion().getId(), answer.getUser().getId(), answer.getId()) > 0;
+	}
+
+	private boolean isTooShort(Answer answer) {
+		String content = answer.getContent();
+		return content == null || content.trim().length() < MIN_ANSWER_LENGTH;
+	}
+
+	private void validateAnswerRateLimit(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return;
+		}
+		OffsetDateTime windowStart = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(RATE_LIMIT_WINDOW_MINUTES);
+		long recentCount = answerRepository.countByUserIdAndCreatedAtAfter(answer.getUser().getId(), windowStart);
+		if (recentCount >= MAX_ANSWERS_IN_WINDOW) {
+			throw new IllegalArgumentException(
+					"You are posting too quickly. Please wait before submitting another answer");
+		}
 	}
 
 	private void attachAuthenticatedUser(Answer answer) {

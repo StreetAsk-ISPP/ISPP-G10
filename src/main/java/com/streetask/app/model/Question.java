@@ -1,13 +1,11 @@
 package com.streetask.app.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.streetask.app.functionalities.shared.json.FlexibleLocalDateTimeDeserializer;
-import com.streetask.app.functionalities.shared.json.UtcLocalDateTimeSerializer;
+import com.streetask.app.functionalities.shared.json.FlexibleInstantDeserializer;
 import com.streetask.app.user.RegularUser;
 
 import jakarta.persistence.Embedded;
@@ -50,13 +48,11 @@ public class Question extends BaseEntity {
 
     private Boolean active;
 
-    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
-    @JsonSerialize(using = UtcLocalDateTimeSerializer.class)
-    private LocalDateTime expiresAt;
+    @JsonDeserialize(using = FlexibleInstantDeserializer.class)
+    private Instant expiresAt;
 
-    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
-    @JsonSerialize(using = UtcLocalDateTimeSerializer.class)
-    private LocalDateTime createdAt;
+    @JsonDeserialize(using = FlexibleInstantDeserializer.class)
+    private Instant createdAt;
 
     private Boolean featured;
 

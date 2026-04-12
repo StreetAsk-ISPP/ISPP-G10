@@ -10,14 +10,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -131,14 +131,14 @@ class QuestionServiceTest {
 		Question saved = questionService.saveQuestion(newQuestion);
 
 		// Assert
-		assertThat(saved.getExpiresAt()).isEqualTo(saved.getCreatedAt().plusHours(6));
+		assertThat(saved.getExpiresAt()).isEqualTo(saved.getCreatedAt().plus(6, ChronoUnit.HOURS));
 	}
 
 	@Test
 	void saveQuestion_shouldKeepProvidedCreatedAtActiveAndAnswerCountForFreeUsers() {
 		// Arrange
-		LocalDateTime specificCreatedAt = LocalDateTime.now(ZoneId.of("UTC")).minusDays(1);
-		LocalDateTime specificExpiresAt = LocalDateTime.now(ZoneId.of("UTC")).plusDays(1);
+		Instant specificCreatedAt = Instant.now().minus(1, ChronoUnit.DAYS);
+		Instant specificExpiresAt = Instant.now().plus(1, ChronoUnit.DAYS);
 
 		Question newQuestion = new Question();
 		newQuestion.setTitle("New Question");
@@ -158,7 +158,7 @@ class QuestionServiceTest {
 		assertThat(saved.getActive()).isFalse();
 		assertThat(saved.getAnswerCount()).isEqualTo(5);
 		assertThat(saved.getExpiresAt()).isNotEqualTo(specificExpiresAt);
-		assertThat(saved.getExpiresAt()).isEqualTo(specificCreatedAt.plusHours(6));
+		assertThat(saved.getExpiresAt()).isEqualTo(specificCreatedAt.plus(6, ChronoUnit.HOURS));
 		assertThat(saved.getCreator()).isEqualTo(testCreator);
 	}
 
@@ -253,15 +253,15 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium question");
 		newQuestion.setContent("Premium controls");
 		newQuestion.setRadiusKm(0.2f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusHours(5));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(5, ChronoUnit.HOURS));
 
 		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
 
 		Question saved = questionService.saveQuestion(newQuestion);
 
 		assertThat(saved.getRadiusKm()).isEqualTo(0.2f);
-		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plusHours(5));
+		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plus(5, ChronoUnit.HOURS));
 	}
 
 	@Test
@@ -272,14 +272,15 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium 1h boundary");
 		newQuestion.setContent("One hour should be inclusive");
 		newQuestion.setRadiusKm(0.2f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusHours(1).minusSeconds(1));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(1, ChronoUnit.HOURS).minusSeconds(1));
 
 		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
 
 		Question saved = questionService.saveQuestion(newQuestion);
 
-		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plusHours(1).minusSeconds(1));
+		assertThat(saved.getExpiresAt())
+				.isEqualTo(newQuestion.getCreatedAt().plus(1, ChronoUnit.HOURS).minusSeconds(1));
 	}
 
 	@Test
@@ -304,8 +305,8 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium duration");
 		newQuestion.setContent("Out of range duration");
 		newQuestion.setRadiusKm(0.5f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusMinutes(30));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(30, ChronoUnit.MINUTES));
 
 		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
 				.isInstanceOf(UpperPlanFeatureException.class)
@@ -506,7 +507,7 @@ class QuestionServiceTest {
 	@Test
 	void updateQuestion_shouldNotUpdateIdCreatedAtOrAnswerCount() {
 		// Arrange
-		LocalDateTime originalCreatedAt = LocalDateTime.now().minusDays(1);
+		Instant originalCreatedAt = Instant.now().minus(1, ChronoUnit.DAYS);
 		testQuestion.setCreatedAt(originalCreatedAt);
 		testQuestion.setAnswerCount(10);
 
@@ -514,7 +515,7 @@ class QuestionServiceTest {
 		UUID differentId = UUID.randomUUID();
 		updatedData.setId(differentId);
 		updatedData.setTitle("Updated Title");
-		updatedData.setCreatedAt(LocalDateTime.now());
+		updatedData.setCreatedAt(Instant.now());
 		updatedData.setAnswerCount(999);
 
 		when(questionRepository.findById(testId)).thenReturn(Optional.of(testQuestion));
@@ -587,7 +588,7 @@ class QuestionServiceTest {
 		expired2.setId(UUID.randomUUID());
 		expired2.setActive(true);
 		expired2.setTitle("Expired 2");
-		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class)))
+		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(Instant.class)))
 				.thenReturn(Arrays.asList(expired1, expired2));
 
 		// Act
@@ -596,7 +597,7 @@ class QuestionServiceTest {
 		// Assert
 		assertThat(expired1.getActive()).isFalse();
 		assertThat(expired2.getActive()).isFalse();
-		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class));
+		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(Instant.class));
 		verify(questionRepository, times(1)).saveAll(argThat(questions -> {
 			if (!(questions instanceof Iterable<?>)) {
 				return false;
@@ -612,15 +613,193 @@ class QuestionServiceTest {
 	@Test
 	void executeExpirationCron_shouldDoNothingWhenNoQuestionsExpired() {
 		// Arrange
-		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class)))
+		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(Instant.class)))
 				.thenReturn(Arrays.asList());
 
 		// Act
 		questionService.executeExpirationCron();
 
 		// Assert
-		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class));
+		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(Instant.class));
 		verify(questionRepository, never()).saveAll(any());
+	}
+
+	// =============== DAILY LIMIT TESTS ===============
+
+	@Test
+	void questionsTodayCount_shouldCountOnlyQuestionsFromSameDayCalendar() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+		Instant startOfDay = now.truncatedTo(ChronoUnit.DAYS);
+		
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(2, ChronoUnit.HOURS)); // 2 hours ago, same day - counts
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(startOfDay.plus(1, ChronoUnit.MINUTES)); // Just after midnight, same day - counts
+		
+		Question question3 = new Question();
+		question3.setCreatedAt(startOfDay.minusSeconds(1)); // Just before midnight, previous day - doesn't count
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2, question3));
+
+		// Act
+		long count = questionService.questionsTodayCount(userId);
+
+		// Assert
+		assertThat(count).isEqualTo(2);
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void questionsTodayCount_shouldReturnZeroWhenNoQuestionsCreated() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		when(questionRepository.findByCreatorId(userId)).thenReturn(Arrays.asList());
+
+		// Act
+		long count = questionService.questionsTodayCount(userId);
+
+		// Assert
+		assertThat(count).isZero();
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void getTodayQuestionCountForAuthenticatedUser_shouldReturnCountForAuthenticatedUser() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+		
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minus(5, ChronoUnit.HOURS));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2));
+
+		// Act
+		long count = questionService.getTodayQuestionCountForAuthenticatedUser();
+
+		// Assert
+		assertThat(count).isEqualTo(2);
+		verify(regularUserRepository, times(1)).findByEmail(TEST_EMAIL);
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void getTodayQuestionCountForAuthenticatedUser_shouldThrowExceptionWhenUserNotFound() {
+		// Arrange
+		when(regularUserRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+
+		// Act & Assert
+		assertThatThrownBy(() -> questionService.getTodayQuestionCountForAuthenticatedUser())
+				.isInstanceOf(AccessDeniedException.class)
+				.hasMessageContaining("Only regular users can check their question count");
+	}
+
+	@Test
+	void saveQuestion_shouldRejectFreeUserAfter3QuestionsPerDay() {
+		// Arrange
+		testCreator.setPremiumActive(false);
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+		
+		// Mock 3 existing questions created today
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minus(4, ChronoUnit.HOURS));
+		
+		Question question3 = new Question();
+		question3.setCreatedAt(now.minus(8, ChronoUnit.HOURS));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2, question3));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Fourth Question");
+		newQuestion.setContent("This should fail");
+
+		// Act & Assert
+		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
+				.isInstanceOf(UpperPlanFeatureException.class)
+				.hasMessageContaining("Free plan users can only create up to 3 questions");
+		
+		verify(questionRepository, never()).save(any(Question.class));
+		verify(eventPublisher, never()).publishEvent(any());
+	}
+
+	@Test
+	void saveQuestion_shouldAllowFreeUserToCreateUpTo3QuestionsPerDay() {
+		// Arrange
+		testCreator.setPremiumActive(false);
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+		
+		// Mock 2 existing questions created today
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(2, ChronoUnit.HOURS));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minus(6, ChronoUnit.HOURS));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Third Question");
+		newQuestion.setContent("This should succeed");
+		newQuestion.setRadiusKm(0.5f);
+
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		// Act
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		// Assert
+		assertThat(saved).isNotNull();
+		verify(questionRepository, times(1)).save(newQuestion);
+		verify(eventPublisher, times(1)).publishEvent(any(QuestionCreatedEvent.class));
+	}
+
+	@Test
+	void saveQuestion_shouldNotEnforceDailyLimitForPremiumUsers() {
+		// Arrange
+		testCreator.setPremiumActive(true);
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+		
+		// Mock 5 existing questions created today (way over the free limit)
+		// Note: This mock is not used for premium users since daily limit is not enforced
+		Question[] questions = new Question[5];
+		for (int i = 0; i < 5; i++) {
+			questions[i] = new Question();
+			questions[i].setCreatedAt(now.minus(i + 1L, ChronoUnit.HOURS));
+		}
+		
+		lenient().when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(questions));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Sixth Premium Question");
+		newQuestion.setContent("Premium users have no daily limit");
+		newQuestion.setRadiusKm(0.2f);
+
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		// Act
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		// Assert
+		assertThat(saved).isNotNull();
+		verify(questionRepository, times(1)).save(newQuestion);
+		verify(eventPublisher, times(1)).publishEvent(any(QuestionCreatedEvent.class));
 	}
 
 }
