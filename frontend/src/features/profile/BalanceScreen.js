@@ -66,7 +66,18 @@ export default function BalanceScreen({ navigation, route }) {
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.crypto?.randomUUID) {
             return window.crypto.randomUUID();
         }
-        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        // Use crypto.getRandomValues for secure random generation on web
+        if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+            try {
+                const bytes = new Uint8Array(16);
+                window.crypto.getRandomValues(bytes);
+                return bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+            } catch (e) {
+                // Fall through to timestamp approach
+            }
+        }
+        // Fallback: timestamp-based ID for environments without crypto
+        return `${Date.now()}-${Math.floor(Date.now() * Math.random()).toString(36)}`;
     };
 
     const formatEur = (amountCents) => `${(Number(amountCents || 0) / 100).toFixed(2)}€`;
