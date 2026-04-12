@@ -2,12 +2,14 @@ package com.streetask.app.event;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,15 +35,36 @@ public class EventService {
         this.userRepository = userRepository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Event findEvent(UUID id) {
-        return eventRepository.findById(id)
+        Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", "id", id));
+        deactivateIfExpired(event, LocalDateTime.now());
+        return event;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Iterable<Event> findAll() {
-        return eventRepository.findAll();
+        Iterable<Event> events = eventRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+        for (Event event : events) {
+            deactivateIfExpired(event, now);
+        }
+        return events;
+    }
+
+    @Scheduled(cron = "0 * * * * *")
+    @Transactional
+    public void deactivateExpiredEvents() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Event> expiredActiveEvents = eventRepository.findByActiveTrueAndEndsAtLessThanEqual(now);
+        for (Event event : expiredActiveEvents) {
+            event.setActive(false);
+            event.setUpdatedAt(now);
+        }
+        if (!expiredActiveEvents.isEmpty()) {
+            eventRepository.saveAll(expiredActiveEvents);
+        }
     }
 
     @Transactional
@@ -124,6 +147,17 @@ public class EventService {
         }
         if (event.getAttendeeCount() == null) {
             event.setAttendeeCount(0);
+        }
+    }
+
+    private void deactivateIfExpired(Event event, LocalDateTime now) {
+        if (event != null
+                && Boolean.TRUE.equals(event.getActive())
+                && event.getEndsAt() != null
+                && !event.getEndsAt().isAfter(now)) {
+            event.setActive(false);
+            event.setUpdatedAt(now);
+            eventRepository.save(event);
         }
     }
 }

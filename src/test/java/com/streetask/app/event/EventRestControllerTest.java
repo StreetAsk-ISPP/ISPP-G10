@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -134,6 +135,26 @@ class EventRestControllerTest {
         mockMvc.perform(get("/api/v1/events/{id}", nonExistentId)
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void findById_shouldDeactivateEventWhenEndDateIsReached() throws Exception {
+        Event expiredEvent = new Event();
+        expiredEvent.setTitle("Expired Event");
+        expiredEvent.setDescription("Should become inactive automatically");
+        expiredEvent.setCreator(creator);
+        expiredEvent.setActive(true);
+        expiredEvent.setEndsAt(LocalDateTime.now().minusMinutes(1));
+        expiredEvent = eventRepository.save(expiredEvent);
+
+        mockMvc.perform(get("/api/v1/events/{id}", expiredEvent.getId())
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        Event persisted = eventRepository.findById(expiredEvent.getId()).orElseThrow();
+        assertThat(persisted.getActive()).isFalse();
     }
 
     @Test
