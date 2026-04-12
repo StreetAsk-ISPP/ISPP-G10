@@ -84,6 +84,7 @@ public class SecurityConfiguration {
 
 						.requestMatchers("/api/v1/locations/public/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/locations/user/**").permitAll()
+						.requestMatchers("/api/v1/streetcoins/**").authenticated()
 
 						.requestMatchers("/api/v1/plan").hasAuthority("OWNER")
 

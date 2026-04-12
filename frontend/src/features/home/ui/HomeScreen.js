@@ -28,6 +28,35 @@ import apiClient from '../../../shared/services/http/apiClient';
 import { bootstrapWebPushNotifications } from '../../../shared/services/notifications/webPushBootstrap';
 import { updateWebPushZone } from '../../../shared/services/notifications/webPushService';
 import { resolveZoneKey } from '../../../shared/services/notifications/zoneService';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const readCachedArray = (key) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return [];
+    }
+
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeCachedArray = (key, value) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || !Array.isArray(value) || value.length === 0) {
+        return;
+    }
+
+    window.localStorage.setItem(key, JSON.stringify(value));
+};
 
 export default function HomeScreen({ navigation }) {
     const { logout, token, user } = useAuth();
@@ -53,6 +82,7 @@ export default function HomeScreen({ navigation }) {
     const [feedbackSuccessMessage, setFeedbackSuccessMessage] = useState('');
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [streetCoinsNotice, setStreetCoinsNotice] = useState('');
 
     // Estados para el sidebar de preguntas
     const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -68,35 +98,99 @@ export default function HomeScreen({ navigation }) {
     const pushSubscriptionRef = useRef(null);
     const menuAnimValue = useRef(new Animated.Value(-350)).current;
     const pushZoneKeyRef = useRef(null);
+    const coinsToastAnim = useRef(new Animated.Value(0)).current;
 
     const isFocused = useIsFocused();
     const latestRequestRef = useRef(0);
+    const latestEventsRequestRef = useRef(0);
 
     const loadQuestions = useCallback(async () => {
         const requestId = ++latestRequestRef.current;
-        try {
-            const res = await apiClient.get('/api/v1/questions');
-            const raw = res.data;
 
-            if (requestId !== latestRequestRef.current) {
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+                const res = await apiClient.get('/api/v1/questions');
+                const raw = Array.isArray(res?.data) ? res.data : [];
+
+                if (requestId !== latestRequestRef.current) {
+                    return;
+                }
+
+                setQuestions(raw);
+                writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, raw);
                 return;
-            }
+            } catch (e) {
+                if (attempt === 3) {
+                    if (requestId !== latestRequestRef.current) {
+                        return;
+                    }
 
-            setQuestions(Array.isArray(raw) ? raw : []);
-        } catch (e) {
-            console.warn('Failed to load questions', e);
+                    const cachedQuestions = readCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE);
+                    if (cachedQuestions.length > 0) {
+                        setQuestions(cachedQuestions);
+                    }
+                    console.warn('Failed to load questions', e);
+                    return;
+                }
+
+                await sleep(250 * attempt);
+            }
         }
     }, []);
 
     const loadEvents = useCallback(async () => {
-        try {
-            const res = await apiClient.get('/api/v1/events?active=true');
-            const raw = res.data;
-            setEvents(Array.isArray(raw) ? raw : []);
-        } catch (e) {
-            console.warn('Failed to load events', e);
+        const requestId = ++latestEventsRequestRef.current;
+
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+                const res = await apiClient.get('/api/v1/events?active=true');
+                const raw = Array.isArray(res?.data) ? res.data : [];
+
+                if (requestId !== latestEventsRequestRef.current) {
+                    return;
+                }
+
+                setEvents(raw);
+                writeCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE, raw);
+                return;
+            } catch (e) {
+                if (attempt === 3) {
+                    if (requestId !== latestEventsRequestRef.current) {
+                        return;
+                    }
+
+                    const cachedEvents = readCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE);
+                    if (cachedEvents.length > 0) {
+                        setEvents(cachedEvents);
+                    }
+                    console.warn('Failed to load events', e);
+                    return;
+                }
+
+                await sleep(250 * attempt);
+            }
         }
     }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        if (questions.length === 0) {
+            const cachedQuestions = readCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE);
+            if (cachedQuestions.length > 0) {
+                setQuestions(cachedQuestions);
+            }
+        }
+
+        if (events.length === 0) {
+            const cachedEvents = readCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE);
+            if (cachedEvents.length > 0) {
+                setEvents(cachedEvents);
+            }
+        }
+    }, [events.length, questions.length]);
 
     useFocusEffect(useCallback(() => {
         loadQuestions();
@@ -139,6 +233,82 @@ export default function HomeScreen({ navigation }) {
 
         return unsub;
     }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
+
+    useEffect(() => {
+        if (!isFocused || Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        const postCheckoutTarget = window.localStorage.getItem(STORAGE_KEYS.STREETCOINS_POST_CHECKOUT_TARGET);
+        if (postCheckoutTarget === 'balance') {
+            window.localStorage.removeItem(STORAGE_KEYS.STREETCOINS_POST_CHECKOUT_TARGET);
+            navigation.navigate('Balance');
+            return;
+        }
+
+        const rawNotice = window.localStorage.getItem(STORAGE_KEYS.STREETCOINS_SUCCESS_NOTICE);
+        if (!rawNotice) {
+            return;
+        }
+
+        try {
+            const parsedNotice = JSON.parse(rawNotice);
+            const addedStreetCoins = Number(parsedNotice?.addedStreetCoins);
+
+            if (Number.isFinite(addedStreetCoins) && addedStreetCoins > 0) {
+                setStreetCoinsNotice(`+ ${addedStreetCoins} streetcoins`);
+                loadQuestions();
+                loadEvents();
+            }
+        } catch (error) {
+            console.warn('Invalid StreetCoins success notice format.', error);
+        } finally {
+            window.localStorage.removeItem(STORAGE_KEYS.STREETCOINS_SUCCESS_NOTICE);
+        }
+    }, [isFocused, loadEvents, loadQuestions, navigation]);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return;
+        }
+
+        const handleStreetCoinsPurchaseConfirmed = (event) => {
+            const addedStreetCoins = Number(event?.detail?.addedStreetCoins);
+            if (Number.isFinite(addedStreetCoins) && addedStreetCoins > 0) {
+                setStreetCoinsNotice(`+ ${addedStreetCoins} streetcoins`);
+            }
+            loadQuestions();
+            loadEvents();
+        };
+
+        window.addEventListener('streetcoins:purchase-confirmed', handleStreetCoinsPurchaseConfirmed);
+        return () => {
+            window.removeEventListener('streetcoins:purchase-confirmed', handleStreetCoinsPurchaseConfirmed);
+        };
+    }, [loadEvents, loadQuestions]);
+
+    useEffect(() => {
+        if (!streetCoinsNotice) {
+            return;
+        }
+
+        coinsToastAnim.stopAnimation();
+        Animated.timing(coinsToastAnim, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+        }).start();
+
+        const hideTimer = setTimeout(() => {
+            Animated.timing(coinsToastAnim, {
+                toValue: 0,
+                duration: 220,
+                useNativeDriver: true,
+            }).start(() => setStreetCoinsNotice(''));
+        }, 3200);
+
+        return () => clearTimeout(hideTimer);
+    }, [streetCoinsNotice, coinsToastAnim]);
 
     useEffect(() => {
         async function initPush() {
@@ -386,6 +556,28 @@ export default function HomeScreen({ navigation }) {
                                 </Text>
                             </View>
                         </View>
+                    ) : null}
+
+                    {streetCoinsNotice ? (
+                        <Animated.View
+                            style={[
+                                styles.coinsSideToast,
+                                {
+                                    opacity: coinsToastAnim,
+                                    transform: [
+                                        {
+                                            translateX: coinsToastAnim.interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [220, 0],
+                                            }),
+                                        },
+                                    ],
+                                },
+                            ]}
+                        >
+                            <Ionicons name="wallet" size={18} color="#065f46" />
+                            <Text style={styles.coinsSideToastText}>{streetCoinsNotice}</Text>
+                        </Animated.View>
                     ) : null}
 
                     <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
@@ -767,6 +959,32 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#78350f',
         marginTop: 1,
+    },
+    coinsSideToast: {
+        position: 'absolute',
+        right: 14,
+        top: 86,
+        zIndex: 220,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#ecfdf5',
+        borderWidth: 1,
+        borderColor: '#6ee7b7',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    coinsSideToastText: {
+        fontSize: 12,
+        color: '#065f46',
+        fontWeight: '800',
+        textTransform: 'uppercase',
     },
     mapWrapper: {
         flex: 1,
