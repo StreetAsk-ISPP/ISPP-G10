@@ -624,4 +624,182 @@ class QuestionServiceTest {
 		verify(questionRepository, never()).saveAll(any());
 	}
 
+	// =============== DAILY LIMIT TESTS ===============
+
+	@Test
+	void questionsTodayCount_shouldCountOnlyQuestionsFromSameDayCalendar() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+		
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minusHours(2)); // 2 hours ago, same day - counts
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(startOfDay.plusMinutes(1)); // Just after midnight, same day - counts
+		
+		Question question3 = new Question();
+		question3.setCreatedAt(startOfDay.minusSeconds(1)); // Just before midnight, previous day - doesn't count
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2, question3));
+
+		// Act
+		long count = questionService.questionsTodayCount(userId);
+
+		// Assert
+		assertThat(count).isEqualTo(2);
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void questionsTodayCount_shouldReturnZeroWhenNoQuestionsCreated() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		when(questionRepository.findByCreatorId(userId)).thenReturn(Arrays.asList());
+
+		// Act
+		long count = questionService.questionsTodayCount(userId);
+
+		// Assert
+		assertThat(count).isZero();
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void getTodayQuestionCountForAuthenticatedUser_shouldReturnCountForAuthenticatedUser() {
+		// Arrange
+		UUID userId = testCreator.getId();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minusHours(1));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minusHours(5));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2));
+
+		// Act
+		long count = questionService.getTodayQuestionCountForAuthenticatedUser();
+
+		// Assert
+		assertThat(count).isEqualTo(2);
+		verify(regularUserRepository, times(1)).findByEmail(TEST_EMAIL);
+		verify(questionRepository, times(1)).findByCreatorId(userId);
+	}
+
+	@Test
+	void getTodayQuestionCountForAuthenticatedUser_shouldThrowExceptionWhenUserNotFound() {
+		// Arrange
+		when(regularUserRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+
+		// Act & Assert
+		assertThatThrownBy(() -> questionService.getTodayQuestionCountForAuthenticatedUser())
+				.isInstanceOf(AccessDeniedException.class)
+				.hasMessageContaining("Only regular users can check their question count");
+	}
+
+	@Test
+	void saveQuestion_shouldRejectFreeUserAfter3QuestionsPerDay() {
+		// Arrange
+		testCreator.setPremiumActive(false);
+		UUID userId = testCreator.getId();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		
+		// Mock 3 existing questions created today
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minusHours(1));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minusHours(4));
+		
+		Question question3 = new Question();
+		question3.setCreatedAt(now.minusHours(8));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2, question3));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Fourth Question");
+		newQuestion.setContent("This should fail");
+
+		// Act & Assert
+		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
+				.isInstanceOf(UpperPlanFeatureException.class)
+				.hasMessageContaining("Free plan users can only create up to 3 questions");
+		
+		verify(questionRepository, never()).save(any(Question.class));
+		verify(eventPublisher, never()).publishEvent(any());
+	}
+
+	@Test
+	void saveQuestion_shouldAllowFreeUserToCreateUpTo3QuestionsPerDay() {
+		// Arrange
+		testCreator.setPremiumActive(false);
+		UUID userId = testCreator.getId();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		
+		// Mock 2 existing questions created today
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minusHours(2));
+		
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minusHours(6));
+		
+		when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(question1, question2));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Third Question");
+		newQuestion.setContent("This should succeed");
+		newQuestion.setRadiusKm(0.5f);
+
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		// Act
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		// Assert
+		assertThat(saved).isNotNull();
+		verify(questionRepository, times(1)).save(newQuestion);
+		verify(eventPublisher, times(1)).publishEvent(any(QuestionCreatedEvent.class));
+	}
+
+	@Test
+	void saveQuestion_shouldNotEnforceDailyLimitForPremiumUsers() {
+		// Arrange
+		testCreator.setPremiumActive(true);
+		UUID userId = testCreator.getId();
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		
+		// Mock 5 existing questions created today (way over the free limit)
+		// Note: This mock is not used for premium users since daily limit is not enforced
+		Question[] questions = new Question[5];
+		for (int i = 0; i < 5; i++) {
+			questions[i] = new Question();
+			questions[i].setCreatedAt(now.minusHours(i + 1));
+		}
+		
+		lenient().when(questionRepository.findByCreatorId(userId))
+				.thenReturn(Arrays.asList(questions));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Sixth Premium Question");
+		newQuestion.setContent("Premium users have no daily limit");
+		newQuestion.setRadiusKm(0.2f);
+
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		// Act
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		// Assert
+		assertThat(saved).isNotNull();
+		verify(questionRepository, times(1)).save(newQuestion);
+		verify(eventPublisher, times(1)).publishEvent(any(QuestionCreatedEvent.class));
+	}
+
 }
