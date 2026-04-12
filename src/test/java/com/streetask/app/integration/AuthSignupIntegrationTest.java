@@ -213,7 +213,7 @@ class AuthSignupIntegrationTest {
                                                 validBusinessPayload(email, "B22222222", "Business street 2"))))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message")
-                                                .value("Error: User is already a business account."));
+                                                .value("Error: Basic user registration not found. Please complete the basic signup first."));
 
                 User storedUser = userRepository.findByEmail(email).orElseThrow();
                 assertThat(storedUser).isInstanceOf(BusinessAccount.class);
