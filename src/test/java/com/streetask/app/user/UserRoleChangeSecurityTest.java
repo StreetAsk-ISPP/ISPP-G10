@@ -95,17 +95,14 @@ public class UserRoleChangeSecurityTest {
         assertEquals("Admin users cannot change their account type.", exception.getMessage());
     }
 
-    // ========== SCENARIO 2: REGULAR User Can Upgrade to BUSINESS ==========
+    // ========== SCENARIO 2: REGULAR User Cannot Upgrade to BUSINESS ==========
     @Test
-    @DisplayName("SCENARIO 2: Regular user CAN upgrade to BUSINESS (self)")
-    public void testRegularUserCanUpgradeToBusiness() {
-        userTypeChangeService.changeAccountType(regularUser, AccountType.BUSINESS, null, "Self upgrade", null);
-
-        // Verify user is now BUSINESS
-        User updatedUser = userRepository.findById(regularUser.getId()).orElseThrow();
-        assertEquals(AccountType.BUSINESS, updatedUser.getAccountType());
-        assertEquals("BUSINESS", updatedUser.getAuthority().getAuthority());
-        assertTrue(updatedUser instanceof BusinessAccount);
+    @DisplayName("SCENARIO 2: Regular user CANNOT upgrade to BUSINESS (self)")
+    public void testRegularUserCannotUpgradeToBusiness() {
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
+            userTypeChangeService.changeAccountType(regularUser, AccountType.BUSINESS, null, "Self upgrade", null);
+        });
+        assertTrue(exception.getMessage().contains("cannot change their account type to Business"));
     }
 
     // ========== SCENARIO 3: REGULAR User Cannot Downgrade via Self ==========

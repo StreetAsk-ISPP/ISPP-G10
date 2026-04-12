@@ -17,7 +17,7 @@ import ConfirmationModal from '../../shared/components/ConfirmationModal';
 import apiClient from '../../shared/services/http/apiClient';
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout, updateUserRoles } = useAuth();
+  const { user, logout } = useAuth();
 
   const [stats, setStats] = useState({
     questions: 0,
@@ -27,12 +27,10 @@ export default function ProfileScreen({ navigation }) {
     profilePictureUrl: null,
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showDowngradeConfirmModal, setShowDowngradeConfirmModal] = useState(false);
   const [businessSubscription, setBusinessSubscription] = useState(null);
+  const [regularPremiumActive, setRegularPremiumActive] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
   const [subscriptionActionError, setSubscriptionActionError] = useState('');
-  const [roleChangeError, setRoleChangeError] = useState('');
-  const [isChangingRole, setIsChangingRole] = useState(false);
 
   const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
   const isRegularUser = Array.isArray(user?.roles) && user.roles.includes('USER');
@@ -69,43 +67,6 @@ export default function ProfileScreen({ navigation }) {
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     await logout();
-  };
-
-  const handleChangeRole = async (newAccountType) => {
-    setRoleChangeError('');
-    setIsChangingRole(true);
-
-    try {
-      const response = await apiClient.put(`/api/v1/users/${user.id}/role`, {
-        newAccountType: newAccountType,
-        reason: 'User initiated role change',
-      });
-
-      // Update auth context with new token and roles
-      if (response.data) {
-        await updateUserRoles(response.data.token, response.data.roles);
-      }
-    } catch (error) {
-      const errorMsg = error?.response?.data?.message || error?.message || 'Failed to change role';
-      setRoleChangeError(errorMsg);
-      console.error('Role change failed:', error);
-    } finally {
-      setIsChangingRole(false);
-    }
-  };
-
-  const handleUpgradeToBusiness = () => {
-    handleChangeRole('BUSINESS');
-  };
-
-  const handleDowngradeToRegular = () => {
-    // SECURITY: Show confirmation modal for downgrade to prevent accidental loss of business access
-    setShowDowngradeConfirmModal(true);
-  };
-
-  const confirmDowngrade = () => {
-    setShowDowngradeConfirmModal(false);
-    handleChangeRole('REGULAR_USER');
   };
 
   const startBusinessStripeCheckout = async () => {
@@ -173,7 +134,20 @@ export default function ProfileScreen({ navigation }) {
     } else {
       setBusinessSubscription(null);
     }
-  }, [isBusinessUser, user?.id]);
+
+    if (isRegularUser && !isBusinessUser) {
+      apiClient
+        .get(`/api/v1/users/${user.id}`)
+        .then((res) => {
+          setRegularPremiumActive(res?.data?.premiumActive === true);
+        })
+        .catch(() => {
+          setRegularPremiumActive(false);
+        });
+    } else {
+      setRegularPremiumActive(false);
+    }
+  }, [isBusinessUser, isRegularUser, user?.id]);
 
   // Este hook se dispara cada vez que la pantalla gana el "foco" (al volver atrás)
   useFocusEffect(
@@ -242,58 +216,28 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.editBtnText}>EDIT PROFILE</Text>
         </TouchableOpacity>
 
-        {/* Role Change Section */}
-        <View style={styles.roleChangeSection}>
-          {isRegularUser && !isBusinessUser && (
-            <>
-              <Text style={styles.roleSectionTitle}>Account Type: Regular User</Text>
-              <TouchableOpacity
-                style={[styles.roleChangeBtn, isChangingRole && styles.disabledButton]}
-                onPress={handleUpgradeToBusiness}
-                disabled={isChangingRole}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="arrow-up-outline"
-                  size={18}
-                  color="#fff"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.roleChangeBtnText}>
-                  {isChangingRole ? 'Upgrading...' : 'Upgrade to Business'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {isBusinessUser && !isRegularUser && (
-            <>
-              <Text style={styles.roleSectionTitle}>Account Type: Business</Text>
-              <TouchableOpacity
-                style={[
-                  styles.roleChangeBtn,
-                  { backgroundColor: '#7c3aed' },
-                  isChangingRole && styles.disabledButton,
-                ]}
-                onPress={handleDowngradeToRegular}
-                disabled={isChangingRole}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="arrow-down-outline"
-                  size={18}
-                  color="#fff"
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={styles.roleChangeBtnText}>
-                  {isChangingRole ? 'Downgrading...' : 'Downgrade to Regular User'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {roleChangeError ? <Text style={styles.roleChangeError}>{roleChangeError}</Text> : null}
-        </View>
+        {isRegularUser && !isBusinessUser ? (
+          <View style={styles.subscriptionCard}>
+            <Text style={styles.subscriptionTitle}>Regular Plan</Text>
+            <Text style={styles.subscriptionItem}>
+              Current plan: {regularPremiumActive ? 'Premium' : 'Free'}
+            </Text>
+            <Text style={styles.subscriptionHint}>
+              {regularPremiumActive
+                ? 'Your premium access is active.'
+                : 'Upgrade to premium to remove ads and unlock extended question controls.'}
+            </Text>
+            <TouchableOpacity
+              style={styles.subscriptionActionBtn}
+              onPress={() => navigation.navigate('SubscriptionPlans')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.subscriptionActionBtnText}>
+                {regularPremiumActive ? 'Manage plan' : 'Upgrade with Stripe'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {isBusinessUser && businessSubscription ? (
           <View style={styles.subscriptionCard}>
@@ -400,18 +344,6 @@ export default function ProfileScreen({ navigation }) {
         onConfirm={handleLogoutConfirm}
         onCancel={() => setShowLogoutModal(false)}
         confirmButtonColor="danger"
-      />
-
-      {/* SECURITY: Confirm downgrade to prevent accidental loss of business account */}
-      <ConfirmationModal
-        visible={showDowngradeConfirmModal}
-        title="Downgrade to Regular User?"
-        message="You will lose access to your Business account features. This action cannot be undone from the app. Contact support if you need to restore your business account."
-        confirmText="Yes, Downgrade"
-        cancelText="Keep Business"
-        onConfirm={confirmDowngrade}
-        onCancel={() => setShowDowngradeConfirmModal(false)}
-        confirmButtonColor="warning"
       />
     </SafeAreaView>
   );
@@ -536,42 +468,4 @@ const styles = StyleSheet.create({
   statItemLabel: { fontSize: 11, color: '#666', textAlign: 'center', marginTop: 2 },
   statDivider: { width: 1, backgroundColor: '#e5e7eb', marginVertical: 4 },
 
-  // Role change styles
-  roleChangeSection: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 20,
-    borderColor: '#d1d5db',
-    borderWidth: 1,
-  },
-  roleSectionTitle: {
-    color: '#1f2937',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  roleChangeBtn: {
-    backgroundColor: '#2563eb',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  roleChangeBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  roleChangeError: {
-    color: '#dc2626',
-    fontSize: 12,
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
 });

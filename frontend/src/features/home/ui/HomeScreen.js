@@ -34,6 +34,7 @@ export default function HomeScreen({ navigation }) {
     const { ephemeralNotification, observeNotifications } = useNotifications();
     const { width } = useWindowDimensions();
     const isNarrow = width < 500;
+    const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
 
     const [questions, setQuestions] = useState([]);
     const [events, setEvents] = useState([]);
@@ -309,7 +310,7 @@ export default function HomeScreen({ navigation }) {
                         </TouchableOpacity>
 
                         <View style={styles.topBarRight}>
-                            {isPremium ? (
+                            {!isBusinessUser && (isPremium ? (
                                 <TouchableOpacity
                                     style={styles.proBadge}
                                     activeOpacity={0.85}
@@ -325,7 +326,7 @@ export default function HomeScreen({ navigation }) {
                                 >
                                     <Text style={styles.goProText}>👑 GO PRO</Text>
                                 </TouchableOpacity>
-                            )}
+                            ))}
 
                             {isNarrow ? (
                                 <TouchableOpacity

@@ -10,14 +10,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -131,14 +131,14 @@ class QuestionServiceTest {
 		Question saved = questionService.saveQuestion(newQuestion);
 
 		// Assert
-		assertThat(saved.getExpiresAt()).isEqualTo(saved.getCreatedAt().plusHours(6));
+		assertThat(saved.getExpiresAt()).isEqualTo(saved.getCreatedAt().plus(6, ChronoUnit.HOURS));
 	}
 
 	@Test
 	void saveQuestion_shouldKeepProvidedCreatedAtActiveAndAnswerCountForFreeUsers() {
 		// Arrange
-		LocalDateTime specificCreatedAt = LocalDateTime.now(ZoneId.of("UTC")).minusDays(1);
-		LocalDateTime specificExpiresAt = LocalDateTime.now(ZoneId.of("UTC")).plusDays(1);
+		Instant specificCreatedAt = Instant.now().minus(1, ChronoUnit.DAYS);
+		Instant specificExpiresAt = Instant.now().plus(1, ChronoUnit.DAYS);
 
 		Question newQuestion = new Question();
 		newQuestion.setTitle("New Question");
@@ -158,7 +158,7 @@ class QuestionServiceTest {
 		assertThat(saved.getActive()).isFalse();
 		assertThat(saved.getAnswerCount()).isEqualTo(5);
 		assertThat(saved.getExpiresAt()).isNotEqualTo(specificExpiresAt);
-		assertThat(saved.getExpiresAt()).isEqualTo(specificCreatedAt.plusHours(6));
+		assertThat(saved.getExpiresAt()).isEqualTo(specificCreatedAt.plus(6, ChronoUnit.HOURS));
 		assertThat(saved.getCreator()).isEqualTo(testCreator);
 	}
 
@@ -253,15 +253,15 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium question");
 		newQuestion.setContent("Premium controls");
 		newQuestion.setRadiusKm(0.2f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusHours(5));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(5, ChronoUnit.HOURS));
 
 		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
 
 		Question saved = questionService.saveQuestion(newQuestion);
 
 		assertThat(saved.getRadiusKm()).isEqualTo(0.2f);
-		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plusHours(5));
+		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plus(5, ChronoUnit.HOURS));
 	}
 
 	@Test
@@ -272,14 +272,15 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium 1h boundary");
 		newQuestion.setContent("One hour should be inclusive");
 		newQuestion.setRadiusKm(0.2f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusHours(1).minusSeconds(1));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(1, ChronoUnit.HOURS).minusSeconds(1));
 
 		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
 
 		Question saved = questionService.saveQuestion(newQuestion);
 
-		assertThat(saved.getExpiresAt()).isEqualTo(newQuestion.getCreatedAt().plusHours(1).minusSeconds(1));
+		assertThat(saved.getExpiresAt())
+				.isEqualTo(newQuestion.getCreatedAt().plus(1, ChronoUnit.HOURS).minusSeconds(1));
 	}
 
 	@Test
@@ -304,8 +305,8 @@ class QuestionServiceTest {
 		newQuestion.setTitle("Premium duration");
 		newQuestion.setContent("Out of range duration");
 		newQuestion.setRadiusKm(0.5f);
-		newQuestion.setCreatedAt(LocalDateTime.now());
-		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plusMinutes(30));
+		newQuestion.setCreatedAt(Instant.now());
+		newQuestion.setExpiresAt(newQuestion.getCreatedAt().plus(30, ChronoUnit.MINUTES));
 
 		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
 				.isInstanceOf(UpperPlanFeatureException.class)
@@ -506,7 +507,7 @@ class QuestionServiceTest {
 	@Test
 	void updateQuestion_shouldNotUpdateIdCreatedAtOrAnswerCount() {
 		// Arrange
-		LocalDateTime originalCreatedAt = LocalDateTime.now().minusDays(1);
+		Instant originalCreatedAt = Instant.now().minus(1, ChronoUnit.DAYS);
 		testQuestion.setCreatedAt(originalCreatedAt);
 		testQuestion.setAnswerCount(10);
 
@@ -514,7 +515,7 @@ class QuestionServiceTest {
 		UUID differentId = UUID.randomUUID();
 		updatedData.setId(differentId);
 		updatedData.setTitle("Updated Title");
-		updatedData.setCreatedAt(LocalDateTime.now());
+		updatedData.setCreatedAt(Instant.now());
 		updatedData.setAnswerCount(999);
 
 		when(questionRepository.findById(testId)).thenReturn(Optional.of(testQuestion));
@@ -587,7 +588,7 @@ class QuestionServiceTest {
 		expired2.setId(UUID.randomUUID());
 		expired2.setActive(true);
 		expired2.setTitle("Expired 2");
-		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class)))
+		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(Instant.class)))
 				.thenReturn(Arrays.asList(expired1, expired2));
 
 		// Act
@@ -596,7 +597,7 @@ class QuestionServiceTest {
 		// Assert
 		assertThat(expired1.getActive()).isFalse();
 		assertThat(expired2.getActive()).isFalse();
-		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class));
+		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(Instant.class));
 		verify(questionRepository, times(1)).saveAll(argThat(questions -> {
 			if (!(questions instanceof Iterable<?>)) {
 				return false;
@@ -612,14 +613,14 @@ class QuestionServiceTest {
 	@Test
 	void executeExpirationCron_shouldDoNothingWhenNoQuestionsExpired() {
 		// Arrange
-		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class)))
+		when(questionRepository.findAllByActiveTrueAndExpiresAtBefore(any(Instant.class)))
 				.thenReturn(Arrays.asList());
 
 		// Act
 		questionService.executeExpirationCron();
 
 		// Assert
-		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(LocalDateTime.class));
+		verify(questionRepository, times(1)).findAllByActiveTrueAndExpiresAtBefore(any(Instant.class));
 		verify(questionRepository, never()).saveAll(any());
 	}
 

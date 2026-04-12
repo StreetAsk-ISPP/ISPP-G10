@@ -34,6 +34,10 @@ export default function AppNavigator() {
     const stripeCallbackHandledRef = useRef(false);
 
     useEffect(() => {
+        if (isLoadingAuth) {
+            return;
+        }
+
         if (Platform.OS !== 'web' || typeof window === 'undefined') {
             return;
         }
@@ -53,20 +57,32 @@ export default function AppNavigator() {
         };
 
         const processStripeCallback = async () => {
+            let callbackSucceeded = false;
             try {
                 if (paymentState === 'success' && sessionId) {
                     if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
                         await apiClient.post('/api/v1/business-subscriptions/me/stripe/confirm-session', { sessionId });
+                        callbackSucceeded = true;
                     } else {
-                        const rawPendingData = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
-                        if (rawPendingData) {
-                            const pendingData = JSON.parse(rawPendingData);
-                            if (pendingData?.email && pendingData?.taxId) {
-                                await apiClient.post('/api/v1/business-subscriptions/stripe/confirm-session', {
-                                    email: pendingData.email,
-                                    taxId: pendingData.taxId,
-                                    sessionId,
-                                });
+                        const pendingRegularPremiumCheckout = window.localStorage.getItem(
+                            STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
+                        );
+
+                        if (pendingRegularPremiumCheckout && isAuthenticated) {
+                            await apiClient.post('/api/v1/users/me/premium/stripe/confirm-session', { sessionId });
+                            callbackSucceeded = true;
+                        } else {
+                            const rawPendingData = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                            if (rawPendingData) {
+                                const pendingData = JSON.parse(rawPendingData);
+                                if (pendingData?.email && pendingData?.taxId) {
+                                    await apiClient.post('/api/v1/business-subscriptions/stripe/confirm-session', {
+                                        email: pendingData.email,
+                                        taxId: pendingData.taxId,
+                                        sessionId,
+                                    });
+                                    callbackSucceeded = true;
+                                }
                             }
                         }
                     }
@@ -74,13 +90,24 @@ export default function AppNavigator() {
             } catch (error) {
                 console.error('Stripe callback processing failed:', error);
             } finally {
-                window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
-                clearUrlParams();
+                if (callbackSucceeded || paymentState === 'cancel') {
+                    window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                    window.localStorage.removeItem(STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT);
+                    clearUrlParams();
+
+                    // Ensure UI reflects the new premium/subscription state immediately
+                    // after a successful Stripe confirmation.
+                    if (callbackSucceeded) {
+                        window.location.reload();
+                    }
+                } else {
+                    stripeCallbackHandledRef.current = false;
+                }
             }
         };
 
         processStripeCallback();
-    }, [user?.roles]);
+    }, [isAuthenticated, isLoadingAuth, user?.roles]);
 
     if (isLoadingAuth) {
         return (

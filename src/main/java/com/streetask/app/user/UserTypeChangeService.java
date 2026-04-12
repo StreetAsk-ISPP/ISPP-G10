@@ -47,7 +47,7 @@ public class UserTypeChangeService {
     /**
      * Validates if a role transition is allowed.
      * Allowed transitions:
-     * - REGULAR_USER ↔ BUSINESS
+     * - REGULAR_USER ↔ BUSINESS (only after caller-scope checks)
      * - NOT: REGULAR_USER/BUSINESS → ADMIN (admins cannot self-promote)
      * - NOT: ADMIN → anything (no downgrade from admin)
      */
@@ -113,8 +113,13 @@ public class UserTypeChangeService {
                 }
             }
         } else {
+            // Product rule: account type transitions are not a normal self-service flow.
+            if (currentType == AccountType.REGULAR_USER && newAccountType == AccountType.BUSINESS) {
+                throw new AccessDeniedException(
+                        "Regular users cannot change their account type to Business from this endpoint. Please use business signup.");
+            }
+
             // SECURITY: User self-change: Cannot downgrade from BUSINESS to REGULAR
-            // (to prevent accidental loss of paid subscription access)
             if (currentType == AccountType.BUSINESS && newAccountType == AccountType.REGULAR_USER) {
                 throw new AccessDeniedException(
                         "Cannot downgrade from Business to Regular User. Please contact support if you need to close your business account.");
@@ -227,7 +232,6 @@ public class UserTypeChangeService {
             ru.setTotalDislikesReceived(0);
             ru.setVerified(false);
             ru.setVisibilityRadiusKm(DEFAULT_VISIBILITY_RADIUS_KM);
-            ru.setPremiumActive(true);
         }
 
         // Ensure instance is BusinessAccount after update

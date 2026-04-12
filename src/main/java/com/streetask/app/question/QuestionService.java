@@ -2,7 +2,6 @@ package com.streetask.app.question;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -134,7 +133,7 @@ public class QuestionService {
 	@Transactional
 	@Scheduled(cron = "0 * * * * *")
 	public void executeExpirationCron() {
-		LocalDateTime now = LocalDateTime.now();
+		Instant now = Instant.now();
 		Iterable<Question> expiredQuestions = questionRepository.findAllByActiveTrueAndExpiresAtBefore(now);
 
 		if (expiredQuestions.iterator().hasNext()) {

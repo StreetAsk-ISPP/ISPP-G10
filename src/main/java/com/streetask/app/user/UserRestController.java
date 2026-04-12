@@ -155,6 +155,35 @@ class UserRestController {
         return new ResponseEntity<>(userService.findAnswersByUserId(id), HttpStatus.OK);
     }
 
+    @PostMapping(value = "/me/premium/activate")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<MessageResponse> activateCurrentRegularPremium() {
+        userService.updateCurrentRegularPremiumAccess(true);
+        return new ResponseEntity<>(new MessageResponse("Regular premium access activated."), HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/me/premium/deactivate")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<MessageResponse> deactivateCurrentRegularPremium() {
+        userService.updateCurrentRegularPremiumAccess(false);
+        return new ResponseEntity<>(new MessageResponse("Regular premium access deactivated."), HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/me/premium/stripe/checkout-session")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<StripeCheckoutSessionResponse> createCurrentRegularPremiumStripeCheckoutSession() {
+        StripeCheckoutSessionResponse response = userService.createCurrentRegularPremiumStripeCheckoutSession();
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/me/premium/stripe/confirm-session")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<MessageResponse> confirmCurrentRegularPremiumStripeCheckoutSession(
+            @Valid @RequestBody StripeCheckoutSessionConfirmRequest request) {
+        userService.confirmCurrentRegularPremiumStripeCheckoutSession(request.getSessionId());
+        return new ResponseEntity<>(new MessageResponse("Regular premium access activated."), HttpStatus.OK);
+    }
+
     @PutMapping(value = "/{id}/role")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<JwtResponse> changeUserRole(@PathVariable("id") UUID userId,
