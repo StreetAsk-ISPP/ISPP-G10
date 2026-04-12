@@ -287,149 +287,150 @@ export default function SubscriptionPlansScreen({ navigation }) {
                     </View>
                 ) : (
                     <>
-                <View
-                    style={[
-                        styles.planCard,
-                        styles.freeCard,
-                        isFreeCurrent && styles.currentCard,
-                        { borderRadius: metrics.cardRadius, padding: metrics.cardPadding },
-                    ]}
-                >
-                    <View style={styles.planTopRow}>
-                        <Text style={[styles.freeTitle, { fontSize: metrics.planTitleSize }]}>FREE</Text>
-                        {isFreeCurrent ? (
-                            <Text
-                                style={[
-                                    styles.currentBadge,
-                                    {
-                                        fontSize: metrics.badgeFontSize,
-                                        paddingVertical: metrics.badgePaddingVertical,
-                                        paddingHorizontal: metrics.badgePaddingHorizontal,
-                                    },
-                                ]}
-                            >
-                                Current plan
-                            </Text>
-                        ) : null}
-                    </View>
-                    <Text
-                        style={[
-                            styles.planLead,
-                            {
-                                marginTop: metrics.leadMarginTop,
-                                fontSize: metrics.leadSize,
-                                lineHeight: metrics.leadLineHeight,
-                            },
-                        ]}
-                        numberOfLines={2}
-                        adjustsFontSizeToFit
-                    >
-                        Quick access with a short ad before posting.
-                    </Text>
-
-                    <View style={[styles.featureList, { marginTop: metrics.featureMarginTop, gap: metrics.featureGap }]}>
-                        <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Fixed question duration: 2h</Text>
-                        <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Fixed question radius: 500 m</Text>
-                        <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Ad shown before publishing</Text>
-                    </View>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.secondaryBtn,
-                            (isFreeCurrent || isUpdatingPlan) && styles.disabledBtn,
-                            {
-                                marginTop: metrics.buttonMarginTop,
-                                paddingVertical: metrics.buttonPaddingVertical,
-                                borderRadius: metrics.buttonRadius,
-                            },
-                        ]}
-                        onPress={isFreeCurrent || isUpdatingPlan ? undefined : () => onChangePlan('FREE')}
-                        activeOpacity={isFreeCurrent || isUpdatingPlan ? 1 : 0.85}
-                        disabled={isFreeCurrent || isUpdatingPlan}
-                    >
-                        <Text
+                        <View
                             style={[
-                                styles.secondaryBtnText,
-                                isFreeCurrent && styles.disabledBtnText,
-                                { fontSize: metrics.buttonTextSize },
+                                styles.planCard,
+                                styles.freeCard,
+                                isFreeCurrent && styles.currentCard,
+                                { borderRadius: metrics.cardRadius, padding: metrics.cardPadding },
                             ]}
                         >
-                            {isFreeCurrent ? 'Current plan' : 'Switch to Free'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View
-                    style={[
-                        styles.planCard,
-                        styles.premiumCard,
-                        isPremiumCurrent && styles.currentCard,
-                        { borderRadius: metrics.cardRadius, padding: metrics.cardPadding },
-                    ]}
-                >
-                    <View style={styles.planTopRow}>
-                        <Text style={[styles.premiumTitle, { fontSize: metrics.planTitleSize }]}>PREMIUM</Text>
-                        {isPremiumCurrent ? (
+                            <View style={styles.planTopRow}>
+                                <Text style={[styles.freeTitle, { fontSize: metrics.planTitleSize }]}>FREE</Text>
+                                {isFreeCurrent ? (
+                                    <Text
+                                        style={[
+                                            styles.currentBadge,
+                                            {
+                                                fontSize: metrics.badgeFontSize,
+                                                paddingVertical: metrics.badgePaddingVertical,
+                                                paddingHorizontal: metrics.badgePaddingHorizontal,
+                                            },
+                                        ]}
+                                    >
+                                        Current plan
+                                    </Text>
+                                ) : null}
+                            </View>
                             <Text
                                 style={[
-                                    styles.currentBadgePremium,
+                                    styles.planLead,
                                     {
-                                        fontSize: metrics.badgeFontSize,
-                                        paddingVertical: metrics.badgePaddingVertical,
-                                        paddingHorizontal: metrics.badgePaddingHorizontal,
+                                        marginTop: metrics.leadMarginTop,
+                                        fontSize: metrics.leadSize,
+                                        lineHeight: metrics.leadLineHeight,
                                     },
                                 ]}
+                                numberOfLines={2}
+                                adjustsFontSizeToFit
                             >
-                                Current plan
+                                Quick access with a short ad before posting.
                             </Text>
-                        ) : null}
-                    </View>
-                    <Text
-                        style={[
-                            styles.planLeadPremium,
-                            {
-                                marginTop: metrics.leadMarginTop,
-                                fontSize: metrics.leadSize,
-                                lineHeight: metrics.leadLineHeight,
-                            },
-                        ]}
-                        numberOfLines={2}
-                        adjustsFontSizeToFit
-                    >
-                        No ad break. More control when asking your question.
-                    </Text>
 
-                    <View style={[styles.featureList, { marginTop: metrics.featureMarginTop, gap: metrics.featureGap }]}>
-                        <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Choose duration from 1h to 24h</Text>
-                        <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Choose radius from 50 m to 1000 m</Text>
-                        <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Priority support</Text>
-                    </View>
+                            <View style={[styles.featureList, { marginTop: metrics.featureMarginTop, gap: metrics.featureGap }]}>
+                                <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>3 Questions per day</Text>
+                                <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Fixed question duration: 6h</Text>
+                                <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Fixed question radius: 500 m</Text>
+                                <Text style={[styles.freeFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Ad shown before publishing</Text>
+                            </View>
 
-                    <TouchableOpacity
-                        style={[
-                            styles.primaryBtn,
-                            (isPremiumCurrent || isUpdatingPlan) && styles.disabledPremiumBtn,
-                            {
-                                marginTop: metrics.buttonMarginTop,
-                                paddingVertical: metrics.buttonPaddingVertical,
-                                borderRadius: metrics.buttonRadius,
-                            },
-                        ]}
-                        onPress={isPremiumCurrent || isUpdatingPlan ? undefined : () => onChangePlan('PREMIUM')}
-                        activeOpacity={isPremiumCurrent || isUpdatingPlan ? 1 : 0.85}
-                        disabled={isPremiumCurrent || isUpdatingPlan}
-                    >
-                        <Text
+                            <TouchableOpacity
+                                style={[
+                                    styles.secondaryBtn,
+                                    (isFreeCurrent || isUpdatingPlan) && styles.disabledBtn,
+                                    {
+                                        marginTop: metrics.buttonMarginTop,
+                                        paddingVertical: metrics.buttonPaddingVertical,
+                                        borderRadius: metrics.buttonRadius,
+                                    },
+                                ]}
+                                onPress={isFreeCurrent || isUpdatingPlan ? undefined : () => onChangePlan('FREE')}
+                                activeOpacity={isFreeCurrent || isUpdatingPlan ? 1 : 0.85}
+                                disabled={isFreeCurrent || isUpdatingPlan}
+                            >
+                                <Text
+                                    style={[
+                                        styles.secondaryBtnText,
+                                        isFreeCurrent && styles.disabledBtnText,
+                                        { fontSize: metrics.buttonTextSize },
+                                    ]}
+                                >
+                                    {isFreeCurrent ? 'Current plan' : 'Switch to Free'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View
                             style={[
-                                styles.primaryBtnText,
-                                isPremiumCurrent && styles.disabledPremiumBtnText,
-                                { fontSize: metrics.buttonTextSize },
+                                styles.planCard,
+                                styles.premiumCard,
+                                isPremiumCurrent && styles.currentCard,
+                                { borderRadius: metrics.cardRadius, padding: metrics.cardPadding },
                             ]}
                         >
-                            {isPremiumCurrent ? 'Current plan' : 'Go Pro'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                            <View style={styles.planTopRow}>
+                                <Text style={[styles.premiumTitle, { fontSize: metrics.planTitleSize }]}>PREMIUM</Text>
+                                {isPremiumCurrent ? (
+                                    <Text
+                                        style={[
+                                            styles.currentBadgePremium,
+                                            {
+                                                fontSize: metrics.badgeFontSize,
+                                                paddingVertical: metrics.badgePaddingVertical,
+                                                paddingHorizontal: metrics.badgePaddingHorizontal,
+                                            },
+                                        ]}
+                                    >
+                                        Current plan
+                                    </Text>
+                                ) : null}
+                            </View>
+                            <Text
+                                style={[
+                                    styles.planLeadPremium,
+                                    {
+                                        marginTop: metrics.leadMarginTop,
+                                        fontSize: metrics.leadSize,
+                                        lineHeight: metrics.leadLineHeight,
+                                    },
+                                ]}
+                                numberOfLines={2}
+                                adjustsFontSizeToFit
+                            >
+                                No ad break. More control when asking your question.
+                            </Text>
+
+                            <View style={[styles.featureList, { marginTop: metrics.featureMarginTop, gap: metrics.featureGap }]}>
+                                <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Choose duration from 1h to 24h</Text>
+                                <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Choose radius from 50 m to 1000 m</Text>
+                                <Text style={[styles.premiumFeature, { fontSize: metrics.featureSize, lineHeight: metrics.featureLineHeight }]}>Priority support</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.primaryBtn,
+                                    (isPremiumCurrent || isUpdatingPlan) && styles.disabledPremiumBtn,
+                                    {
+                                        marginTop: metrics.buttonMarginTop,
+                                        paddingVertical: metrics.buttonPaddingVertical,
+                                        borderRadius: metrics.buttonRadius,
+                                    },
+                                ]}
+                                onPress={isPremiumCurrent || isUpdatingPlan ? undefined : () => onChangePlan('PREMIUM')}
+                                activeOpacity={isPremiumCurrent || isUpdatingPlan ? 1 : 0.85}
+                                disabled={isPremiumCurrent || isUpdatingPlan}
+                            >
+                                <Text
+                                    style={[
+                                        styles.primaryBtnText,
+                                        isPremiumCurrent && styles.disabledPremiumBtnText,
+                                        { fontSize: metrics.buttonTextSize },
+                                    ]}
+                                >
+                                    {isPremiumCurrent ? 'Current plan' : 'Go Pro'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </>
                 )}
             </View>
