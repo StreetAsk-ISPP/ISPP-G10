@@ -2,6 +2,7 @@ package com.streetask.app.question;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
@@ -51,10 +52,10 @@ public class QuestionService {
 		this.eventPublisher = eventPublisher;
 	}
 	public long questionsTodayCount(UUID creatorId) {
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
-		LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+		Instant now = Instant.now();
+		Instant startOfDay = now.atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
 		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
-				.filter(q -> q.getCreatedAt().isAfter(startOfDay))
+				.filter(q -> q.getCreatedAt() != null && q.getCreatedAt().isAfter(startOfDay))
 				.count();
 	}
 

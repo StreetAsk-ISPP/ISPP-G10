@@ -242,8 +242,6 @@ export default function CreateQuestionScreen({ navigation }) {
 
   const canPost = useMemo(
     () =>
-      title.trim() && content.trim() && premiumRadiusValid && premiumHoursValid && !isSubmitting,
-    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting]
       title.trim() &&
       content.trim() &&
       premiumRadiusValid &&

@@ -630,14 +630,14 @@ class QuestionServiceTest {
 	void questionsTodayCount_shouldCountOnlyQuestionsFromSameDayCalendar() {
 		// Arrange
 		UUID userId = testCreator.getId();
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
-		LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+		Instant now = Instant.now();
+		Instant startOfDay = now.truncatedTo(ChronoUnit.DAYS);
 		
 		Question question1 = new Question();
-		question1.setCreatedAt(now.minusHours(2)); // 2 hours ago, same day - counts
+		question1.setCreatedAt(now.minus(2, ChronoUnit.HOURS)); // 2 hours ago, same day - counts
 		
 		Question question2 = new Question();
-		question2.setCreatedAt(startOfDay.plusMinutes(1)); // Just after midnight, same day - counts
+		question2.setCreatedAt(startOfDay.plus(1, ChronoUnit.MINUTES)); // Just after midnight, same day - counts
 		
 		Question question3 = new Question();
 		question3.setCreatedAt(startOfDay.minusSeconds(1)); // Just before midnight, previous day - doesn't count
@@ -671,13 +671,13 @@ class QuestionServiceTest {
 	void getTodayQuestionCountForAuthenticatedUser_shouldReturnCountForAuthenticatedUser() {
 		// Arrange
 		UUID userId = testCreator.getId();
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		Instant now = Instant.now();
 		
 		Question question1 = new Question();
-		question1.setCreatedAt(now.minusHours(1));
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
 		
 		Question question2 = new Question();
-		question2.setCreatedAt(now.minusHours(5));
+		question2.setCreatedAt(now.minus(5, ChronoUnit.HOURS));
 		
 		when(questionRepository.findByCreatorId(userId))
 				.thenReturn(Arrays.asList(question1, question2));
@@ -707,17 +707,17 @@ class QuestionServiceTest {
 		// Arrange
 		testCreator.setPremiumActive(false);
 		UUID userId = testCreator.getId();
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		Instant now = Instant.now();
 		
 		// Mock 3 existing questions created today
 		Question question1 = new Question();
-		question1.setCreatedAt(now.minusHours(1));
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
 		
 		Question question2 = new Question();
-		question2.setCreatedAt(now.minusHours(4));
+		question2.setCreatedAt(now.minus(4, ChronoUnit.HOURS));
 		
 		Question question3 = new Question();
-		question3.setCreatedAt(now.minusHours(8));
+		question3.setCreatedAt(now.minus(8, ChronoUnit.HOURS));
 		
 		when(questionRepository.findByCreatorId(userId))
 				.thenReturn(Arrays.asList(question1, question2, question3));
@@ -740,14 +740,14 @@ class QuestionServiceTest {
 		// Arrange
 		testCreator.setPremiumActive(false);
 		UUID userId = testCreator.getId();
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		Instant now = Instant.now();
 		
 		// Mock 2 existing questions created today
 		Question question1 = new Question();
-		question1.setCreatedAt(now.minusHours(2));
+		question1.setCreatedAt(now.minus(2, ChronoUnit.HOURS));
 		
 		Question question2 = new Question();
-		question2.setCreatedAt(now.minusHours(6));
+		question2.setCreatedAt(now.minus(6, ChronoUnit.HOURS));
 		
 		when(questionRepository.findByCreatorId(userId))
 				.thenReturn(Arrays.asList(question1, question2));
@@ -773,14 +773,14 @@ class QuestionServiceTest {
 		// Arrange
 		testCreator.setPremiumActive(true);
 		UUID userId = testCreator.getId();
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+		Instant now = Instant.now();
 		
 		// Mock 5 existing questions created today (way over the free limit)
 		// Note: This mock is not used for premium users since daily limit is not enforced
 		Question[] questions = new Question[5];
 		for (int i = 0; i < 5; i++) {
 			questions[i] = new Question();
-			questions[i].setCreatedAt(now.minusHours(i + 1));
+			questions[i].setCreatedAt(now.minus(i + 1L, ChronoUnit.HOURS));
 		}
 		
 		lenient().when(questionRepository.findByCreatorId(userId))
