@@ -1,5 +1,7 @@
 package com.streetask.app.business;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,9 +36,18 @@ public class BusinessSubscriptionRestController {
 
     @PostMapping("/stripe/checkout-session")
     public ResponseEntity<StripeCheckoutSessionResponse> createStripeCheckoutSession(
-            @Valid @RequestBody MockBusinessSubscriptionActivationRequest request) {
+            @RequestBody Map<String, Object> request) {
+        String email = request.get("email") == null ? null : request.get("email").toString();
+        String taxId = request.get("taxId") == null ? null : request.get("taxId").toString();
+        String companyName = request.get("companyName") == null ? null : request.get("companyName").toString();
+        String address = request.get("address") == null ? null : request.get("address").toString();
+        String website = request.get("website") == null ? null : request.get("website").toString();
+        String description = request.get("description") == null ? null : request.get("description").toString();
+        Integer durationDays = request.get("durationDays") == null ? null
+            : Integer.valueOf(request.get("durationDays").toString());
+
         StripeCheckoutSessionResponse response = businessSubscriptionService.createPublicStripeCheckoutSession(
-                request.getEmail(), request.getTaxId(), request.getDurationDays());
+            email, taxId, companyName, address, website, description, durationDays);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -44,7 +55,7 @@ public class BusinessSubscriptionRestController {
     public ResponseEntity<BusinessSubscriptionStatusResponse> confirmStripeCheckoutSession(
             @Valid @RequestBody PublicStripeCheckoutSessionConfirmRequest request) {
         BusinessSubscriptionStatusResponse response = businessSubscriptionService.confirmPublicStripeCheckoutSession(
-                request.getEmail(), request.getTaxId(), request.getSessionId());
+                request);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

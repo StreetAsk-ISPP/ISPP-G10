@@ -94,6 +94,9 @@ public class AuthController {
 	public ResponseEntity<MessageResponse> registerBasicUser(@Valid @RequestBody SignupRequest signUpRequest) {
 		// Check whether email already exists
 		if (userService.existsUser(signUpRequest.getEmail()).equals(true)) {
+			if (authService.isPendingBasicSignup(signUpRequest.getEmail())) {
+				return ResponseEntity.ok(new MessageResponse("Basic user data saved! Complete your registration."));
+			}
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already registered!"));
 		}
 		// Check whether username already exists
