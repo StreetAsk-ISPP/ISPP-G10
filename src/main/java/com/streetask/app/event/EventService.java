@@ -2,8 +2,10 @@ package com.streetask.app.event;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
+import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.Event;
+import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
 import com.streetask.app.business.BusinessAccount;
@@ -27,11 +31,14 @@ import jakarta.validation.Valid;
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final EventAttendanceRepository eventAttendanceRepository;
     private final UserRepository userRepository;
 
     @Autowired
-    public EventService(EventRepository eventRepository, UserRepository userRepository) {
+    public EventService(EventRepository eventRepository, EventAttendanceRepository eventAttendanceRepository,
+            UserRepository userRepository) {
         this.eventRepository = eventRepository;
+        this.eventAttendanceRepository = eventAttendanceRepository;
         this.userRepository = userRepository;
     }
 
@@ -40,6 +47,7 @@ public class EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", "id", id));
         deactivateIfExpired(event, LocalDateTime.now());
+        applyViewerAttendanceState(event);
         return event;
     }
 
@@ -49,6 +57,7 @@ public class EventService {
         LocalDateTime now = LocalDateTime.now();
         for (Event event : events) {
             deactivateIfExpired(event, now);
+            applyViewerAttendanceState(event);
         }
         return events;
     }
@@ -73,6 +82,7 @@ public class EventService {
         event.setCreator(creator);
         applyDefaultsOnCreate(event);
         eventRepository.save(event);
+        applyViewerAttendanceState(event);
         return event;
     }
 
@@ -90,7 +100,59 @@ public class EventService {
                 "attendances");
         applyDefaultsOnUpdate(toUpdate);
         eventRepository.save(toUpdate);
+        applyViewerAttendanceState(toUpdate);
         return toUpdate;
+    }
+
+    @Transactional
+    public Event toggleAttendance(UUID eventId) {
+        Event event = findEvent(eventId);
+        RegularUser regularUser = getAuthenticatedRegularUser();
+
+        EventAttendance attendance = eventAttendanceRepository
+                .findByRegularUserIdAndEventId(regularUser.getId(), eventId)
+                .orElseGet(() -> {
+                    EventAttendance newAttendance = new EventAttendance();
+                    newAttendance.setRegularUser(regularUser);
+                    newAttendance.setEvent(event);
+                    return newAttendance;
+                });
+
+        boolean attending = !Boolean.TRUE.equals(attendance.getIsAttending());
+        attendance.setIsAttending(attending);
+        attendance.setConfirmedAt(attending ? LocalDateTime.now(ZoneId.of("UTC")) : null);
+        eventAttendanceRepository.save(attendance);
+
+        long attendeeCount = eventAttendanceRepository.countAttendingByEventId(eventId);
+        event.setAttendeeCount((int) attendeeCount);
+        event.setUpdatedAt(LocalDateTime.now(ZoneId.of("UTC")));
+        eventRepository.save(event);
+
+        event.setMyAttendance(attending);
+        return event;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventAttendeeSummary> findAttendees(UUID eventId) {
+        Event event = findEvent(eventId);
+        BusinessAccount authenticatedBusiness = getAuthenticatedBusinessUser();
+
+        if (!authenticatedBusiness.getId().equals(event.getCreator().getId())) {
+            throw new ResourceNotOwnedException(event);
+        }
+
+        return eventAttendanceRepository.findAttendingByEventId(eventId).stream()
+                .map(attendance -> {
+                    RegularUser user = attendance.getRegularUser();
+                    return new EventAttendeeSummary(
+                            user.getId(),
+                            user.getUserName(),
+                            user.getFirstName(),
+                            user.getLastName(),
+                            user.getEmail(),
+                            user.getProfilePhoto());
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -102,6 +164,7 @@ public class EventService {
             throw new ResourceNotOwnedException(toDelete);
         }
 
+        eventAttendanceRepository.deleteByEventId(id);
         eventRepository.delete(toDelete);
     }
 
@@ -119,6 +182,47 @@ public class EventService {
         }
 
         return businessAccount;
+    }
+
+    private RegularUser getAuthenticatedRegularUser() {
+        Optional<RegularUser> regularUser = findAuthenticatedRegularUser();
+        return regularUser.orElseThrow(
+                () -> new AccessDeniedException("Only authenticated regular users can join events"));
+    }
+
+    private Optional<RegularUser> findAuthenticatedRegularUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<User> user = Optional.ofNullable(userRepository.findByEmail(auth.getName().trim()))
+                .orElse(Optional.empty());
+
+        return user.filter(RegularUser.class::isInstance).map(RegularUser.class::cast);
+    }
+
+    private void applyViewerAttendanceState(Event event) {
+        if (event == null) {
+            return;
+        }
+
+        if (event.getId() == null) {
+            event.setMyAttendance(false);
+            return;
+        }
+
+        Optional<RegularUser> regularUser = findAuthenticatedRegularUser();
+        if (regularUser.isEmpty()) {
+            event.setMyAttendance(false);
+            return;
+        }
+
+        boolean attending = eventAttendanceRepository
+                .findByRegularUserIdAndEventId(regularUser.get().getId(), event.getId())
+                .map(attendance -> Boolean.TRUE.equals(attendance.getIsAttending()))
+                .orElse(false);
+        event.setMyAttendance(attending);
     }
 
     private void applyDefaultsOnCreate(Event event) {

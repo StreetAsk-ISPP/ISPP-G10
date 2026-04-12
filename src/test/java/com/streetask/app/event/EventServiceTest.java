@@ -31,6 +31,8 @@ import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
+import com.streetask.app.event.EventAttendeeSummary;
+import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.Event;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.UserRepository;
@@ -41,6 +43,9 @@ class EventServiceTest {
 
     @Mock
     private EventRepository eventRepository;
+
+    @Mock
+    private EventAttendanceRepository eventAttendanceRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -109,6 +114,112 @@ class EventServiceTest {
     }
 
     @Test
+    void toggleAttendance_shouldCreateAttendanceAndIncrementCountForAuthenticatedRegularUser() {
+        UUID eventId = UUID.randomUUID();
+        RegularUser regularUser = new RegularUser();
+        regularUser.setId(UUID.randomUUID());
+        regularUser.setEmail("regular@streetask.com");
+
+        Event event = new Event();
+        event.setId(eventId);
+        event.setCreator(owner);
+        event.setTitle("Attendance Event");
+        event.setDescription("Attendance toggle test");
+        event.setAttendeeCount(0);
+
+        authenticateAs(regularUser.getEmail());
+        when(userRepository.findByEmail(regularUser.getEmail())).thenReturn(Optional.of(regularUser));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventAttendanceRepository.findByRegularUserIdAndEventId(regularUser.getId(), eventId))
+                .thenReturn(Optional.empty());
+        when(eventAttendanceRepository.save(any(EventAttendance.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventAttendanceRepository.countAttendingByEventId(eventId)).thenReturn(1L);
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Event updated = eventService.toggleAttendance(eventId);
+
+        assertTrue(updated.getMyAttendance());
+        assertEquals(1, updated.getAttendeeCount());
+        verify(eventAttendanceRepository).save(any(EventAttendance.class));
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void toggleAttendance_shouldRemoveAttendanceAndDecrementCountForAuthenticatedRegularUser() {
+        UUID eventId = UUID.randomUUID();
+        RegularUser regularUser = new RegularUser();
+        regularUser.setId(UUID.randomUUID());
+        regularUser.setEmail("regular@streetask.com");
+
+        Event event = new Event();
+        event.setId(eventId);
+        event.setCreator(owner);
+        event.setTitle("Attendance Event");
+        event.setDescription("Attendance toggle test");
+        event.setAttendeeCount(1);
+
+        EventAttendance attendance = new EventAttendance();
+        attendance.setId(UUID.randomUUID());
+        attendance.setRegularUser(regularUser);
+        attendance.setEvent(event);
+        attendance.setIsAttending(true);
+
+        authenticateAs(regularUser.getEmail());
+        when(userRepository.findByEmail(regularUser.getEmail())).thenReturn(Optional.of(regularUser));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventAttendanceRepository.findByRegularUserIdAndEventId(regularUser.getId(), eventId))
+                .thenReturn(Optional.of(attendance));
+        when(eventAttendanceRepository.save(any(EventAttendance.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventAttendanceRepository.countAttendingByEventId(eventId)).thenReturn(0L);
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Event updated = eventService.toggleAttendance(eventId);
+
+        assertFalse(updated.getMyAttendance());
+        assertEquals(0, updated.getAttendeeCount());
+        verify(eventAttendanceRepository).save(any(EventAttendance.class));
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void findAttendees_shouldReturnAttendingUsersForOwnedEvent() {
+        UUID eventId = UUID.randomUUID();
+        RegularUser attendee = new RegularUser();
+        attendee.setId(UUID.randomUUID());
+        attendee.setEmail("attendee@streetask.com");
+        attendee.setUserName("attendee");
+        attendee.setFirstName("Att");
+        attendee.setLastName("Endee");
+
+        Event event = new Event();
+        event.setId(eventId);
+        event.setCreator(owner);
+        event.setTitle("Attendance Event");
+        event.setDescription("Attendance list test");
+
+        EventAttendance attendance = new EventAttendance();
+        attendance.setId(UUID.randomUUID());
+        attendance.setRegularUser(attendee);
+        attendance.setEvent(event);
+        attendance.setIsAttending(true);
+        attendance.setConfirmedAt(LocalDateTime.now());
+
+        authenticateAs(owner.getEmail());
+        when(userRepository.findByEmail(owner.getEmail())).thenReturn(Optional.of(owner));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventAttendanceRepository.findAttendingByEventId(eventId)).thenReturn(List.of(attendance));
+
+        List<EventAttendeeSummary> attendees = eventService.findAttendees(eventId);
+
+        assertEquals(1, attendees.size());
+        assertEquals(attendee.getId(), attendees.get(0).id());
+        assertEquals("attendee", attendees.get(0).userName());
+        assertEquals("Att", attendees.get(0).firstName());
+    }
+
+    @Test
     void updateEvent_shouldUpdateWhenAuthenticatedBusinessOwnsEvent() {
         UUID eventId = UUID.randomUUID();
         Event existing = new Event();
@@ -169,6 +280,7 @@ class EventServiceTest {
 
         eventService.deleteEvent(eventId);
 
+        verify(eventAttendanceRepository).deleteByEventId(eventId);
         verify(eventRepository).delete(existing);
     }
 

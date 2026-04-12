@@ -136,6 +136,37 @@ const mapEventToForm = (event) => ({
     featured: event?.featured === true,
 });
 
+const isEventStillVisible = (event, nowTs) => {
+    if (!event || event.active === false) {
+        return false;
+    }
+
+    if (!event.endsAt) {
+        return true;
+    }
+
+    const endsAtTs = new Date(event.endsAt).getTime();
+    if (!Number.isFinite(endsAtTs)) {
+        return true;
+    }
+
+    return endsAtTs > nowTs;
+};
+
+const isPastEventFromLastWeek = (event, nowTs) => {
+    if (!event?.endsAt) {
+        return false;
+    }
+
+    const endsAtTs = new Date(event.endsAt).getTime();
+    if (!Number.isFinite(endsAtTs)) {
+        return false;
+    }
+
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    return endsAtTs <= nowTs && endsAtTs >= nowTs - oneWeekMs;
+};
+
 export default function ManageEventsScreen({ navigation }) {
     const { user } = useAuth();
     const { width } = useWindowDimensions();
@@ -145,6 +176,9 @@ export default function ManageEventsScreen({ navigation }) {
     const [submitting, setSubmitting] = useState(false);
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState(null);
+    const [attendeesVisible, setAttendeesVisible] = useState(false);
+    const [attendeesLoading, setAttendeesLoading] = useState(false);
+    const [attendees, setAttendees] = useState([]);
 
     const [editorVisible, setEditorVisible] = useState(false);
     const [editorMode, setEditorMode] = useState('create');
@@ -160,15 +194,28 @@ export default function ManageEventsScreen({ navigation }) {
     const [tempLng, setTempLng] = useState(null);
     const [userLat, setUserLat] = useState(null);
     const [userLng, setUserLng] = useState(null);
+    const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
 
     const isBusiness = useMemo(
         () => Array.isArray(user?.roles) && user.roles.includes('BUSINESS'),
         [user?.roles]
     );
 
+    const activeManagedEvents = useMemo(
+        () => events.filter((event) => isEventStillVisible(event, eventsNowTs)),
+        [events, eventsNowTs]
+    );
+
+    const recentPastManagedEvents = useMemo(
+        () => events
+            .filter((event) => isPastEventFromLastWeek(event, eventsNowTs))
+            .sort((a, b) => new Date(b.endsAt).getTime() - new Date(a.endsAt).getTime()),
+        [events, eventsNowTs]
+    );
+
     const selectedEvent = useMemo(
-        () => events.find((evt) => evt.id === selectedEventId) || null,
-        [events, selectedEventId]
+        () => activeManagedEvents.find((evt) => evt.id === selectedEventId) || null,
+        [activeManagedEvents, selectedEventId]
     );
 
     const loadMyEvents = useCallback(async () => {
@@ -178,12 +225,6 @@ export default function ManageEventsScreen({ navigation }) {
             const allEvents = Array.isArray(res?.data) ? res.data : [];
             const mine = allEvents.filter((event) => event?.creator?.id === user?.id);
             setEvents(mine);
-
-            if (mine.length === 0) {
-                setSelectedEventId(null);
-            } else if (!mine.some((evt) => evt.id === selectedEventId)) {
-                setSelectedEventId(mine[0].id);
-            }
         } catch (error) {
             console.error('Error loading events:', error);
             Toast.show({
@@ -195,7 +236,26 @@ export default function ManageEventsScreen({ navigation }) {
         } finally {
             setLoading(false);
         }
-    }, [selectedEventId, user?.id]);
+    }, [user?.id]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setEventsNowTs(Date.now());
+        }, 30000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (activeManagedEvents.length === 0) {
+            setSelectedEventId(null);
+            return;
+        }
+
+        if (!activeManagedEvents.some((evt) => evt.id === selectedEventId)) {
+            setSelectedEventId(activeManagedEvents[0].id);
+        }
+    }, [activeManagedEvents, selectedEventId]);
 
     useEffect(() => {
         loadMyEvents();
@@ -413,6 +473,31 @@ export default function ManageEventsScreen({ navigation }) {
         performDelete();
     };
 
+    const openAttendees = useCallback(async (eventToInspect = selectedEvent) => {
+        if (!eventToInspect) {
+            Alert.alert('Selecciona un evento', 'Primero elige el evento que quieres revisar.');
+            return;
+        }
+
+        try {
+            setAttendeesVisible(true);
+            setAttendeesLoading(true);
+            const response = await apiClient.get(`/api/v1/events/${eventToInspect.id}/attendees`);
+            setAttendees(Array.isArray(response?.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error loading attendees:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'No se pudieron cargar los asistentes.',
+                position: 'top',
+            });
+            setAttendeesVisible(false);
+        } finally {
+            setAttendeesLoading(false);
+        }
+    }, [selectedEvent]);
+
     const submitEditor = async () => {
         const payload = buildPayload(form);
 
@@ -605,57 +690,102 @@ export default function ManageEventsScreen({ navigation }) {
                                 <ActivityIndicator size="large" color="#a52019" />
                                 <Text style={styles.centerText}>Cargando eventos...</Text>
                             </View>
-                        ) : events.length === 0 ? (
+                        ) : activeManagedEvents.length === 0 && recentPastManagedEvents.length === 0 ? (
                             <View style={styles.centerBox}>
                                 <Ionicons name="calendar-clear-outline" size={44} color="#9ca3af" />
                                 <Text style={styles.centerTitle}>Sin eventos</Text>
                                 <Text style={styles.centerText}>
-                                    Crea tu primer evento con el boton Crear.
+                                    No tienes eventos en este momento.
                                 </Text>
                             </View>
                         ) : (
-                            events.map((item) => {
-                                const selected = item.id === selectedEventId;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        activeOpacity={0.8}
-                                        onPress={() => setSelectedEventId(item.id)}
-                                        style={[styles.eventCard, selected && styles.eventCardSelected]}
-                                    >
-                                        <View style={styles.eventCardHeader}>
-                                            <Text style={styles.eventTitle}>{item.title || 'Sin título'}</Text>
-                                            <Text style={styles.eventCategory}>{item.category || 'OTHER'}</Text>
-                                        </View>
-                                        <Text style={styles.eventDescription} numberOfLines={2}>
-                                            {item.description || 'Sin descripción'}
-                                        </Text>
-                                        <Text style={styles.eventMeta}>
-                                            {item.address || 'Sin dirección'}
-                                        </Text>
+                            <>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={styles.sectionTitle}>Eventos activos</Text>
+                                    <Text style={styles.sectionCount}>{activeManagedEvents.length}</Text>
+                                </View>
 
-                                        <View style={styles.rowActions}>
+                                {activeManagedEvents.length === 0 ? (
+                                    <Text style={styles.sectionEmptyText}>No tienes eventos activos.</Text>
+                                ) : (
+                                    activeManagedEvents.map((item) => {
+                                        const selected = item.id === selectedEventId;
+                                        return (
                                             <TouchableOpacity
-                                                style={[styles.rowActionBtn, styles.rowEditBtn]}
-                                                onPress={() => openEdit(item)}
-                                                disabled={submitting}
+                                                key={item.id}
+                                                activeOpacity={0.8}
+                                                onPress={() => setSelectedEventId(item.id)}
+                                                style={[styles.eventCard, selected && styles.eventCardSelected]}
                                             >
-                                                <Ionicons name="pencil-outline" size={16} color="#fff" />
-                                                <Text style={styles.rowActionText}>Editar</Text>
-                                            </TouchableOpacity>
+                                                <View style={styles.eventCardHeader}>
+                                                    <Text style={styles.eventTitle}>{item.title || 'Sin título'}</Text>
+                                                    <Text style={styles.eventCategory}>{item.category || 'OTHER'}</Text>
+                                                </View>
+                                                <Text style={styles.eventDescription} numberOfLines={2}>
+                                                    {item.description || 'Sin descripción'}
+                                                </Text>
+                                                <Text style={styles.eventMeta}>
+                                                    {item.address || 'Sin dirección'}
+                                                </Text>
 
-                                            <TouchableOpacity
-                                                style={[styles.rowActionBtn, styles.rowDeleteBtn]}
-                                                onPress={() => handleDelete(item)}
-                                                disabled={submitting}
-                                            >
-                                                <Ionicons name="trash-outline" size={16} color="#fff" />
-                                                <Text style={styles.rowActionText}>Borrar</Text>
+                                                <View style={styles.rowActions}>
+                                                    <TouchableOpacity
+                                                        style={[styles.rowActionBtn, styles.rowEditBtn]}
+                                                        onPress={() => openEdit(item)}
+                                                        disabled={submitting}
+                                                    >
+                                                        <Ionicons name="pencil-outline" size={16} color="#fff" />
+                                                        <Text style={styles.rowActionText}>Editar</Text>
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity
+                                                        style={[styles.rowActionBtn, styles.rowDeleteBtn]}
+                                                        onPress={() => handleDelete(item)}
+                                                        disabled={submitting}
+                                                    >
+                                                        <Ionicons name="trash-outline" size={16} color="#fff" />
+                                                        <Text style={styles.rowActionText}>Borrar</Text>
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity
+                                                        style={[styles.rowActionBtn, styles.rowViewBtn]}
+                                                        onPress={() => openAttendees(item)}
+                                                        disabled={submitting}
+                                                    >
+                                                        <Ionicons name="people-outline" size={16} color="#fff" />
+                                                        <Text style={styles.rowActionText}>See attendants</Text>
+                                                    </TouchableOpacity>
+                                                </View>
                                             </TouchableOpacity>
+                                        );
+                                    })
+                                )}
+
+                                <View style={[styles.sectionHeader, styles.sectionHeaderPast]}>
+                                    <Text style={styles.sectionTitle}>Pasados (última semana)</Text>
+                                    <Text style={styles.sectionCount}>{recentPastManagedEvents.length}</Text>
+                                </View>
+
+                                {recentPastManagedEvents.length === 0 ? (
+                                    <Text style={styles.sectionEmptyText}>No hay eventos pasados recientes.</Text>
+                                ) : (
+                                    recentPastManagedEvents.map((item) => (
+                                        <View key={item.id} style={[styles.eventCard, styles.pastEventCard]}>
+                                            <View style={styles.eventCardHeader}>
+                                                <Text style={styles.eventTitle}>{item.title || 'Sin título'}</Text>
+                                                <Text style={styles.eventCategory}>{item.category || 'OTHER'}</Text>
+                                            </View>
+                                            <Text style={styles.eventDescription} numberOfLines={2}>
+                                                {item.description || 'Sin descripción'}
+                                            </Text>
+                                            <Text style={styles.eventMeta}>{item.address || 'Sin dirección'}</Text>
+                                            <Text style={styles.eventMeta}>
+                                                Finalizó: {formatEndsAtForInput(item.endsAt) || 'Sin fecha'}
+                                            </Text>
                                         </View>
-                                    </TouchableOpacity>
-                                );
-                            })
+                                    ))
+                                )}
+                            </>
                         )}
                     </View>
                 </ScrollView>
@@ -837,6 +967,58 @@ export default function ManageEventsScreen({ navigation }) {
                     </Pressable>
                 </Pressable>
             </Modal>
+
+            <Modal
+                visible={attendeesVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setAttendeesVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setAttendeesVisible(false)}>
+                    <Pressable style={styles.editorCard} onPress={() => { }}>
+                        <View style={styles.editorHeader}>
+                            <Text style={styles.editorTitle}>Attendees</Text>
+                            <TouchableOpacity onPress={() => setAttendeesVisible(false)}>
+                                <Ionicons name="close" size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {attendeesLoading ? (
+                            <View style={styles.centerBox}>
+                                <ActivityIndicator size="large" color="#a52019" />
+                                <Text style={styles.centerText}>Cargando asistentes...</Text>
+                            </View>
+                        ) : attendees.length === 0 ? (
+                            <View style={styles.centerBox}>
+                                <Ionicons name="people-outline" size={44} color="#9ca3af" />
+                                <Text style={styles.centerTitle}>Sin asistentes</Text>
+                                <Text style={styles.centerText}>Nadie se ha apuntado todavía.</Text>
+                            </View>
+                        ) : (
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {attendees.map((attendee) => (
+                                    <View key={attendee.id} style={styles.attendeeRow}>
+                                        <View style={styles.attendeeAvatar}>
+                                            <Text style={styles.attendeeAvatarText}>
+                                                {(attendee.firstName?.[0] || attendee.userName?.[0] || '?').toUpperCase()}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.attendeeInfo}>
+                                            <Text style={styles.attendeeName} numberOfLines={1}>
+                                                {attendee.firstName || attendee.userName || 'Sin nombre'}{' '}
+                                                {attendee.lastName || ''}
+                                            </Text>
+                                            <Text style={styles.attendeeMeta} numberOfLines={1}>
+                                                @{attendee.userName || 'unknown'} · {attendee.email || 'sin email'}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -869,6 +1051,39 @@ const styles = StyleSheet.create({
     backRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     backText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
     heading: { fontSize: 24, fontWeight: '800', color: '#1f2937', marginBottom: 16 },
+    sectionHeader: {
+        marginTop: 8,
+        marginBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    sectionHeaderPast: {
+        marginTop: 14,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1f2937',
+    },
+    sectionCount: {
+        minWidth: 26,
+        height: 26,
+        borderRadius: 13,
+        textAlign: 'center',
+        textAlignVertical: 'center',
+        backgroundColor: '#e5e7eb',
+        color: '#374151',
+        fontWeight: '800',
+        fontSize: 12,
+        overflow: 'hidden',
+        paddingTop: 5,
+    },
+    sectionEmptyText: {
+        color: '#6b7280',
+        fontSize: 14,
+        marginBottom: 10,
+    },
     createActionBtn: {
         minHeight: 46,
         borderRadius: 14,
@@ -957,6 +1172,10 @@ const styles = StyleSheet.create({
         borderColor: '#e5e7eb',
         marginBottom: 10,
     },
+    pastEventCard: {
+        backgroundColor: '#f9fafb',
+        borderColor: '#d1d5db',
+    },
     eventCardSelected: {
         borderColor: '#a52019',
         shadowColor: '#a52019',
@@ -1012,6 +1231,9 @@ const styles = StyleSheet.create({
     rowDeleteBtn: {
         backgroundColor: '#dc2626',
     },
+    rowViewBtn: {
+        backgroundColor: '#0f766e',
+    },
     rowActionText: {
         color: '#fff',
         fontWeight: '700',
@@ -1049,6 +1271,40 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: 18,
         padding: 16,
+    },
+    attendeeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eef2f7',
+    },
+    attendeeAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#a52019',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    attendeeAvatarText: {
+        color: '#fff',
+        fontWeight: '800',
+        fontSize: 14,
+    },
+    attendeeInfo: {
+        flex: 1,
+    },
+    attendeeName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1f2937',
+    },
+    attendeeMeta: {
+        marginTop: 2,
+        fontSize: 12,
+        color: '#6b7280',
     },
     mapFull: { flex: 1, width: '100%', height: '100%' },
     mapOverlay: {

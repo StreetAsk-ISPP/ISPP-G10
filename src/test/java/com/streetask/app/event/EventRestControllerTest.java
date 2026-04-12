@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.Event;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.RegularUser;
@@ -45,6 +46,9 @@ class EventRestControllerTest {
 
     @Autowired
     private EventRepository eventRepository;
+
+    @Autowired
+    private EventAttendanceRepository eventAttendanceRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -205,6 +209,45 @@ class EventRestControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "regular@streetask.com")
+    void toggleAttendance_shouldMarkAndUnmarkAttendanceForAuthenticatedRegularUser() throws Exception {
+        mockMvc.perform(post("/api/v1/events/{eventId}/attendance", event1.getId())
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(event1.getId().toString()))
+                .andExpect(jsonPath("$.myAttendance").value(true))
+                .andExpect(jsonPath("$.attendeeCount").value(1));
+
+        mockMvc.perform(post("/api/v1/events/{eventId}/attendance", event1.getId())
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(event1.getId().toString()))
+                .andExpect(jsonPath("$.myAttendance").value(false))
+                .andExpect(jsonPath("$.attendeeCount").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "eventcreator@streetask.com")
+    void findAttendees_shouldReturnAttendingUsersForOwnedEvent() throws Exception {
+        RegularUser attendee = (RegularUser) userRepository.findByEmail("regular@streetask.com").orElseThrow();
+
+        EventAttendance attendance = new EventAttendance();
+        attendance.setRegularUser(attendee);
+        attendance.setEvent(event1);
+        attendance.setIsAttending(true);
+        attendance.setConfirmedAt(LocalDateTime.now());
+        eventAttendanceRepository.save(attendance);
+
+        mockMvc.perform(get("/api/v1/events/{eventId}/attendees", event1.getId())
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(attendee.getId().toString()))
+                .andExpect(jsonPath("$[0].userName").value(attendee.getUserName()))
+                .andExpect(jsonPath("$[0].firstName").value(attendee.getFirstName()))
+                .andExpect(jsonPath("$[0].lastName").value(attendee.getLastName()));
+    }
+
+    @Test
     @WithMockUser(username = "eventcreator@streetask.com")
     void update_shouldUpdateEventWhenAuthenticatedBusinessOwnsEvent() throws Exception {
         Map<String, Object> payload = new HashMap<>();
@@ -238,6 +281,14 @@ class EventRestControllerTest {
     @Test
     @WithMockUser(username = "eventcreator@streetask.com")
     void delete_shouldDeleteEventWhenAuthenticatedBusinessOwnsEvent() throws Exception {
+        RegularUser attendee = (RegularUser) userRepository.findByEmail("regular@streetask.com").orElseThrow();
+        EventAttendance attendance = new EventAttendance();
+        attendance.setRegularUser(attendee);
+        attendance.setEvent(event1);
+        attendance.setIsAttending(true);
+        attendance.setConfirmedAt(LocalDateTime.now());
+        eventAttendanceRepository.save(attendance);
+
         mockMvc.perform(delete("/api/v1/events/{eventId}", event1.getId())
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())

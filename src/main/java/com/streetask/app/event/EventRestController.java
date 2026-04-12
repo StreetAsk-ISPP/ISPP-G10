@@ -52,6 +52,17 @@ public class EventRestController {
         return new ResponseEntity<>(savedEvent, HttpStatus.CREATED);
     }
 
+    @PostMapping(value = "{eventId}/attendance")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<Event> toggleAttendance(@PathVariable("eventId") UUID id) {
+        return new ResponseEntity<>(eventService.toggleAttendance(id), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "{eventId}/attendees")
+    public ResponseEntity<java.util.List<EventAttendeeSummary>> findAttendees(@PathVariable("eventId") UUID id) {
+        return new ResponseEntity<>(eventService.findAttendees(id), HttpStatus.OK);
+    }
+
     @PutMapping(value = "{eventId}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Event> update(@PathVariable("eventId") UUID id,

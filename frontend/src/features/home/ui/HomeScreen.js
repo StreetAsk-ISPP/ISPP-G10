@@ -70,6 +70,7 @@ export default function HomeScreen({ navigation }) {
     const [showQuestions, setShowQuestions] = useState(true);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
+    const [sidebarTab, setSidebarTab] = useState('QUESTIONS');
 
     // null = revisando, true = concedido, false = denegado
     const [hasLocationPermission, setHasLocationPermission] = useState(null);
@@ -88,6 +89,7 @@ export default function HomeScreen({ navigation }) {
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const [mapCenter, setMapCenter] = useState(null);
     const [visibleQuestionsIds, setVisibleQuestionsIds] = useState([]);
+    const [selectedEventTarget, setSelectedEventTarget] = useState(null);
 
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
@@ -104,6 +106,34 @@ export default function HomeScreen({ navigation }) {
     const latestRequestRef = useRef(0);
     const isBusiness = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const latestEventsRequestRef = useRef(0);
+
+    const handleEventAttendanceUpdate = useCallback((updatedEvent) => {
+        if (!updatedEvent?.id) {
+            return;
+        }
+
+        setEvents((currentEvents) => {
+            const nextEvents = currentEvents.map((event) => (
+                event.id === updatedEvent.id ? updatedEvent : event
+            ));
+            writeCachedArray(STORAGE_KEYS.HOME_EVENTS_CACHE, nextEvents);
+            return nextEvents;
+        });
+    }, []);
+
+    const handleSidebarNavigateToEvent = useCallback((eventItem, coords) => {
+        if (!coords) {
+            return;
+        }
+
+        setSelectedEventTarget({
+            id: eventItem?.id,
+            lat: coords.lat,
+            lng: coords.lng,
+            title: eventItem?.title || 'Event',
+        });
+        setSidebarVisible(false);
+    }, []);
 
 
     const loadQuestions = useCallback(async () => {
@@ -500,6 +530,16 @@ export default function HomeScreen({ navigation }) {
                                 </TouchableOpacity>
                             ))}
 
+                            {!isBusinessUser && (
+                                <TouchableOpacity
+                                    style={[styles.iconBtn, styles.attendancesBtn]}
+                                    activeOpacity={0.7}
+                                    onPress={() => navigation.navigate('MyAttendances')}
+                                >
+                                    <Ionicons name="calendar-outline" size={20} color="#1e40af" />
+                                </TouchableOpacity>
+                            )}
+
                             {isNarrow ? (
                                 <TouchableOpacity
                                     style={styles.iconBtn}
@@ -628,6 +668,9 @@ export default function HomeScreen({ navigation }) {
                         <MapComponent
                             questions={showQuestions ? questions : []}
                             events={events}
+                            eventNavigationTarget={selectedEventTarget}
+                            canAttendEvents={Boolean(user) && !isBusiness}
+                            onEventAttendanceUpdate={handleEventAttendanceUpdate}
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }
@@ -657,14 +700,18 @@ export default function HomeScreen({ navigation }) {
                     <QuestionsSidebar
                         visible={sidebarVisible}
                         questions={showQuestions ? questions : []}
+                        events={events}
                         visibleQuestionsIds={visibleQuestionsIds}
                         mapCenter={mapCenter}
                         userLocation={currentLocation}
                         onToggle={() => setSidebarVisible(!sidebarVisible)}
+                        activeTab={sidebarTab}
+                        onTabChange={setSidebarTab}
                         onQuestionPress={(qId) => {
                             setSidebarVisible(false);
                             navigation.navigate('QuestionThread', { questionId: qId });
                         }}
+                        onEventNavigate={handleSidebarNavigateToEvent}
                     />
 
                     <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
@@ -952,6 +999,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#f3f4f6',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    attendancesBtn: {
+        backgroundColor: '#fde68a',
+        borderWidth: 1,
+        borderColor: '#f59e0b',
     },
     logoutBtn: {
         backgroundColor: '#fef2f2',
