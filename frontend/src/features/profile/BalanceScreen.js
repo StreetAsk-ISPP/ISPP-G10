@@ -77,7 +77,10 @@ export default function BalanceScreen({ navigation, route }) {
             }
         }
         // Fallback: timestamp-based ID for environments without crypto
-        return `${Date.now()}-${Math.floor(Date.now() * Math.random()).toString(36)}`;
+        // Uses high-precision timing instead of Math.random()
+        const now = Date.now();
+        const nanoTime = (now * 1000000).toString(36);
+        return `${now}-${nanoTime}`;
     };
 
     const formatEur = (amountCents) => `${(Number(amountCents || 0) / 100).toFixed(2)}€`;
