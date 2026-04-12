@@ -339,11 +339,23 @@ export default function MapComponent({
 
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
         const preguntasActivas = questions.filter((q) => {
+            if (q?.active === false) {
+                return false;
+            }
+
+            if (!q?.expiresAt) {
+                return true;
+            }
+
             const fechaExpiracion = new Date(q.expiresAt).getTime();
+            if (!Number.isFinite(fechaExpiracion)) {
+                return true;
+            }
+
             return fechaExpiracion > ahora; // Solo dejamos las que expiran en el futuro
         });
 
-        setVisibleQuestions(preguntasActivas);
+        setVisibleQuestions(preguntasActivas.length > 0 ? preguntasActivas : questions.filter((q) => q?.active !== false));
     }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {

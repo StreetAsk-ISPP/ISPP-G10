@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, Platform, View } from 'react-native';
 
@@ -32,31 +32,81 @@ const Stack = createNativeStackNavigator();
 export default function AppNavigator() {
     const { isAuthenticated, isLoadingAuth, user } = useAuth();
     const stripeCallbackHandledRef = useRef(false);
+    const [navigationResetVersion, setNavigationResetVersion] = useState(0);
 
     useEffect(() => {
         if (Platform.OS !== 'web' || typeof window === 'undefined') {
             return;
         }
 
+        if (isLoadingAuth) {
+            return;
+        }
+
         const params = new URLSearchParams(window.location.search);
         const paymentState = params.get('payment');
         const sessionId = params.get('session_id');
+        const flow = params.get('flow');
 
         if (!paymentState || stripeCallbackHandledRef.current) {
             return;
         }
 
+        if (flow === 'streetcoins' && !isAuthenticated) {
+            return;
+        }
+
         stripeCallbackHandledRef.current = true;
 
+        const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+
         const clearUrlParams = () => {
-            window.history.replaceState({}, document.title, window.location.pathname);
+            window.history.replaceState({}, document.title, cleanUrl);
         };
 
         const processStripeCallback = async () => {
+            let shouldClearParams = true;
+            let shouldClearStreetCoinsPending = true;
+            let shouldClearBusinessPending = true;
+
             try {
-                if (paymentState === 'success' && sessionId) {
-                    if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
-                        await apiClient.post('/api/v1/business-subscriptions/me/stripe/confirm-session', { sessionId });
+                const rawPendingStreetCoins = window.localStorage.getItem(STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT);
+                let pendingStreetCoins = null;
+                if (rawPendingStreetCoins) {
+                    try {
+                        pendingStreetCoins = JSON.parse(rawPendingStreetCoins);
+                    } catch {
+                        pendingStreetCoins = null;
+                    }
+                }
+                const effectiveSessionId = sessionId || pendingStreetCoins?.sessionId;
+
+                if (paymentState === 'success' && effectiveSessionId) {
+                    if (flow === 'streetcoins') {
+                        const response = await apiClient.post('/api/v1/streetcoins/purchase/confirm', { sessionId: effectiveSessionId });
+                        const addedStreetCoins = response?.data?.addedStreetCoins;
+                        if (typeof addedStreetCoins === 'number' && addedStreetCoins > 0) {
+                            window.localStorage.setItem(
+                                STORAGE_KEYS.STREETCOINS_SUCCESS_NOTICE,
+                                JSON.stringify({ addedStreetCoins })
+                            );
+                            window.dispatchEvent(new CustomEvent('streetcoins:purchase-confirmed', {
+                                detail: { addedStreetCoins },
+                            }));
+                        }
+
+                        if (pendingStreetCoins?.checkoutOrigin === 'create-question-limit') {
+                            window.localStorage.setItem(STORAGE_KEYS.STREETCOINS_POST_CHECKOUT_TARGET, 'balance');
+                        }
+
+                        // Ensure we always land on Home after Stripe callback, avoiding stale restored routes.
+                        setNavigationResetVersion((value) => value + 1);
+
+                        // Perform a clean reload to avoid stale web history state from CreateQuestion flow.
+                        window.location.replace(cleanUrl);
+                        return;
+                    } else if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
+                        await apiClient.post('/api/v1/business-subscriptions/me/stripe/confirm-session', { sessionId: effectiveSessionId });
                     } else {
                         const rawPendingData = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
                         if (rawPendingData) {
@@ -65,7 +115,7 @@ export default function AppNavigator() {
                                 await apiClient.post('/api/v1/business-subscriptions/stripe/confirm-session', {
                                     email: pendingData.email,
                                     taxId: pendingData.taxId,
-                                    sessionId,
+                                    sessionId: effectiveSessionId,
                                 });
                             }
                         }
@@ -73,14 +123,28 @@ export default function AppNavigator() {
                 }
             } catch (error) {
                 console.error('Stripe callback processing failed:', error);
+                stripeCallbackHandledRef.current = false;
+                shouldClearParams = false;
+                if (flow === 'streetcoins') {
+                    shouldClearStreetCoinsPending = false;
+                } else {
+                    shouldClearBusinessPending = false;
+                }
             } finally {
-                window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
-                clearUrlParams();
+                if (shouldClearBusinessPending) {
+                    window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                }
+                if (shouldClearStreetCoinsPending) {
+                    window.localStorage.removeItem(STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT);
+                }
+                if (shouldClearParams) {
+                    clearUrlParams();
+                }
             }
         };
 
         processStripeCallback();
-    }, [user?.roles]);
+    }, [isAuthenticated, isLoadingAuth, user?.roles]);
 
     if (isLoadingAuth) {
         return (
@@ -91,7 +155,10 @@ export default function AppNavigator() {
     }
 
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator
+            key={`app-stack-${isAuthenticated ? 'auth' : 'guest'}-${navigationResetVersion}`}
+            screenOptions={{ headerShown: false }}
+        >
             {!isAuthenticated ? (
                 <>
                     <Stack.Screen name="Login" component={LoginScreen} />

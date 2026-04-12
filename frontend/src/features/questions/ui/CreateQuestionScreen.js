@@ -361,6 +361,13 @@ export default function CreateQuestionScreen({ navigation }) {
     setHoursInput(text);
   };
 
+  const openStreetCoinsShop = useCallback(() => {
+    navigation.replace('Balance', {
+      openShopModal: true,
+      checkoutOrigin: 'create-question-limit',
+    });
+  }, [navigation]);
+
   const onPost = async () => {
     if (!canPost) return;
 
@@ -705,10 +712,7 @@ export default function CreateQuestionScreen({ navigation }) {
                 </View>
                 <TouchableOpacity
                   style={styles.shopBtn}
-                  onPress={() => {
-                    // Shop functionality to be implemented
-                    console.log('Shop button pressed');
-                  }}
+                  onPress={openStreetCoinsShop}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.shopBtnText}>Shop</Text>
