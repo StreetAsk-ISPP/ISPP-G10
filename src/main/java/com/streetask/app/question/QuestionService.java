@@ -1,8 +1,9 @@
 package com.streetask.app.question;
 
-import java.time.LocalDateTime;
 import java.time.Duration;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
@@ -51,10 +52,10 @@ public class QuestionService {
 		this.eventPublisher = eventPublisher;
 	}
 	public long questionsTodayCount(UUID creatorId) {
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
-		LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+		Instant now = Instant.now();
+		Instant startOfDay = now.atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
 		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
-				.filter(q -> q.getCreatedAt().isAfter(startOfDay))
+				.filter(q -> q.getCreatedAt() != null && q.getCreatedAt().isAfter(startOfDay))
 				.count();
 	}
 
@@ -158,7 +159,7 @@ public class QuestionService {
 	@Transactional
 	@Scheduled(cron = "0 * * * * *")
 	public void executeExpirationCron() {
-		LocalDateTime now = LocalDateTime.now();
+		Instant now = Instant.now();
 		Iterable<Question> expiredQuestions = questionRepository.findAllByActiveTrueAndExpiresAtBefore(now);
 
 		if (expiredQuestions.iterator().hasNext()) {
@@ -171,7 +172,7 @@ public class QuestionService {
 
 	private void applyDefaults(Question question, boolean isPremium) {
 		if (question.getCreatedAt() == null) {
-			question.setCreatedAt(LocalDateTime.now(ZoneId.of("UTC")));
+			question.setCreatedAt(Instant.now());
 		}
 		if (question.getActive() == null) {
 			question.setActive(true);
@@ -180,11 +181,10 @@ public class QuestionService {
 			question.setAnswerCount(0);
 		}
 		if (question.getExpiresAt() == null) {
-			question.setExpiresAt(question.getCreatedAt().plusHours(FREE_DURATION_HOURS));
+			question.setExpiresAt(question.getCreatedAt().plus(FREE_DURATION_HOURS, ChronoUnit.HOURS));
 		}
-
 		if (!isPremium) {
-			question.setExpiresAt(question.getCreatedAt().plusHours(FREE_DURATION_HOURS));
+			question.setExpiresAt(question.getCreatedAt().plus(FREE_DURATION_HOURS, ChronoUnit.HOURS));
 			return;
 		}
 

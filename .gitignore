@@ -65,3 +65,6 @@ frontend/ios/Pods/
 # Local editor settings
 .vscode/settings.json
 .vscode/settings.local.json
+
+
+.codex

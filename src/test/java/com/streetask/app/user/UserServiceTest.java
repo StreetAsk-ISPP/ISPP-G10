@@ -38,6 +38,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.streetask.app.answer.AnswerRepository;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.Question;
@@ -646,6 +648,46 @@ class UserServiceTest {
         List<com.streetask.app.model.Answer> resultList = new ArrayList<>();
         result.forEach(resultList::add);
         assertTrue(resultList.isEmpty());
+    }
+
+    // ================= REGULAR PREMIUM ACCESS =================
+
+    @Test
+    @DisplayName("updateCurrentRegularPremiumAccess should allow regular users to activate premium")
+    void updateCurrentRegularPremiumAccess_shouldAllowRegularUser() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+        regularUser.setPremiumActive(false);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        RegularUser updated = userService.updateCurrentRegularPremiumAccess(true);
+
+        assertTrue(Boolean.TRUE.equals(updated.getPremiumActive()));
+        verify(userRepository).save(regularUser);
+    }
+
+    @Test
+    @DisplayName("updateCurrentRegularPremiumAccess should reject business users")
+    void updateCurrentRegularPremiumAccess_shouldRejectBusinessUser() {
+        BusinessAccount businessAccount = new BusinessAccount();
+        businessAccount.setId(testUserId);
+        businessAccount.setEmail(TEST_EMAIL);
+        businessAccount.setUserName(TEST_USERNAME);
+        businessAccount.setFirstName(TEST_FIRST_NAME);
+        businessAccount.setLastName(TEST_LAST_NAME);
+        businessAccount.setPassword("password123");
+        businessAccount.setAccountType(AccountType.BUSINESS);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(businessAccount));
+
+        assertThrows(AccessDeniedException.class,
+                () -> userService.updateCurrentRegularPremiumAccess(true));
+
+        verify(userRepository, never()).save(any(User.class));
     }
 
     // ================= HELPERS =================
