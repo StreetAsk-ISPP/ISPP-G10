@@ -51,19 +51,22 @@ export default function BusinessSignupScreen({ navigation, route }) {
 		try {
 			setIsSubmitting(true);
 			const normalizedTaxId = taxId.trim().toUpperCase();
-
-			await apiClient.post('/api/v1/auth/signup/business', {
+			const pendingBusinessSignup = {
 				email,
 				taxId: normalizedTaxId,
 				companyName: companyName.trim(),
 				address: address.trim() || null,
 				website: website.trim() || null,
 				description: description.trim() || null,
-			});
+			};
 
 			const checkoutResponse = await apiClient.post('/api/v1/business-subscriptions/stripe/checkout-session', {
 				email,
 				taxId: normalizedTaxId,
+				companyName: companyName.trim(),
+				address: address.trim() || null,
+				website: website.trim() || null,
+				description: description.trim() || null,
 			});
 
 			const checkoutUrl = checkoutResponse?.data?.checkoutUrl;
@@ -75,7 +78,7 @@ export default function BusinessSignupScreen({ navigation, route }) {
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
 				window.localStorage.setItem(
 					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
-					JSON.stringify({ email, taxId: normalizedTaxId })
+					JSON.stringify(pendingBusinessSignup)
 				);
 				window.location.assign(checkoutUrl);
 				return;
@@ -88,6 +91,8 @@ export default function BusinessSignupScreen({ navigation, route }) {
 			msg = typeof msg === 'string' ? msg : JSON.stringify(msg);
 			if (msg.toLowerCase().includes('invalid tax id') || msg.toLowerCase().includes('tax id format'))
 				setError('Tax ID must be: 1 letter + 7 digits + 1 control character.');
+			else if (msg.toLowerCase().includes('basic user registration not found'))
+				setError('This registration has already been completed. Please log in.');
 			else if (msg.toLowerCase().includes('tax id is already registered') || msg.toLowerCase().includes('taxid is already registered'))
 				setError('This Tax ID is already registered.');
 			else if (msg.toLowerCase().includes('already completed'))

@@ -65,6 +65,12 @@ public class AuthController {
 					.body(new MessageResponse("Error: Email/username and password are required."));
 		}
 
+		// Block login for pending basic users (business signup not yet paid)
+		if (authService.isPendingBasicSignup(normalizedIdentifier)) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN)
+					.body(new MessageResponse("Error: Your business registration is pending payment."));
+		}
+
 		try {
 			Authentication authentication = authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(normalizedIdentifier, rawPassword));
@@ -94,6 +100,9 @@ public class AuthController {
 	public ResponseEntity<MessageResponse> registerBasicUser(@Valid @RequestBody SignupRequest signUpRequest) {
 		// Check whether email already exists
 		if (userService.existsUser(signUpRequest.getEmail()).equals(true)) {
+			if (authService.isPendingBasicSignup(signUpRequest.getEmail())) {
+				return ResponseEntity.ok(new MessageResponse("Basic user data saved! Complete your registration."));
+			}
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already registered!"));
 		}
 		// Check whether username already exists
@@ -143,6 +152,15 @@ public class AuthController {
 		} catch (Exception e) {
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: User not found or already completed!"));
 		}
+	}
+
+	@GetMapping("/signup/basic/pending")
+	public ResponseEntity<?> isPendingBasicSignup(@RequestParam String identifier) {
+		if (!authService.isPendingBasicSignup(identifier)) {
+			return ResponseEntity.ok(false);
+		}
+		String email = authService.getPendingBasicSignupEmail(identifier);
+		return ResponseEntity.ok(java.util.Map.of("pending", true, "email", email != null ? email : ""));
 	}
 
 	@PostMapping("/password/forgot")
