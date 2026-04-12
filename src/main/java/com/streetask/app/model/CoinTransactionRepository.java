@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.streetask.app.model.enums.CoinTransactionType;
+
 import jakarta.persistence.LockModeType;
 
 public interface CoinTransactionRepository extends JpaRepository<CoinTransaction, UUID> {
@@ -18,6 +20,8 @@ public interface CoinTransactionRepository extends JpaRepository<CoinTransaction
     Optional<CoinTransaction> findByExternalPaymentId(String externalPaymentId);
 
     List<CoinTransaction> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    List<CoinTransaction> findByUserIdAndTypeOrderByCreatedAtDesc(UUID userId, CoinTransactionType type);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select tx from CoinTransaction tx where tx.id = :transactionId")

@@ -40,6 +40,11 @@ public class StreetCoinPurchaseRestController {
         return new ResponseEntity<>(streetCoinPurchaseService.getCurrentTransactions(), HttpStatus.OK);
     }
 
+    @GetMapping("/purchases")
+    public ResponseEntity<List<StreetCoinTransactionResponse>> getCurrentPurchases() {
+        return new ResponseEntity<>(streetCoinPurchaseService.getCurrentPurchases(), HttpStatus.OK);
+    }
+
     @PostMapping("/purchase")
     public ResponseEntity<StreetCoinPurchaseResponse> createPurchase(
             @Valid @RequestBody StreetCoinPurchaseRequest request,
