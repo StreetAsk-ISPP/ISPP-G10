@@ -4,35 +4,37 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.streetask.app.auth.payload.request.BusinessSignupRequest;
+import com.streetask.app.auth.payload.request.CompleteSignupRequest;
+import com.streetask.app.auth.payload.request.SignupRequest;
+import com.streetask.app.auth.payload.response.JwtResponse;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessAccountRepository;
+import com.streetask.app.business.RequestStatus;
+import com.streetask.app.configuration.jwt.JwtUtils;
+import com.streetask.app.user.AccountType;
+import com.streetask.app.user.Authorities;
+import com.streetask.app.user.AuthoritiesService;
+import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.RegularUserRepository;
+import com.streetask.app.user.User;
+import com.streetask.app.user.UserRepository;
+import com.streetask.app.user.UserService;
+import com.streetask.app.user.UserTypeChangeService;
+
+import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import com.streetask.app.auth.payload.request.BusinessSignupRequest;
-import com.streetask.app.auth.payload.request.CompleteSignupRequest;
-import com.streetask.app.auth.payload.request.SignupRequest;
-import com.streetask.app.business.BusinessAccount;
-import com.streetask.app.business.BusinessAccountRepository;
-import com.streetask.app.business.RequestStatus;
-import com.streetask.app.user.Authorities;
-import com.streetask.app.user.AuthoritiesService;
-import com.streetask.app.user.AccountType;
-import com.streetask.app.user.User;
-import com.streetask.app.user.UserRepository;
-import com.streetask.app.user.UserService;
-import com.streetask.app.user.RegularUser;
-import com.streetask.app.user.RegularUserRepository;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class AuthService {
@@ -51,6 +53,8 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final PasswordResetTokenRepository passwordResetTokenRepository;
 	private final JavaMailSender mailSender;
+	private final UserTypeChangeService userTypeChangeService;
+	private final JwtUtils jwtUtils;
 
 	@Value("${streetask.mail.from}")
 	private String mailFrom;
@@ -59,7 +63,7 @@ public class AuthService {
 	public AuthService(PasswordEncoder encoder, AuthoritiesService authoritiesService, UserService userService,
 			RegularUserRepository regularUserRepository, BusinessAccountRepository businessAccountRepository,
 			UserRepository userRepository, PasswordResetTokenRepository passwordResetTokenRepository,
-			JavaMailSender mailSender) {
+			JavaMailSender mailSender, UserTypeChangeService userTypeChangeService, JwtUtils jwtUtils) {
 		this.encoder = encoder;
 		this.authoritiesService = authoritiesService;
 		this.userService = userService;
@@ -68,6 +72,8 @@ public class AuthService {
 		this.userRepository = userRepository;
 		this.passwordResetTokenRepository = passwordResetTokenRepository;
 		this.mailSender = mailSender;
+		this.userTypeChangeService = userTypeChangeService;
+		this.jwtUtils = jwtUtils;
 	}
 
 	@Transactional
@@ -293,6 +299,46 @@ public class AuthService {
 	private boolean isPendingBasicSignup(User user) {
 		return user != null && user.getAccountType() == null && Boolean.FALSE.equals(user.getActive())
 				&& user.hasAuthority("USER");
+	}
+
+	/**
+	 * Changes user's account type and authority.
+	 * Generates a new JWT token with updated roles.
+	 *
+	 * @param userId          User to change
+	 * @param newAccountType  Target account type
+	 * @param changedByUserId Admin performing the change (null if user is changing
+	 *                        themselves)
+	 * @param reason          Optional reason for audit log
+	 * @param ipAddress       Optional IP address for audit log
+	 * @return JwtResponse with new token and updated roles
+	 */
+	@Transactional
+	public JwtResponse changeUserAccountType(java.util.UUID userId, com.streetask.app.user.AccountType newAccountType,
+			java.util.UUID changedByUserId, String reason, String ipAddress) {
+		// Fetch the user to change
+		User user = userService.findUser(userId);
+
+		// Perform the type change (this includes validation and data migration)
+		userTypeChangeService.changeAccountType(user, newAccountType, changedByUserId, reason, ipAddress);
+
+		// Refresh user from DB to get updated authority
+		User updatedUser = userService.findUser(userId);
+
+		// Generate new JWT token with updated authority
+		com.streetask.app.configuration.services.UserDetailsImpl userDetails = com.streetask.app.configuration.services.UserDetailsImpl
+				.build(updatedUser);
+
+		String jwt = jwtUtils.generateJwtToken(
+				new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+						userDetails, null, userDetails.getAuthorities()));
+
+		// Return JWT response with updated roles
+		java.util.List<String> roles = userDetails.getAuthorities().stream()
+				.map(auth -> auth.getAuthority())
+				.collect(java.util.stream.Collectors.toList());
+
+		return new JwtResponse(jwt, updatedUser.getId(), updatedUser.getEmail(), roles);
 	}
 
 }
