@@ -204,17 +204,28 @@ export default function CreateQuestionScreen({ navigation }) {
       };
     }, [getCurrentPositionWeb]);
 
-useEffect(() => {
-  if (!showFakeAd) return;
+  useEffect(() => {
+    if (!showFakeAd) return;
 
-  setCanSkipAd(false);
+    const skipTimer = setTimeout(() => {
+      setCanSkipAd(true);
+    }, 3000); //3 segundos de cooldown hasta que salga la x
 
-  const timer = setTimeout(() => {
-    setCanSkipAd(true);
-  }, 2000);
+    const interval = setInterval(() => {
+      setAdSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-  return () => clearTimeout(timer);
-}, [showFakeAd]);
+    return () => {
+      clearTimeout(skipTimer);
+      clearInterval(interval);
+    };
+  }, [showFakeAd]);
     
   useEffect(() => {
     if (!showFakeAd || adSecondsLeft > 0 || !queuedPayload) {
@@ -723,14 +734,7 @@ useEffect(() => {
                 </TouchableOpacity>
               </View>
             )}
-            {/* TODO if (!isPremium && todayQuestionCount >= 3) {*/}
-            {/* Legacy free-plan helper (disabled):
-            {!isPremium ? (
-              <Text style={styles.helperText}>
-                When you tap the final &quot;Post Question&quot; button, a short ad will be shown before publishing.
-              </Text>
-            ) : null}
-            */}
+            
             {/* Buttons */}
             <View style={styles.actionRow}>
               <TouchableOpacity
@@ -769,7 +773,6 @@ useEffect(() => {
             {canSkipAd && (
             <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
                 <Text style={styles.adSkipText}>X</Text>
-                <Text style={styles.adSkipLabel}>Dev skip</Text>
             </TouchableOpacity>
             )}
           </View>
