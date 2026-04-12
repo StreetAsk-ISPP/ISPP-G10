@@ -8,6 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -154,5 +156,57 @@ class StreetCoinPurchaseServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> streetCoinPurchaseService.createPurchase(request, "idem-invalid"));
+    }
+
+    @Test
+    void getCurrentPurchases_shouldReturnPurchaseTransactionsForAuthenticatedUser() {
+        CoinTransaction latestPurchase = new CoinTransaction();
+        latestPurchase.setId(UUID.randomUUID());
+        latestPurchase.setUser(currentUser);
+        latestPurchase.setType(CoinTransactionType.PURCHASE);
+        latestPurchase.setStatus(CoinTransactionStatus.SUCCESS);
+        latestPurchase.setAmount(20);
+        latestPurchase.setCurrency("StreetCoins");
+        latestPurchase.setCreatedAt(LocalDateTime.now());
+
+        CoinTransaction olderPurchase = new CoinTransaction();
+        olderPurchase.setId(UUID.randomUUID());
+        olderPurchase.setUser(currentUser);
+        olderPurchase.setType(CoinTransactionType.PURCHASE);
+        olderPurchase.setStatus(CoinTransactionStatus.PENDING);
+        olderPurchase.setAmount(10);
+        olderPurchase.setCurrency("StreetCoins");
+        olderPurchase.setCreatedAt(LocalDateTime.now().minusMinutes(30));
+
+        when(coinTransactionRepository.findByUserIdAndTypeOrderByCreatedAtDesc(userId, CoinTransactionType.PURCHASE))
+                .thenReturn(List.of(latestPurchase, olderPurchase));
+
+        List<StreetCoinTransactionResponse> result = streetCoinPurchaseService.getCurrentPurchases();
+
+        assertEquals(2, result.size());
+        assertEquals(latestPurchase.getId(), result.get(0).getId());
+        assertEquals("success", result.get(0).getStatus());
+        assertEquals("purchase", result.get(0).getType());
+        assertEquals(20, result.get(0).getAmount());
+    }
+
+    @Test
+    void getCurrentTransactions_shouldExposeTransactionType() {
+        CoinTransaction spendTransaction = new CoinTransaction();
+        spendTransaction.setId(UUID.randomUUID());
+        spendTransaction.setUser(currentUser);
+        spendTransaction.setType(CoinTransactionType.SPEND);
+        spendTransaction.setStatus(CoinTransactionStatus.SUCCESS);
+        spendTransaction.setAmount(-3);
+        spendTransaction.setCurrency("StreetCoins");
+        spendTransaction.setCreatedAt(LocalDateTime.now());
+
+        when(coinTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId))
+                .thenReturn(List.of(spendTransaction));
+
+        List<StreetCoinTransactionResponse> result = streetCoinPurchaseService.getCurrentTransactions();
+
+        assertEquals(1, result.size());
+        assertEquals("spend", result.get(0).getType());
     }
 }

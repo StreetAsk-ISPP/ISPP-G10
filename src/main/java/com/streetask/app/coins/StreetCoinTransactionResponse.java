@@ -14,6 +14,7 @@ public class StreetCoinTransactionResponse {
     private Integer amount;
     private String currency;
     private String status;
+    private String type;
     private String description;
     private String externalPaymentId;
     private String idempotencyKey;

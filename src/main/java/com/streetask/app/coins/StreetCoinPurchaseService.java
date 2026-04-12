@@ -91,15 +91,18 @@ public class StreetCoinPurchaseService {
 
         return coinTransactionRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
-                .map(tx -> new StreetCoinTransactionResponse(
-                        tx.getId(),
-                        tx.getAmount(),
-                        resolveCurrency(tx),
-                        resolveStatus(tx),
-                        resolveDescription(tx),
-                        tx.getExternalPaymentId(),
-                        tx.getIdempotencyKey(),
-                        tx.getCreatedAt()))
+                .map(this::toTransactionResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StreetCoinTransactionResponse> getCurrentPurchases() {
+        RegularUser currentUser = requireCurrentRegularUser();
+
+        return coinTransactionRepository
+                .findByUserIdAndTypeOrderByCreatedAtDesc(currentUser.getId(), CoinTransactionType.PURCHASE)
+                .stream()
+                .map(this::toTransactionResponse)
                 .toList();
     }
 
@@ -345,6 +348,19 @@ public class StreetCoinPurchaseService {
                 stripePublishableKey);
     }
 
+    private StreetCoinTransactionResponse toTransactionResponse(CoinTransaction tx) {
+        return new StreetCoinTransactionResponse(
+                tx.getId(),
+                tx.getAmount(),
+                resolveCurrency(tx),
+                resolveStatus(tx),
+                resolveType(tx),
+                resolveDescription(tx),
+                tx.getExternalPaymentId(),
+                tx.getIdempotencyKey(),
+                tx.getCreatedAt());
+    }
+
     private String resolveStatus(CoinTransaction tx) {
         CoinTransactionStatus status = tx.getStatus();
         if (status == null) {
@@ -355,6 +371,14 @@ public class StreetCoinPurchaseService {
 
     private String resolveCurrency(CoinTransaction tx) {
         return StringUtils.hasText(tx.getCurrency()) ? tx.getCurrency() : STREET_COINS_CURRENCY;
+    }
+
+    private String resolveType(CoinTransaction tx) {
+        CoinTransactionType type = tx.getType();
+        if (type == null) {
+            return "unknown";
+        }
+        return type.name().toLowerCase(Locale.ROOT);
     }
 
     private String resolveDescription(CoinTransaction tx) {
