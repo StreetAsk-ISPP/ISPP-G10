@@ -8,26 +8,40 @@ import {
     TouchableOpacity,
     useWindowDimensions,
     ActivityIndicator,
+    Platform,
+    Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import apiClient from '../../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
 
 export default function SubscriptionPlansScreen({ navigation }) {
     const { user } = useAuth();
+    const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const { width, height } = useWindowDimensions();
     const compact = width < 560;
     const shortScreen = height < 780;
     const veryShortScreen = height < 700;
     const [currentPlan, setCurrentPlan] = useState('FREE');
     const [loadingPlan, setLoadingPlan] = useState(true);
-    const [showComingSoonModal, setShowComingSoonModal] = useState(false);
-    const [comingSoonMessage, setComingSoonMessage] = useState('Premium upgrade is coming soon.');
+    const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [statusModalTitle, setStatusModalTitle] = useState('Plan update');
+    const [statusModalMessage, setStatusModalMessage] = useState('');
 
     useEffect(() => {
         let isMounted = true;
 
         const loadPlan = async () => {
+            if (isBusinessUser) {
+                if (isMounted) {
+                    setCurrentPlan('BUSINESS');
+                    setLoadingPlan(false);
+                }
+                return;
+            }
+
             if (!user?.id) {
                 if (isMounted) {
                     setCurrentPlan('FREE');
@@ -59,16 +73,61 @@ export default function SubscriptionPlansScreen({ navigation }) {
         return () => {
             isMounted = false;
         };
-    }, [user?.id]);
+    }, [isBusinessUser, user?.id]);
 
-    const onChangePlan = (targetPlan) => {
-        if (targetPlan === 'FREE') {
-            setComingSoonMessage('Switching back to the Free plan is coming soon.');
-        } else {
-            setComingSoonMessage('Premium upgrade is coming soon.');
+    const onChangePlan = async (targetPlan) => {
+        if (isBusinessUser) {
+            setStatusModalTitle('Business account');
+            setStatusModalMessage('Business accounts do not use regular Free/Premium plans.');
+            setShowStatusModal(true);
+            return;
         }
 
-        setShowComingSoonModal(true);
+        if (!user?.id || targetPlan === currentPlan) {
+            return;
+        }
+
+        let redirectedToStripeWeb = false;
+        setIsUpdatingPlan(true);
+        try {
+            if (targetPlan === 'PREMIUM') {
+                const response = await apiClient.post('/api/v1/users/me/premium/stripe/checkout-session', {});
+                const checkoutUrl = response?.data?.checkoutUrl;
+
+                if (!checkoutUrl) {
+                    throw new Error('Stripe checkout session could not be initialized.');
+                }
+
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    window.localStorage.setItem(STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT, '1');
+                    redirectedToStripeWeb = true;
+                    window.location.assign(checkoutUrl);
+                    return;
+                }
+
+                await Linking.openURL(checkoutUrl);
+                setStatusModalTitle('Stripe checkout');
+                setStatusModalMessage('Complete the payment in Stripe and return to the app.');
+            } else {
+                await apiClient.post('/api/v1/users/me/premium/deactivate');
+                setCurrentPlan('FREE');
+                setStatusModalTitle('Plan updated');
+                setStatusModalMessage('You are now on the Free regular plan.');
+            }
+        } catch (error) {
+            const rawMessage = error?.response?.data?.message || error?.message;
+            setStatusModalTitle('Plan update failed');
+            setStatusModalMessage(
+                typeof rawMessage === 'string' && rawMessage.trim()
+                    ? rawMessage
+                    : 'Unable to update your plan right now.'
+            );
+        } finally {
+            setIsUpdatingPlan(false);
+            if (!redirectedToStripeWeb) {
+                setShowStatusModal(true);
+            }
+        }
     };
 
     const isFreeCurrent = currentPlan === 'FREE';
@@ -78,8 +137,12 @@ export default function SubscriptionPlansScreen({ navigation }) {
             return 'Checking your current plan...';
         }
 
+        if (isBusinessUser) {
+            return 'Business accounts manage subscriptions from the Profile screen.';
+        }
+
         return isPremiumCurrent ? 'You are currently on Premium.' : 'You are currently on Free.';
-    }, [isPremiumCurrent, loadingPlan]);
+    }, [isBusinessUser, isPremiumCurrent, loadingPlan]);
 
     const metrics = useMemo(() => ({
         heroPaddingTop: veryShortScreen ? 12 : shortScreen ? 18 : 24,
@@ -181,6 +244,49 @@ export default function SubscriptionPlansScreen({ navigation }) {
                     </View>
                 ) : null}
 
+                {isBusinessUser ? (
+                    <View
+                        style={[
+                            styles.planCard,
+                            styles.freeCard,
+                            { borderRadius: metrics.cardRadius, padding: metrics.cardPadding },
+                        ]}
+                    >
+                        <Text style={[styles.freeTitle, { fontSize: metrics.planTitleSize }]}>BUSINESS ACCOUNT</Text>
+                        <Text
+                            style={[
+                                styles.planLead,
+                                {
+                                    marginTop: metrics.leadMarginTop,
+                                    fontSize: metrics.leadSize,
+                                    lineHeight: metrics.leadLineHeight,
+                                },
+                            ]}
+                        >
+                            Regular Free/Premium plans are not available for business users.
+                        </Text>
+                        <Text style={[styles.freeFeature, { marginTop: metrics.featureMarginTop }]}>
+                            Manage your business subscription from Profile.
+                        </Text>
+                        <TouchableOpacity
+                            style={[
+                                styles.secondaryBtn,
+                                {
+                                    marginTop: metrics.buttonMarginTop,
+                                    paddingVertical: metrics.buttonPaddingVertical,
+                                    borderRadius: metrics.buttonRadius,
+                                },
+                            ]}
+                            onPress={() => navigation.navigate('Profile')}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={[styles.secondaryBtnText, { fontSize: metrics.buttonTextSize }]}>
+                                Go to Profile
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <>
                 <View
                     style={[
                         styles.planCard,
@@ -230,16 +336,16 @@ export default function SubscriptionPlansScreen({ navigation }) {
                     <TouchableOpacity
                         style={[
                             styles.secondaryBtn,
-                            isFreeCurrent && styles.disabledBtn,
+                            (isFreeCurrent || isUpdatingPlan) && styles.disabledBtn,
                             {
                                 marginTop: metrics.buttonMarginTop,
                                 paddingVertical: metrics.buttonPaddingVertical,
                                 borderRadius: metrics.buttonRadius,
                             },
                         ]}
-                        onPress={isFreeCurrent ? undefined : () => onChangePlan('FREE')}
-                        activeOpacity={isFreeCurrent ? 1 : 0.85}
-                        disabled={isFreeCurrent}
+                        onPress={isFreeCurrent || isUpdatingPlan ? undefined : () => onChangePlan('FREE')}
+                        activeOpacity={isFreeCurrent || isUpdatingPlan ? 1 : 0.85}
+                        disabled={isFreeCurrent || isUpdatingPlan}
                     >
                         <Text
                             style={[
@@ -302,16 +408,16 @@ export default function SubscriptionPlansScreen({ navigation }) {
                     <TouchableOpacity
                         style={[
                             styles.primaryBtn,
-                            isPremiumCurrent && styles.disabledPremiumBtn,
+                            (isPremiumCurrent || isUpdatingPlan) && styles.disabledPremiumBtn,
                             {
                                 marginTop: metrics.buttonMarginTop,
                                 paddingVertical: metrics.buttonPaddingVertical,
                                 borderRadius: metrics.buttonRadius,
                             },
                         ]}
-                        onPress={isPremiumCurrent ? undefined : () => onChangePlan('PREMIUM')}
-                        activeOpacity={isPremiumCurrent ? 1 : 0.85}
-                        disabled={isPremiumCurrent}
+                        onPress={isPremiumCurrent || isUpdatingPlan ? undefined : () => onChangePlan('PREMIUM')}
+                        activeOpacity={isPremiumCurrent || isUpdatingPlan ? 1 : 0.85}
+                        disabled={isPremiumCurrent || isUpdatingPlan}
                     >
                         <Text
                             style={[
@@ -324,23 +430,25 @@ export default function SubscriptionPlansScreen({ navigation }) {
                         </Text>
                     </TouchableOpacity>
                 </View>
+                    </>
+                )}
             </View>
 
             <Modal
-                visible={showComingSoonModal}
+                visible={showStatusModal}
                 transparent
                 animationType="fade"
-                onRequestClose={() => setShowComingSoonModal(false)}
+                onRequestClose={() => setShowStatusModal(false)}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Coming soon</Text>
+                        <Text style={styles.modalTitle}>{statusModalTitle}</Text>
                         <Text style={styles.modalText}>
-                            {comingSoonMessage}
+                            {statusModalMessage}
                         </Text>
                         <TouchableOpacity
                             style={styles.modalButton}
-                            onPress={() => setShowComingSoonModal(false)}
+                            onPress={() => setShowStatusModal(false)}
                             activeOpacity={0.85}
                         >
                             <Text style={styles.modalButtonText}>Close</Text>

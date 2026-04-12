@@ -29,9 +29,6 @@ public class BusinessPremiumAccessGuard {
     }
 
     public boolean hasPremiumAccess(BusinessAccount account) {
-        return Boolean.TRUE.equals(account.getVerified())
-                && Boolean.TRUE.equals(account.getSubscriptionActive())
-                && account.getSubscriptionExpiresAt() != null
-                && account.getSubscriptionExpiresAt().isAfter(LocalDateTime.now());
+        return account.hasEffectivePremiumAccess();
     }
 }
