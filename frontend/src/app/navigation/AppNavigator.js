@@ -24,7 +24,6 @@ import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
 import SettingsScreen from '../../features/profile/SettingsScreen';
-import EventListScreen from '../../features/events/EventListScreen';
 import EventDetailsScreen from '../../features/events/EventDetailsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
@@ -267,7 +266,6 @@ export default function AppNavigator() {
                             </>
                         )
                     }
-                    <Stack.Screen name="EventList" component={EventListScreen} />
                     <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
                 </>
             )}
