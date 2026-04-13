@@ -19,6 +19,7 @@ export default function BalanceScreen({ navigation, route }) {
     const [buyModalVisible, setBuyModalVisible] = useState(false);
     const [isStartingCheckoutForPack, setIsStartingCheckoutForPack] = useState('');
     const [purchaseError, setPurchaseError] = useState('');
+    const [showCoinInfo, setShowCoinInfo] = useState(false);
 
     const loadWalletData = useCallback(async () => {
         if (!user?.id) {
@@ -150,7 +151,17 @@ export default function BalanceScreen({ navigation, route }) {
                 <View style={styles.balanceCard}>
                     <Ionicons name="wallet" size={40} color="#FFD700" />
                     <Text style={styles.balanceLabel}>StreetCoins</Text>
-                    <Text style={styles.balanceAmount}>{balance ?? 0}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={styles.balanceAmount}>{balance ?? 20}</Text>
+                        <TouchableOpacity
+                            onPress={() => setShowCoinInfo(true)}
+                            style={styles.infoButton}
+                            accessibilityRole="button"
+                            accessibilityLabel="How StreetCoins work"
+                        >
+                            <Text style={styles.infoButtonText}>?</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     <TouchableOpacity
                         style={styles.buyButton}
@@ -250,6 +261,31 @@ export default function BalanceScreen({ navigation, route }) {
                     </Pressable>
                 </Pressable>
             </Modal>
+
+            <Modal
+                visible={showCoinInfo}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowCoinInfo(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>How StreetCoins work</Text>
+
+                        <Text style={styles.modalLine}>+1 coin for each answer you post (minimum 10 characters).</Text>
+                        <Text style={styles.modalLine}>+1 extra if likes are greater than dislikes.</Text>
+                        <Text style={styles.modalLine}>-1 if dislikes are greater than likes.</Text>
+
+                        <Text style={styles.modalNote}>
+                            Coins update automatically when votes change.
+                        </Text>
+
+                        <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowCoinInfo(false)}>
+                            <Text style={styles.modalCloseText}>Got it</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -286,7 +322,17 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     balanceLabel: { color: '#9ca3af', fontSize: 14, marginTop: 10 },
-    balanceAmount: { color: '#FFD700', fontSize: 48, fontWeight: 'bold', marginTop: 4 },
+    balanceAmount: { color: '#FFD700', fontSize: 48, fontWeight: 'bold', marginTop: 4, marginLeft: 28 },
+    infoButton: {
+        marginLeft: 8,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#856404',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    infoButtonText: { color: '#fff', fontSize: 12, fontWeight: '900' },
     buyButton: {
         marginTop: 16,
         flexDirection: 'row',
@@ -350,6 +396,15 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     modalTitle: { fontSize: 16, fontWeight: '800', color: '#1f2937' },
+    modalLine: { fontSize: 14, color: '#343a40', marginBottom: 8, lineHeight: 20 },
+    modalNote: { fontSize: 12, color: '#6c757d', marginTop: 6, marginBottom: 16 },
+    modalCloseButton: {
+        backgroundColor: '#d90429',
+        borderRadius: 12,
+        paddingVertical: 10,
+        alignItems: 'center',
+    },
+    modalCloseText: { color: '#fff', fontSize: 14, fontWeight: '800' },
     modalEmptyState: {
         flexDirection: 'row',
         alignItems: 'center',
