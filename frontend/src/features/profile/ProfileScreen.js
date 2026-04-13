@@ -7,8 +7,6 @@ import {
     TouchableOpacity,
     ScrollView,
     Image,
-    Linking,
-    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,75 +25,14 @@ export default function ProfileScreen({ navigation }) {
         profilePictureUrl: null,
     });
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [businessSubscription, setBusinessSubscription] = useState(null);
     const [regularPremiumActive, setRegularPremiumActive] = useState(false);
-    const [isStartingCheckout, setIsStartingCheckout] = useState(false);
-    const [subscriptionActionError, setSubscriptionActionError] = useState('');
 
     const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const isRegularUser = Array.isArray(user?.roles) && user.roles.includes('USER');
 
-    const subscriptionExpiresAt = businessSubscription?.subscriptionExpiresAt
-        ? new Date(businessSubscription.subscriptionExpiresAt)
-        : null;
-    const subscriptionNotExpired =
-        subscriptionExpiresAt && !Number.isNaN(subscriptionExpiresAt.getTime())
-            ? subscriptionExpiresAt.getTime() > Date.now()
-            : false;
-    const hasPremiumAccess = Boolean(businessSubscription?.premiumEligible);
-    const isVerifiedBusiness = Boolean(businessSubscription?.verified);
-    const canActivateOrRenew = isVerifiedBusiness && !hasPremiumAccess;
-
-    const activationButtonLabel =
-        businessSubscription?.subscriptionActive && !subscriptionNotExpired
-            ? 'Renew with Stripe payment'
-            : 'Activate with Stripe payment';
-
-    const formatDateTime = (value) => {
-        if (!value) {
-            return 'N/A';
-        }
-
-        const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) {
-            return 'N/A';
-        }
-
-        return parsed.toLocaleString();
-    };
-
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
         await logout();
-    };
-
-    const startBusinessStripeCheckout = async () => {
-        setSubscriptionActionError('');
-        setIsStartingCheckout(true);
-
-        try {
-            const response = await apiClient.post('/api/v1/business-subscriptions/me/stripe/checkout-session', {});
-            const checkoutUrl = response?.data?.checkoutUrl;
-
-            if (!checkoutUrl) {
-                setSubscriptionActionError('Stripe checkout session could not be initialized.');
-                return;
-            }
-
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.location.assign(checkoutUrl);
-                return;
-            }
-
-            await Linking.openURL(checkoutUrl);
-            setSubscriptionActionError('Complete the payment in Stripe and return to the app.');
-        } catch (error) {
-            const rawMessage = error?.response?.data?.message || error?.response?.data || error?.message;
-            const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
-            setSubscriptionActionError(message || 'Unable to start Stripe checkout.');
-        } finally {
-            setIsStartingCheckout(false);
-        }
     };
 
     const loadProfileData = useCallback(() => {
@@ -119,19 +56,6 @@ export default function ProfileScreen({ navigation }) {
             .catch((err) => {
                 console.error('Error al refrescar el perfil:', err);
             });
-
-        if (isBusinessUser) {
-            apiClient
-                .get('/api/v1/business-subscriptions/me')
-                .then((res) => {
-                    setBusinessSubscription(res?.data || null);
-                })
-                .catch(() => {
-                    setBusinessSubscription(null);
-                });
-        } else {
-            setBusinessSubscription(null);
-        }
 
         if (isRegularUser && !isBusinessUser) {
             apiClient
@@ -230,51 +154,6 @@ export default function ProfileScreen({ navigation }) {
                                 {regularPremiumActive ? 'Manage plan' : 'Upgrade with Stripe'}
                             </Text>
                         </TouchableOpacity>
-                    </View>
-                ) : null}
-
-                {isBusinessUser && businessSubscription ? (
-                    <View style={styles.subscriptionCard}>
-                        <Text style={styles.subscriptionTitle}>Business Subscription</Text>
-                        <Text style={styles.subscriptionItem}>
-                            Verified: {businessSubscription.verified ? 'Yes' : 'No'}
-                        </Text>
-                        <Text style={styles.subscriptionItem}>
-                            Active: {businessSubscription.subscriptionActive ? 'Yes' : 'No'}
-                        </Text>
-                        <Text style={styles.subscriptionItem}>
-                            Premium access: {businessSubscription.premiumEligible ? 'Enabled' : 'Disabled'}
-                        </Text>
-                        <Text style={styles.subscriptionItem}>
-                            Expires at: {formatDateTime(businessSubscription.subscriptionExpiresAt)}
-                        </Text>
-
-                        {!isVerifiedBusiness ? (
-                            <Text style={styles.subscriptionHint}>Your business is pending admin verification.</Text>
-                        ) : null}
-
-                        {hasPremiumAccess ? (
-                            <Text style={styles.subscriptionHintSuccess}>
-                                Your premium access is active. No additional payment is required right now.
-                            </Text>
-                        ) : null}
-
-                        {canActivateOrRenew ? (
-                            <TouchableOpacity
-                                style={[styles.subscriptionActionBtn, isStartingCheckout && styles.disabledButton]}
-                                onPress={startBusinessStripeCheckout}
-                                disabled={isStartingCheckout}
-                                activeOpacity={0.8}
-                            >
-                                <Text style={styles.subscriptionActionBtnText}>
-                                    {isStartingCheckout ? 'Redirecting to Stripe...' : activationButtonLabel}
-                                </Text>
-                            </TouchableOpacity>
-                        ) : null}
-
-                        {subscriptionActionError ? (
-                            <Text style={styles.subscriptionHint}>{subscriptionActionError}</Text>
-                        ) : null}
                     </View>
                 ) : null}
 
@@ -393,21 +272,6 @@ const styles = StyleSheet.create({
         color: '#7c2d12',
         fontSize: 13,
         marginBottom: 4,
-    },
-    subscriptionActionBtn: {
-        marginTop: 10,
-        backgroundColor: '#c2410c',
-        borderRadius: 8,
-        paddingVertical: 10,
-        alignItems: 'center',
-    },
-    subscriptionActionBtnText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 13,
-    },
-    disabledButton: {
-        opacity: 0.7,
     },
     subscriptionHint: {
         marginTop: 10,
