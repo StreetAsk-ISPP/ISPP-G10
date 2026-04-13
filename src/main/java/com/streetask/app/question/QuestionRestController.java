@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.streetask.app.auth.payload.response.MessageResponse;
+import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
 import com.streetask.app.util.RestPreconditions;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -75,11 +76,23 @@ public class QuestionRestController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public ResponseEntity<Question> create(@RequestBody @Valid Question question) {
+	public ResponseEntity<Question> create(@RequestBody @Valid CreateQuestionRequest request) {
+		Question question = new Question();
+		question.setTitle(request.getTitle());
+		question.setContent(request.getContent());
+		question.setLocation(request.getLocation());
+		question.setRadiusKm(request.getRadiusKm());
+		question.setExpiresAt(request.getExpiresAt());
+		if (request.getEvent() != null && request.getEvent().getId() != null) {
+			Event eventRef = new Event();
+			eventRef.setId(request.getEvent().getId());
+			question.setEvent(eventRef);
+		}
+
 		logger.info("[QuestionRestController] Creating question: title='{}', eventId='{}'",
 				question.getTitle(),
 				question.getEvent() != null ? question.getEvent().getId() : "null");
-		Question savedQuestion = questionService.saveQuestion(question);
+		Question savedQuestion = questionService.saveQuestion(question, request.getConfirmStreetCoinSpend());
 		logger.info("[QuestionRestController] Question saved with id={}, eventId={}",
 				savedQuestion.getId(),
 				savedQuestion.getEvent() != null ? savedQuestion.getEvent().getId() : "null");

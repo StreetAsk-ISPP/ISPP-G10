@@ -2,6 +2,7 @@ package com.streetask.app.question;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -23,8 +24,12 @@ import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.UpperPlanFeatureException;
 import com.streetask.app.functionalities.notifications.events.QuestionCreatedEvent;
+import com.streetask.app.model.CoinTransaction;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
+import com.streetask.app.model.enums.CoinTransactionStatus;
+import com.streetask.app.model.enums.CoinTransactionType;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
 import com.streetask.app.user.User;
@@ -47,11 +52,13 @@ public class QuestionService {
 	private static final long PREMIUM_DURATION_CLOCK_DRIFT_SECONDS = 59L;
 	private static final int FREE_DAILY_LIMIT = 3;
 	private static final int FREE_LIMIT_ROLLING_WINDOW_HOURS = 24;
+	private static final int STREETCOIN_COST_PER_EXTRA_QUESTION = 1;
 
 	private final QuestionRepository questionRepository;
 	private final RegularUserRepository regularUserRepository;
 	private final UserRepository userRepository;
 	private final EventRepository eventRepository;
+	private final CoinTransactionRepository coinTransactionRepository;
 	private final ApplicationEventPublisher eventPublisher;
 
 	@Autowired
@@ -60,11 +67,13 @@ public class QuestionService {
 			RegularUserRepository regularUserRepository,
 			UserRepository userRepository,
 			EventRepository eventRepository,
+			CoinTransactionRepository coinTransactionRepository,
 			ApplicationEventPublisher eventPublisher) {
 		this.questionRepository = questionRepository;
 		this.regularUserRepository = regularUserRepository;
 		this.userRepository = userRepository;
 		this.eventRepository = eventRepository;
+		this.coinTransactionRepository = coinTransactionRepository;
 		this.eventPublisher = eventPublisher;
 	}
 
@@ -96,7 +105,13 @@ public class QuestionService {
 
 	@Transactional
 	public Question saveQuestion(@Valid Question question) throws DataAccessException {
+		return saveQuestion(question, false);
+	}
+
+	@Transactional
+	public Question saveQuestion(@Valid Question question, Boolean confirmStreetCoinSpend) throws DataAccessException {
 		User authenticatedUser = getAuthenticatedUser();
+		boolean isPremium = hasPremiumAccess(authenticatedUser);
 
 		UUID eventId = question.getEvent() != null ? question.getEvent().getId() : null;
 		logger.info("[QuestionService] saveQuestion - title='{}', eventId='{}'", question.getTitle(), eventId);
@@ -113,20 +128,26 @@ public class QuestionService {
 
 			long todayCountForEvent = questionsTodayCountByEvent(authenticatedUser.getId(), eventId);
 			if (todayCountForEvent >= 3) {
-				throw new UpperPlanFeatureException(
-						"A user can create a maximum of 3 questions per day in the same event.");
+				if (authenticatedUser instanceof RegularUser regularUser && !isPremium) {
+					requireConsentToSpendStreetCoin(confirmStreetCoinSpend);
+					spendStreetCoinForExtraQuestion(regularUser, question, "Extra event question");
+				} else {
+					throw new UpperPlanFeatureException(
+							"A user can create a maximum of 3 questions per day in the same event.");
+				}
 			}
 		} else if (!(authenticatedUser instanceof RegularUser)) {
 			throw new AccessDeniedException("Only regular users can create questions outside events");
 		}
 
-		boolean isPremium = hasPremiumAccess(authenticatedUser);
 		if (!isPremium && eventId == null) {
 			long todayQuestionCount = questionsTodayCount(authenticatedUser.getId());
 			long rollingWindowQuestionCount = questionsCountInRollingHours(authenticatedUser.getId(),
 					FREE_LIMIT_ROLLING_WINDOW_HOURS);
 			if (todayQuestionCount >= FREE_DAILY_LIMIT || rollingWindowQuestionCount >= FREE_DAILY_LIMIT) {
-				throw new UpperPlanFeatureException("Free plan users can only create up to 3 questions.");
+				requireConsentToSpendStreetCoin(confirmStreetCoinSpend);
+				spendStreetCoinForExtraQuestion((RegularUser) authenticatedUser, question,
+						"Extra question over free daily limit");
 			}
 		}
 		question.setCreator(authenticatedUser);
@@ -305,5 +326,39 @@ public class QuestionService {
 		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
 				.filter(q -> q.getCreatedAt() != null && !q.getCreatedAt().isBefore(windowStart))
 				.count();
+	}
+
+	private void requireConsentToSpendStreetCoin(Boolean confirmStreetCoinSpend) {
+		if (!Boolean.TRUE.equals(confirmStreetCoinSpend)) {
+			throw new UpperPlanFeatureException(
+					"You must confirm spending 1 StreetCoin before creating an extra question.");
+		}
+	}
+
+	private void spendStreetCoinForExtraQuestion(RegularUser user, Question question, String description) {
+		RegularUser lockedUser = regularUserRepository.findByIdForUpdate(user.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("RegularUser", "id", user.getId()));
+
+		int balanceBefore = lockedUser.getCoinBalance() == null ? 0 : lockedUser.getCoinBalance();
+		if (balanceBefore < STREETCOIN_COST_PER_EXTRA_QUESTION) {
+			throw new UpperPlanFeatureException("You need at least 1 StreetCoin to create an extra question.");
+		}
+
+		int balanceAfter = balanceBefore - STREETCOIN_COST_PER_EXTRA_QUESTION;
+		lockedUser.setCoinBalance(balanceAfter);
+		regularUserRepository.save(lockedUser);
+
+		CoinTransaction coinTransaction = new CoinTransaction();
+		coinTransaction.setUser(lockedUser);
+		coinTransaction.setType(CoinTransactionType.SPEND);
+		coinTransaction.setAmount(-STREETCOIN_COST_PER_EXTRA_QUESTION);
+		coinTransaction.setCurrency("StreetCoins");
+		coinTransaction.setStatus(CoinTransactionStatus.SUCCESS);
+		coinTransaction.setBalanceBefore(balanceBefore);
+		coinTransaction.setBalanceAfter(balanceAfter);
+		coinTransaction.setReferenceId(question.getId());
+		coinTransaction.setDescription(description);
+		coinTransaction.setCreatedAt(LocalDateTime.now());
+		coinTransactionRepository.save(coinTransaction);
 	}
 }
