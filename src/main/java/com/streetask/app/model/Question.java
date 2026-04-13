@@ -6,7 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.streetask.app.functionalities.shared.json.FlexibleInstantDeserializer;
-import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -28,7 +28,7 @@ public class Question extends BaseEntity {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "creator_id")
-    private RegularUser creator;
+    private User creator;
 
     @ManyToOne
     @JoinColumn(name = "event_id")

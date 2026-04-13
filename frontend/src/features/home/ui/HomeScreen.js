@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapComponent from './components/MapComponent';
-import QuestionsSidebar from './components/QuestionsSidebar';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import { useNotifications } from '../../../app/providers/NotificationProvider';
 import ConfirmationModal from '../../../shared/components/ConfirmationModal';
@@ -70,7 +69,6 @@ export default function HomeScreen({ navigation }) {
     const [showQuestions, setShowQuestions] = useState(true);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
-    const [sidebarTab, setSidebarTab] = useState('QUESTIONS');
 
     // null = revisando, true = concedido, false = denegado
     const [hasLocationPermission, setHasLocationPermission] = useState(null);
@@ -84,12 +82,6 @@ export default function HomeScreen({ navigation }) {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [streetCoinsNotice, setStreetCoinsNotice] = useState('');
-
-    // Estados para el sidebar de preguntas
-    const [sidebarVisible, setSidebarVisible] = useState(false);
-    const [mapCenter, setMapCenter] = useState(null);
-    const [visibleQuestionsIds, setVisibleQuestionsIds] = useState([]);
-    const [selectedEventTarget, setSelectedEventTarget] = useState(null);
 
     const handleLogoutConfirm = async () => {
         setShowLogoutModal(false);
@@ -120,21 +112,6 @@ export default function HomeScreen({ navigation }) {
             return nextEvents;
         });
     }, []);
-
-    const handleSidebarNavigateToEvent = useCallback((eventItem, coords) => {
-        if (!coords) {
-            return;
-        }
-
-        setSelectedEventTarget({
-            id: eventItem?.id,
-            lat: coords.lat,
-            lng: coords.lng,
-            title: eventItem?.title || 'Event',
-        });
-        setSidebarVisible(false);
-    }, []);
-
 
     const loadQuestions = useCallback(async () => {
         const requestId = ++latestRequestRef.current;
@@ -668,51 +645,18 @@ export default function HomeScreen({ navigation }) {
                         <MapComponent
                             questions={showQuestions ? questions : []}
                             events={events}
-                            eventNavigationTarget={selectedEventTarget}
                             canAttendEvents={Boolean(user) && !isBusiness}
                             onEventAttendanceUpdate={handleEventAttendanceUpdate}
+                            onOpenEventDetails={(eventItem) =>
+                                navigation.navigate('EventDetails', { eventId: eventItem?.id })
+                            }
                             onQuestionPress={(qId) =>
                                 navigation.navigate('QuestionThread', { questionId: qId })
                             }
                             onLocationChange={setCurrentLocation}
                             onPermissionChange={setHasLocationPermission}
-                            onMapBoundsChange={setMapCenter}
-                            onVisibleQuestionsChange={setVisibleQuestionsIds}
                         />
                     </View>
-
-                    {/* Botón para mostrar/ocultar sidebar - Posicionado absolutamente */}
-                    {!sidebarVisible && (
-                        <TouchableOpacity
-                            style={styles.sidebarToggleBtn}
-                            onPress={() => setSidebarVisible(!sidebarVisible)}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons
-                                name="list-outline"
-                                size={24}
-                                color="#fff"
-                            />
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Sidebar de preguntas */}
-                    <QuestionsSidebar
-                        visible={sidebarVisible}
-                        questions={showQuestions ? questions : []}
-                        events={events}
-                        visibleQuestionsIds={visibleQuestionsIds}
-                        mapCenter={mapCenter}
-                        userLocation={currentLocation}
-                        onToggle={() => setSidebarVisible(!sidebarVisible)}
-                        activeTab={sidebarTab}
-                        onTabChange={setSidebarTab}
-                        onQuestionPress={(qId) => {
-                            setSidebarVisible(false);
-                            navigation.navigate('QuestionThread', { questionId: qId });
-                        }}
-                        onEventNavigate={handleSidebarNavigateToEvent}
-                    />
 
                     <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
                         <Text style={styles.toggleLabel}>Show Questions</Text>

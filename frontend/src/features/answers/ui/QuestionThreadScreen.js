@@ -589,6 +589,12 @@ export default function QuestionThreadScreen({ route, navigation }) {
                 <View style={styles.threadContent}>
                     <View style={styles.threadHeader}>
                         <Text style={styles.threadAuthor}>@{item.author}</Text>
+                        {item.isVerified ? (
+                            <View style={styles.threadVerifiedBadge}>
+                                <Ionicons name="checkmark-circle" size={12} color="#047857" />
+                                <Text style={styles.threadVerifiedText}>Verified</Text>
+                            </View>
+                        ) : null}
                         <Text style={styles.threadTime}>{item.minutesAgo < 60 ? `${item.minutesAgo}m ago` : `${Math.floor(item.minutesAgo / 60)}h ago`}</Text>
                         <Text style={styles.threadIndex}>#{index + 1}</Text>
                     </View>
@@ -1183,6 +1189,22 @@ const styles = StyleSheet.create({
     threadTime: {
         fontSize: 11,
         color: '#9ca3af',
+    },
+    threadVerifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 999,
+        backgroundColor: '#ecfdf5',
+        borderWidth: 1,
+        borderColor: '#a7f3d0',
+    },
+    threadVerifiedText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#047857',
     },
     threadIndex: {
         fontSize: 11,

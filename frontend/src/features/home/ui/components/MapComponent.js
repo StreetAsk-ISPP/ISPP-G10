@@ -235,6 +235,7 @@ export default function MapComponent({
     onMapBoundsChange,
     onVisibleQuestionsChange,
     showQuestions = true,
+    onOpenEventDetails,
 }) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
@@ -544,199 +545,224 @@ export default function MapComponent({
                         ref={mapRef}
                         style={webStyles.map}
                     >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
 
-                    {/* Rastreador de bounds del mapa */}
-                    <MapBoundsTrackerComponent
-                        questions={visibleQuestions}
-                        onBoundsChange={onMapBoundsChange}
-                        onVisibleQuestionsChange={onVisibleQuestionsChange}
-                        mapRef={mapRef}
-                    />
+                        {/* Rastreador de bounds del mapa */}
+                        <MapBoundsTrackerComponent
+                            questions={visibleQuestions}
+                            onBoundsChange={onMapBoundsChange}
+                            onVisibleQuestionsChange={onVisibleQuestionsChange}
+                            mapRef={mapRef}
+                        />
 
-                    {/* Marcador de tu ubicación */}
-                    <Marker position={[location.latitude, location.longitude]} icon={userLocationIcon}>
-                        <Popup>
-                            <div style={{ fontSize: '12px' }}>
-                                <strong>Your location</strong>
-                                <br />
-                                {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                                <br />
-                                Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
-                            </div>
-                        </Popup>
-                    </Marker>
+                        {/* Marcador de tu ubicación */}
+                        <Marker position={[location.latitude, location.longitude]} icon={userLocationIcon}>
+                            <Popup>
+                                <div style={{ fontSize: '12px' }}>
+                                    <strong>Your location</strong>
+                                    <br />
+                                    {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                    <br />
+                                    Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
+                                </div>
+                            </Popup>
+                        </Marker>
 
-                    {/* Question Markers */}
-                    {(Array.isArray(visibleQuestions) ? visibleQuestions : []).map((q) => {
-                        const coords = getQuestionCoords(q);
-                        if (!coords) return null;
-                        const radiusKm = toNum(q?.radiusKm);
-                        const { lat, lng } = coords;
-                        const distanceKm = calculateDistanceInKm(
-                            { latitude: location.latitude, longitude: location.longitude },
-                            { latitude: lat, longitude: lng }
-                        );
-                        const canAnswer = !Number.isFinite(radiusKm) || radiusKm <= 0 || distanceKm <= radiusKm;
-                        const questionColor = canAnswer ? '#f59e0b' : '#9ca3af';
+                        {/* Question Markers */}
+                        {(Array.isArray(visibleQuestions) ? visibleQuestions.filter(q => !q.event) : []).map((q) => {
+                            const coords = getQuestionCoords(q);
+                            if (!coords) return null;
+                            const radiusKm = toNum(q?.radiusKm);
+                            const { lat, lng } = coords;
+                            const distanceKm = calculateDistanceInKm(
+                                { latitude: location.latitude, longitude: location.longitude },
+                                { latitude: lat, longitude: lng }
+                            );
+                            const canAnswer = !Number.isFinite(radiusKm) || radiusKm <= 0 || distanceKm <= radiusKm;
+                            const questionColor = canAnswer ? '#f59e0b' : '#9ca3af';
 
-                        return (
-                            <Marker
-                                key={q.id}
-                                position={[lat, lng]}
-                                icon={q.featured ? createFeaturedIcon() : createCustomIcon(questionColor)}
-                                eventHandlers={{
-                                    click: () => onQuestionPress?.(q.id),
-                                }}
-                            >
-                                <Popup>
-                                    <div style={{ fontSize: '12px' }}>
-                                        <strong>{q.featured ? '⭐ ' : ''}{q.title || 'Question'}</strong>
-                                        <br />
-                                        <div style={{ marginBottom: '8px' }}>
-                                            <CountdownText
-                                                expiresAt={q.expiresAt}
-                                                onExpire={() => handleQuestionExpire(q.id)}
-                                            />
+                            return (
+                                <Marker
+                                    key={q.id}
+                                    position={[lat, lng]}
+                                    icon={q.featured ? createFeaturedIcon() : createCustomIcon(questionColor)}
+                                    eventHandlers={{
+                                        click: () => onQuestionPress?.(q.id),
+                                    }}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>{q.featured ? '⭐ ' : ''}{q.title || 'Question'}</strong>
+                                            <br />
+                                            <div style={{ marginBottom: '8px' }}>
+                                                <CountdownText
+                                                    expiresAt={q.expiresAt}
+                                                    onExpire={() => handleQuestionExpire(q.id)}
+                                                />
+                                            </div>
+                                            <span style={{ color: canAnswer ? '#ea580c' : '#6b7280', fontWeight: 700 }}>
+                                                {canAnswer ? 'You can answer' : 'Out of your range'}
+                                            </span>
+                                            <br />
+                                            {Number.isFinite(radiusKm) && radiusKm > 0 && (
+                                                <>
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        Answer radius: {radiusKm.toFixed(2)} km
+                                                    </span>
+                                                    <br />
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        Your distance: {distanceKm.toFixed(2)} km
+                                                    </span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            <span style={{ opacity: 0.8 }}>
+                                                {lat.toFixed(5)}, {lng.toFixed(5)}
+                                            </span>
+                                            <br />
+                                            <span style={{ color: '#007AFF', fontWeight: 600 }}>Click to open</span>
                                         </div>
-                                        <span style={{ color: canAnswer ? '#ea580c' : '#6b7280', fontWeight: 700 }}>
-                                            {canAnswer ? 'You can answer' : 'Out of your range'}
-                                        </span>
-                                        <br />
-                                        {Number.isFinite(radiusKm) && radiusKm > 0 && (
-                                            <>
-                                                <span style={{ opacity: 0.85 }}>
-                                                    Answer radius: {radiusKm.toFixed(2)} km
-                                                </span>
-                                                <br />
-                                                <span style={{ opacity: 0.85 }}>
-                                                    Your distance: {distanceKm.toFixed(2)} km
-                                                </span>
-                                                <br />
-                                            </>
-                                        )}
-                                        <span style={{ opacity: 0.8 }}>
-                                            {lat.toFixed(5)}, {lng.toFixed(5)}
-                                        </span>
-                                        <br />
-                                        <span style={{ color: '#007AFF', fontWeight: 600 }}>Click to open</span>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
 
-                    {/* Event markers */}
-                    {visibleEvents.map((event) => {
-                        const coords = getEventCoords(event);
-                        if (!coords) return null;
+                        {/* Event markers */}
+                        {visibleEvents.map((event) => {
+                            const coords = getEventCoords(event);
+                            if (!coords) return null;
 
-                        const startsAt = formatDateTime(event.startsAt);
-                        const endsAt = formatDateTime(event.endsAt);
-                        const attendeeCount = Number.isFinite(Number(event?.attendeeCount))
-                            ? Number(event.attendeeCount)
-                            : 0;
-                        const isAttending = event?.myAttendance === true;
-                        const isToggling = togglingEventId === event.id;
+                            const startsAt = formatDateTime(event.startsAt);
+                            const endsAt = formatDateTime(event.endsAt);
+                            const attendeeCount = Number.isFinite(Number(event?.attendeeCount))
+                                ? Number(event.attendeeCount)
+                                : 0;
+                            const isAttending = event?.myAttendance === true;
+                            const isToggling = togglingEventId === event.id;
 
-                        return (
-                            <Marker
-                                key={event.id}
-                                position={[coords.lat, coords.lng]}
-                                icon={createEventIcon()}
-                            >
-                                <Popup>
-                                    <div style={{ fontSize: '12px' }}>
-                                        <strong>Event: {event.title || 'Untitled event'}</strong>
-                                        <br />
-                                        {event.category && (
-                                            <>
-                                                <span style={{ color: '#0f766e', fontWeight: 700 }}>
-                                                    {event.category}
-                                                </span>
-                                                <br />
-                                            </>
-                                        )}
-                                        {startsAt && (
-                                            <>
-                                                <span>Starts: {startsAt}</span>
-                                                <br />
-                                            </>
-                                        )}
-                                        {endsAt && (
-                                            <>
-                                                <span>Ends: {endsAt}</span>
-                                                <br />
-                                            </>
-                                        )}
-                                        {event.address && (
-                                            <>
-                                                <span>{event.address}</span>
-                                                <br />
-                                            </>
-                                        )}
-                                        <span style={{ fontWeight: 700, color: '#111827' }}>
-                                            Attendees: {attendeeCount}
-                                        </span>
-                                        <br />
-                                        {canAttendEvents && (
-                                            <>
-                                                <span style={{ opacity: 0.85 }}>
-                                                    {isAttending ? 'You are going' : 'Not attending yet'}
-                                                </span>
-                                                <br />
+                            return (
+                                <Marker
+                                    key={event.id}
+                                    position={[coords.lat, coords.lng]}
+                                    icon={createEventIcon()}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>Event: {event.title || 'Untitled event'}</strong>
+                                            <br />
+                                            {event.category && (
+                                                <>
+                                                    <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                                                        {event.category}
+                                                    </span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {startsAt && (
+                                                <>
+                                                    <span>Starts: {startsAt}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {endsAt && (
+                                                <>
+                                                    <span>Ends: {endsAt}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {event.address && (
+                                                <>
+                                                    <span>{event.address}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            <span style={{ fontWeight: 700, color: '#111827' }}>
+                                                Attendees: {attendeeCount}
+                                            </span>
+                                            <br />
+                                            {canAttendEvents && (
+                                                <>
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        {isAttending ? 'You are going' : 'Not attending yet'}
+                                                    </span>
+                                                    <br />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleAttendance(event)}
+                                                        disabled={isToggling}
+                                                        style={{
+                                                            marginTop: '8px',
+                                                            width: '100%',
+                                                            border: 'none',
+                                                            borderRadius: '10px',
+                                                            padding: '10px 12px',
+                                                            backgroundColor: isAttending ? '#b91c1c' : '#0f766e',
+                                                            color: '#ffffff',
+                                                            fontWeight: 700,
+                                                            cursor: isToggling ? 'wait' : 'pointer',
+                                                            opacity: isToggling ? 0.75 : 1,
+                                                        }}
+                                                    >
+                                                        {isToggling ? 'Updating...' : (isAttending ? 'Leave event' : 'Join event')}
+                                                    </button>
+                                                </>
+                                            )}
                                             <button
                                                 type="button"
-                                                onClick={() => handleToggleAttendance(event)}
-                                                disabled={isToggling}
+                                                onClick={() => onOpenEventDetails?.(event)}
                                                 style={{
                                                     marginTop: '8px',
                                                     width: '100%',
-                                                    border: 'none',
-                                                    borderRadius: '10px',
-                                                    padding: '10px 12px',
-                                                    backgroundColor: isAttending ? '#b91c1c' : '#0f766e',
-                                                    color: '#ffffff',
-                                                    fontWeight: 700,
-                                                    cursor: isToggling ? 'wait' : 'pointer',
-                                                    opacity: isToggling ? 0.75 : 1,
+                                                    border: '1px solid rgba(29, 78, 216, 0.18)',
+                                                    borderRadius: '999px',
+                                                    padding: '6px 10px',
+                                                    backgroundColor: 'rgba(29, 78, 216, 0.06)',
+                                                    color: '#1d4ed8',
+                                                    fontWeight: 600,
+                                                    fontSize: '12px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    lineHeight: 1,
+                                                    opacity: 0.95,
                                                 }}
                                             >
-                                                {isToggling ? 'Updating...' : (isAttending ? 'Leave event' : 'Join event')}
+                                                <span aria-hidden="true" style={{ fontSize: '13px', lineHeight: 1 }}>👁</span>
+                                                <span>View event info</span>
                                             </button>
-                                            </>
-                                        )}
-                                        <span style={{ opacity: 0.8 }}>
-                                            {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                                        </span>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
+                                            <span style={{ opacity: 0.8 }}>
+                                                {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                                            </span>
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
 
-                    {/* Marcadores de ubicaciones públicas */}
-                    {publicLocations &&
-                        publicLocations.map((pubLocation) => (
-                            <Marker
-                                key={pubLocation.id}
-                                position={[pubLocation.latitude, pubLocation.longitude]}
-                                icon={createCustomIcon('#FF3B30')}
-                            >
-                                <Popup>
-                                    <div style={{ fontSize: '12px' }}>
-                                        <strong>User {pubLocation.user?.id || 'Unknown'}</strong>
-                                        <br />
-                                        {pubLocation.latitude.toFixed(6)}, {pubLocation.longitude.toFixed(6)}
-                                        <br />
-                                        {getTimeAgo(pubLocation.timestamp)}
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        ))}
+                        {/* Marcadores de ubicaciones públicas */}
+                        {publicLocations &&
+                            publicLocations.map((pubLocation) => (
+                                <Marker
+                                    key={pubLocation.id}
+                                    position={[pubLocation.latitude, pubLocation.longitude]}
+                                    icon={createCustomIcon('#FF3B30')}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>User {pubLocation.user?.id || 'Unknown'}</strong>
+                                            <br />
+                                            {pubLocation.latitude.toFixed(6)}, {pubLocation.longitude.toFixed(6)}
+                                            <br />
+                                            {getTimeAgo(pubLocation.timestamp)}
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            ))}
                     </MapContainer>
                 </div>
 
@@ -759,43 +785,43 @@ export default function MapComponent({
         <>
             <ScrollView style={styles.webContainer}>
                 <View style={styles.webContent}>
-                <Text style={styles.webTitle}>📍 Your location</Text>
-                <View style={styles.locationCard}>
-                    <Text style={styles.locationText}>Latitude: {location.latitude.toFixed(6)}</Text>
-                    <Text style={styles.locationText}>Longitude: {location.longitude.toFixed(6)}</Text>
-                    <Text style={styles.locationText}>
-                        Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
-                    </Text>
-                </View>
+                    <Text style={styles.webTitle}>📍 Your location</Text>
+                    <View style={styles.locationCard}>
+                        <Text style={styles.locationText}>Latitude: {location.latitude.toFixed(6)}</Text>
+                        <Text style={styles.locationText}>Longitude: {location.longitude.toFixed(6)}</Text>
+                        <Text style={styles.locationText}>
+                            Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
+                        </Text>
+                    </View>
 
-                <TouchableOpacity
-                    style={[styles.publishButton, publishing && styles.publishButtonDisabled]}
-                    onPress={handlePublishLocation}
-                    disabled={publishing}
-                >
-                    <Text style={styles.publishButtonText}>
-                        {publishing ? 'Publishing...' : 'Publish location'}
-                    </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.publishButton, publishing && styles.publishButtonDisabled]}
+                        onPress={handlePublishLocation}
+                        disabled={publishing}
+                    >
+                        <Text style={styles.publishButtonText}>
+                            {publishing ? 'Publishing...' : 'Publish location'}
+                        </Text>
+                    </TouchableOpacity>
 
-                <Text style={[styles.webTitle, { marginTop: 20 }]}>
-                    🔴 Public locations ({publicLocations.length})
-                </Text>
-                {publicLocations.length === 0 ? (
-                    <Text style={styles.noLocationsText}>No public locations visible</Text>
-                ) : (
-                    publicLocations.map((pubLocation) => (
-                        <View key={pubLocation.id} style={styles.locationCard}>
-                            <Text style={styles.locationText}>
-                                User ID: {pubLocation.user?.id || 'Unknown'}
-                            </Text>
-                            <Text style={styles.locationText}>
-                                Lat: {pubLocation.latitude.toFixed(6)}, Lon: {pubLocation.longitude.toFixed(6)}
-                            </Text>
-                            <Text style={styles.timeText}>{getTimeAgo(pubLocation.timestamp)}</Text>
-                        </View>
-                    ))
-                )}
+                    <Text style={[styles.webTitle, { marginTop: 20 }]}>
+                        🔴 Public locations ({publicLocations.length})
+                    </Text>
+                    {publicLocations.length === 0 ? (
+                        <Text style={styles.noLocationsText}>No public locations visible</Text>
+                    ) : (
+                        publicLocations.map((pubLocation) => (
+                            <View key={pubLocation.id} style={styles.locationCard}>
+                                <Text style={styles.locationText}>
+                                    User ID: {pubLocation.user?.id || 'Unknown'}
+                                </Text>
+                                <Text style={styles.locationText}>
+                                    Lat: {pubLocation.latitude.toFixed(6)}, Lon: {pubLocation.longitude.toFixed(6)}
+                                </Text>
+                                <Text style={styles.timeText}>{getTimeAgo(pubLocation.timestamp)}</Text>
+                            </View>
+                        ))
+                    )}
                 </View>
             </ScrollView>
 

@@ -22,12 +22,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/questions")
 @SecurityRequirement(name = "bearerAuth")
 public class QuestionRestController {
 
+	private static final Logger logger = LoggerFactory.getLogger(QuestionRestController.class);
 	private final QuestionService questionService;
 
 	@Autowired
@@ -65,15 +68,21 @@ public class QuestionRestController {
 	}
 
 	@GetMapping("/today-count")
-	public ResponseEntity<Long> getTodayQuestionCount() {
-		long count = questionService.getTodayQuestionCountForAuthenticatedUser();
+	public ResponseEntity<Long> getTodayQuestionCount(@RequestParam(required = false) UUID eventId) {
+		long count = questionService.getTodayQuestionCountForAuthenticatedUser(eventId);
 		return new ResponseEntity<>(count, HttpStatus.OK);
 	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<Question> create(@RequestBody @Valid Question question) {
+		logger.info("[QuestionRestController] Creating question: title='{}', eventId='{}'",
+				question.getTitle(),
+				question.getEvent() != null ? question.getEvent().getId() : "null");
 		Question savedQuestion = questionService.saveQuestion(question);
+		logger.info("[QuestionRestController] Question saved with id={}, eventId={}",
+				savedQuestion.getId(),
+				savedQuestion.getEvent() != null ? savedQuestion.getEvent().getId() : "null");
 		return new ResponseEntity<>(savedQuestion, HttpStatus.CREATED);
 	}
 

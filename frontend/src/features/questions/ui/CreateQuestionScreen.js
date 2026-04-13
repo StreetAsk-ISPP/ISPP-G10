@@ -62,10 +62,18 @@ const isPremiumHoursValid = (value) => {
   );
 };
 
-export default function CreateQuestionScreen({ navigation }) {
+export default function CreateQuestionScreen({ navigation, route }) {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isNarrow = width < 500;
+
+  const eventData = route?.params?.eventData;
+  const eventId = route?.params?.eventId || eventData?.id || null;
+  const eventTitle = route?.params?.eventTitle || eventData?.title || null;
+  const eventLoc = eventData?.location ?? null;
+  const eventLat = Number(eventLoc?.latitude ?? eventData?.latitude);
+  const eventLng = Number(eventLoc?.longitude ?? eventData?.longitude);
+  const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
   const [place, setPlace] = useState('');
   const [title, setTitle] = useState('');
@@ -117,13 +125,46 @@ export default function CreateQuestionScreen({ navigation }) {
 
       setIsSubmitting(true);
       try {
-        await apiClient.post('/api/v1/questions', payload);
+        const response = await apiClient.post('/api/v1/questions', payload);
+        console.log('[CreateQuestionScreen] Created question response:', response?.data);
+
+        if (eventId) {
+          const eventQuestionsResponse = await apiClient.get(`/api/v1/events/${eventId}/questions`);
+          const eventQuestionsPayload = eventQuestionsResponse?.data;
+          const eventQuestions = Array.isArray(eventQuestionsPayload)
+            ? eventQuestionsPayload
+            : Array.isArray(eventQuestionsPayload?.content)
+              ? eventQuestionsPayload.content
+              : [];
+
+          const createdQuestionId = response?.data?.id;
+          const createdQuestionInEventList = createdQuestionId
+            ? eventQuestions.some((question) => question?.id === createdQuestionId)
+            : false;
+
+          console.log('[CreateQuestionScreen] Event questions right after create:', {
+            eventId,
+            createdQuestionId,
+            totalQuestions: eventQuestions.length,
+            createdQuestionInEventList,
+            eventQuestions,
+          });
+        }
+
         Toast.show({
           type: 'success',
           text1: 'Success',
           text2: 'Question created!',
           position: 'top',
         });
+        if (eventId) {
+          navigation.navigate({
+            name: 'EventDetails',
+            params: { eventId, refreshNonce: Date.now() },
+            merge: true,
+          });
+          return;
+        }
         navigation.goBack();
       } catch (e) {
         Toast.show({
@@ -136,8 +177,23 @@ export default function CreateQuestionScreen({ navigation }) {
         setIsSubmitting(false);
       }
     },
-    [navigation]
+    [navigation, eventId]
   );
+
+  useEffect(() => {
+    if (hasEventFixedLocation) {
+      setLatitude(eventLat);
+      setLongitude(eventLng);
+      setPlace((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
+      setPickedLabel((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
+      return;
+    }
+
+    if (eventData?.address) {
+      setPlace((prev) => (prev?.trim() ? prev : eventData.address));
+      setPickedLabel((prev) => (prev?.trim() ? prev : eventData.address));
+    }
+  }, [eventData, eventLat, eventLng, hasEventFixedLocation]);
 
   useEffect(() => {
     const loadUserPlanSettings = async () => {
@@ -167,7 +223,9 @@ export default function CreateQuestionScreen({ navigation }) {
     const loadTodayQuestionCount = async () => {
       if (!user?.id) return;
       try {
-        const response = await apiClient.get('/api/v1/questions/today-count');
+        const response = await apiClient.get('/api/v1/questions/today-count', {
+          params: eventId ? { eventId } : undefined,
+        });
         if (!isMounted) return;
         setTodayQuestionCount(response?.data ?? 0);
       } catch (e) {
@@ -179,12 +237,16 @@ export default function CreateQuestionScreen({ navigation }) {
     return () => {
       isMounted = false;
     };
-  }, [user?.id]);
+  }, [user?.id, eventId]);
 
   useEffect(() => {
     let isMounted = true;
 
     const preloadCurrentLocation = async () => {
+      if (eventId) {
+        return;
+      }
+
       const coords = await getCurrentPositionWeb();
       if (!isMounted || !coords) {
         return;
@@ -201,9 +263,9 @@ export default function CreateQuestionScreen({ navigation }) {
     preloadCurrentLocation();
 
     return () => {
-        isMounted = false;
-      };
-    }, [getCurrentPositionWeb]);
+      isMounted = false;
+    };
+  }, [eventId, getCurrentPositionWeb]);
 
   useEffect(() => {
     if (!showFakeAd) return;
@@ -227,7 +289,7 @@ export default function CreateQuestionScreen({ navigation }) {
       clearInterval(interval);
     };
   }, [showFakeAd]);
-    
+
   useEffect(() => {
     if (!showFakeAd || adSecondsLeft > 0 || !queuedPayload) {
       return;
@@ -245,7 +307,7 @@ export default function CreateQuestionScreen({ navigation }) {
   const premiumRadiusValid = !isPremium || isPremiumRadiusValid(parsedRadiusMeters);
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
-  const dailyLimitReached = !isPremium && todayQuestionCount >= 3;
+  const dailyLimitReached = eventId ? todayQuestionCount >= 3 : (!isPremium && todayQuestionCount >= 3);
 
   const canPost = useMemo(
     () =>
@@ -259,6 +321,10 @@ export default function CreateQuestionScreen({ navigation }) {
   );
 
   const searchAddress = async () => {
+    if (eventId) {
+      return;
+    }
+
     const q = place.trim();
     if (!q) {
       Toast.show({
@@ -312,6 +378,10 @@ export default function CreateQuestionScreen({ navigation }) {
   };
 
   const openMapPick = useCallback(async () => {
+    if (eventId) {
+      return;
+    }
+
     let nextLat = typeof latitude === 'number' ? latitude : null;
     let nextLng = typeof longitude === 'number' ? longitude : null;
 
@@ -333,7 +403,7 @@ export default function CreateQuestionScreen({ navigation }) {
     setTempLat(typeof nextLat === 'number' ? nextLat : DEFAULT_FALLBACK_LAT);
     setTempLng(typeof nextLng === 'number' ? nextLng : DEFAULT_FALLBACK_LNG);
     setPickMode(true);
-  }, [latitude, longitude, userLat, userLng, getCurrentPositionWeb]);
+  }, [eventId, latitude, longitude, userLat, userLng, getCurrentPositionWeb]);
 
   const cancelMapPick = () => {
     setPickMode(false);
@@ -417,12 +487,25 @@ export default function CreateQuestionScreen({ navigation }) {
       finalHours = premiumHours;
     }
 
+    const finalLatitude = hasEventFixedLocation ? eventLat : latitude;
+    const finalLongitude = hasEventFixedLocation ? eventLng : longitude;
+
+    if (!Number.isFinite(finalLatitude) || !Number.isFinite(finalLongitude)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Location missing',
+        text2: 'Question location is required.',
+        position: 'top',
+      });
+      return;
+    }
+
     const payload = {
       title: title.trim(),
       content: content.trim(),
       radiusKm: finalRadiusKm,
       expiresAt: addHoursISO(finalHours),
-      location: { latitude, longitude },
+      location: { latitude: finalLatitude, longitude: finalLongitude },
     };
 
 
@@ -546,7 +629,7 @@ export default function CreateQuestionScreen({ navigation }) {
             pickEnabled={false}
             tempLat={tempLat}
             tempLng={tempLng}
-            onPick={() => {}}
+            onPick={() => { }}
           />
         </View>
 
@@ -571,57 +654,79 @@ export default function CreateQuestionScreen({ navigation }) {
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
 
-            <Text style={styles.heading}>Create a Question</Text>
+            <Text style={styles.heading}>
+              {eventTitle ? `Create a Question for ${eventTitle}` : 'Create a Question'}
+            </Text>
+
+            {eventId ? (
+              <Text style={styles.helperText}>
+                This question will be published inside the selected event forum.
+              </Text>
+            ) : null}
 
             {/* Location section */}
             <Text style={styles.sectionLabel}>Location</Text>
-            <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
-              <Ionicons
-                name="search-outline"
-                size={18}
-                color="#9ca3af"
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                value={place}
-                onChangeText={(t) => {
-                  setPlace(t);
-                  setSearchResults([]);
-                  setPickedLabel('');
-                }}
-                onSubmitEditing={searchAddress}
-                returnKeyType="search"
-                placeholder="Search address or place..."
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                onFocus={() => setFocusedField('place')}
-                onBlur={() => setFocusedField(null)}
-              />
-            </View>
+            {eventId ? (
+              <View style={styles.lockedLocationCard}>
+                <View style={styles.lockedLocationTitleRow}>
+                  <Ionicons name="lock-closed" size={15} color="#1d4ed8" />
+                  <Text style={styles.lockedLocationTitle}>Fixed event location</Text>
+                </View>
+                <Text style={styles.lockedLocationText}>
+                  {place?.trim() || (hasEventFixedLocation ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})` : 'Location not available')}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
+                  <Ionicons
+                    name="search-outline"
+                    size={18}
+                    color="#9ca3af"
+                    style={{ marginRight: 8 }}
+                  />
+                  <TextInput
+                    value={place}
+                    onChangeText={(t) => {
+                      setPlace(t);
+                      setSearchResults([]);
+                      setPickedLabel('');
+                    }}
+                    onSubmitEditing={searchAddress}
+                    returnKeyType="search"
+                    placeholder="Search address or place..."
+                    placeholderTextColor="#9ca3af"
+                    style={styles.input}
+                    onFocus={() => setFocusedField('place')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                </View>
 
-            <View style={styles.locationBtnRow}>
-              <TouchableOpacity
-                style={[styles.btnOutline, { flex: 1, opacity: searching ? 0.5 : 1 }]}
-                onPress={searchAddress}
-                disabled={searching}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="search" size={16} color="#a52019" />
-                <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
-              </TouchableOpacity>
+                <View style={styles.locationBtnRow}>
+                  <TouchableOpacity
+                    style={[styles.btnOutline, { flex: 1, opacity: searching ? 0.5 : 1 }]}
+                    onPress={searchAddress}
+                    disabled={searching}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="search" size={16} color="#a52019" />
+                    <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.btnOutline, { flex: 1 }]}
-                onPress={openMapPick}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="location" size={16} color="#a52019" />
-                <Text style={styles.btnOutlineText}>Pick on map</Text>
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity
+                    style={[styles.btnOutline, { flex: 1 }]}
+                    onPress={openMapPick}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="location" size={16} color="#a52019" />
+                    <Text style={styles.btnOutlineText}>Pick on map</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             {/* Search results */}
-            {searchResults.length > 1 &&
+            {!eventId && searchResults.length > 1 &&
               searchResults.map((r, idx) => (
                 <TouchableOpacity
                   key={idx}
@@ -648,9 +753,11 @@ export default function CreateQuestionScreen({ navigation }) {
               </Text>
             </View>
             <Text style={styles.helperText}>
-              {isPremium
-                ? 'Premium radius: choose between 50 m and 1000 m in Pick on map.'
-                : 'Free plan radius is fixed to 500 m.'}
+              {eventId
+                ? 'Event questions use the event location and cannot be moved.'
+                : isPremium
+                  ? 'Premium radius: choose between 50 m and 1000 m in Pick on map.'
+                  : 'Free plan radius is fixed to 500 m.'}
             </Text>
 
             {/* Topic */}
@@ -713,7 +820,11 @@ export default function CreateQuestionScreen({ navigation }) {
               ) : (
                 <View>
                   <Text style={styles.timeChipText}>Duration: 2h (fixed in free plan)</Text>
-                  <Text style={styles.timeChipText}>Max 3 questions a day (fixed in free plan)</Text>
+                  <Text style={styles.timeChipText}>
+                    {eventId
+                      ? 'Max 3 questions per day in this event'
+                      : 'Max 3 questions a day (fixed in free plan)'}
+                  </Text>
                 </View>
               )}
             </View>
@@ -724,21 +835,23 @@ export default function CreateQuestionScreen({ navigation }) {
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.dailyLimitTitle}>Daily limit reached</Text>
                   <Text style={styles.dailyLimitText}>
-                    You can create a maximum of 3 questions per day. You can add more
-                    by using the coins you gain while answering questions,
-                    or by upgrading to the premium plan.
+                    {eventId
+                      ? 'You can create a maximum of 3 questions per day inside this event.'
+                      : 'You can create a maximum of 3 questions per day. You can add more by using the coins you gain while answering questions, or by upgrading to the premium plan.'}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.shopBtn}
-                  onPress={openStreetCoinsShop}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.shopBtnText}>Shop</Text>
-                </TouchableOpacity>
+                {!eventId ? (
+                  <TouchableOpacity
+                    style={styles.shopBtn}
+                    onPress={openStreetCoinsShop}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.shopBtnText}>Shop</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             )}
-            
+
             {/* Buttons */}
             <View style={styles.actionRow}>
               <TouchableOpacity
@@ -775,9 +888,9 @@ export default function CreateQuestionScreen({ navigation }) {
             <Text style={styles.adHelperText}>Your question will only be created when this countdown finishes.</Text>
             <Text style={styles.adCountdown}>Your question will be published in {adSecondsLeft}s</Text>
             {canSkipAd && (
-            <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
+              <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
                 <Text style={styles.adSkipText}>X</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -1022,6 +1135,33 @@ const styles = StyleSheet.create({
   },
   btnOutlineText: { fontSize: 13, fontWeight: '600', color: '#a52019' },
 
+  lockedLocationCard: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  lockedLocationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  lockedLocationTitle: {
+    color: '#1d4ed8',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  lockedLocationText: {
+    color: '#1e293b',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1158,21 +1298,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-adSkipBtn: {
-  position: 'absolute',
-  top: 10,
-  right: 10,
-  alignItems: 'center',
-},
+  adSkipBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    alignItems: 'center',
+  },
 
-adSkipText: {
-  fontSize: 18,
-  fontWeight: '800',
-  color: '#111827',
-},
+  adSkipText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
 
-adSkipLabel: {
-  fontSize: 9,
-  color: '#6b7280',
-},
+  adSkipLabel: {
+    fontSize: 9,
+    color: '#6b7280',
+  },
 });

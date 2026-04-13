@@ -67,6 +67,7 @@ export default function QuestionsSidebar({
     onToggle,
     onQuestionPress,
     onEventNavigate,
+    onEventViewDetails,
     activeTab = 'QUESTIONS',
     onTabChange,
 }) {
@@ -254,10 +255,19 @@ export default function QuestionsSidebar({
                             Go to event
                         </Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.eventInfoBtn}
+                        onPress={() => onEventViewDetails?.(item)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="information-circle-outline" size={16} color="#1d4ed8" />
+                        <Text style={styles.eventInfoText}>View event info</Text>
+                    </TouchableOpacity>
                 </TouchableOpacity>
             );
         },
-        [onEventNavigate]
+        [onEventNavigate, onEventViewDetails]
     );
 
     const activeQuestionsPageLabel = `${currentQuestionsPage}/${questionsTotalPages}`;
@@ -675,6 +685,24 @@ const styles = StyleSheet.create({
     },
     eventActionText: {
         color: '#fff',
+        fontWeight: '800',
+        fontSize: 12,
+    },
+    eventInfoBtn: {
+        marginTop: 8,
+        minHeight: 36,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+        paddingHorizontal: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: '#eff6ff',
+    },
+    eventInfoText: {
+        color: '#1d4ed8',
         fontWeight: '800',
         fontSize: 12,
     },
