@@ -45,6 +45,8 @@ public class QuestionService {
 	private static final int PREMIUM_MIN_DURATION_HOURS = 1;
 	private static final int PREMIUM_MAX_DURATION_HOURS = 24;
 	private static final long PREMIUM_DURATION_CLOCK_DRIFT_SECONDS = 59L;
+	private static final int FREE_DAILY_LIMIT = 3;
+	private static final int FREE_LIMIT_ROLLING_WINDOW_HOURS = 24;
 
 	private final QuestionRepository questionRepository;
 	private final RegularUserRepository regularUserRepository;
@@ -121,8 +123,10 @@ public class QuestionService {
 		boolean isPremium = hasPremiumAccess(authenticatedUser);
 		if (!isPremium && eventId == null) {
 			long todayQuestionCount = questionsTodayCount(authenticatedUser.getId());
-			if (todayQuestionCount >= 3) {
-				throw new UpperPlanFeatureException("Free plan users can only create up to 3 questions per day.");
+			long rollingWindowQuestionCount = questionsCountInRollingHours(authenticatedUser.getId(),
+					FREE_LIMIT_ROLLING_WINDOW_HOURS);
+			if (todayQuestionCount >= FREE_DAILY_LIMIT || rollingWindowQuestionCount >= FREE_DAILY_LIMIT) {
+				throw new UpperPlanFeatureException("Free plan users can only create up to 3 questions.");
 			}
 		}
 		question.setCreator(authenticatedUser);
@@ -294,5 +298,12 @@ public class QuestionService {
 			return Boolean.TRUE.equals(businessAccount.getPremiumActive());
 		}
 		return false;
+	}
+
+	private long questionsCountInRollingHours(UUID creatorId, int hours) {
+		Instant windowStart = Instant.now().minus(hours, ChronoUnit.HOURS);
+		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
+				.filter(q -> q.getCreatedAt() != null && !q.getCreatedAt().isBefore(windowStart))
+				.count();
 	}
 }

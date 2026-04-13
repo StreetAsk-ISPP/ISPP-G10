@@ -14,6 +14,8 @@ public class BusinessSubscriptionStatusResponse {
     private String email;
     private String companyName;
     private Boolean verified;
+    private RequestStatus requestStatus;
+    private String rejectionReason;
     private Boolean subscriptionActive;
     private LocalDateTime subscriptionExpiresAt;
     private Boolean premiumEligible;
