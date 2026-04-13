@@ -130,6 +130,9 @@ public class SecurityConfiguration {
 						// Business verification status - accessible to authenticated business users
 						.requestMatchers("/api/v1/businesses/me/verification").authenticated()
 
+						// Events - publicly accessible
+						.requestMatchers(HttpMethod.GET, "/api/v1/events", "/api/v1/events/**").permitAll()
+
 						.anyRequest().denyAll())
 
 				.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

@@ -9,6 +9,7 @@ import ForgotPasswordScreen from '../../features/auth/ui/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../features/auth/ui/ResetPasswordScreen';
 import HomeScreen from '../../features/home/ui/HomeScreen';
 import CreateQuestionScreen from '../../features/questions/ui/CreateQuestionScreen';
+import ManageEventsScreen from '../../features/events/ui/ManageEventsScreen';
 import SubscriptionPlansScreen from '../../features/subscriptions/ui/SubscriptionPlansScreen';
 import QuestionThreadScreen from '../../features/answers/ui/QuestionThreadScreen';
 import ProfileScreen from '../../features/profile/ProfileScreen';
@@ -22,6 +23,8 @@ import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
 import SettingsScreen from '../../features/profile/SettingsScreen';
+import EventListScreen from '../../features/events/EventListScreen';
+import EventDetailsScreen from '../../features/events/EventDetailsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
 import apiClient from '../../shared/services/http/apiClient';
@@ -211,6 +214,8 @@ export default function AppNavigator() {
         );
     }
 
+    const isAdmin = user?.roles?.includes('ADMIN');
+
     return (
         <Stack.Navigator
             key={`app-stack-${isAuthenticated ? 'auth' : 'guest'}-${navigationResetVersion}`}
@@ -226,37 +231,44 @@ export default function AppNavigator() {
                 </>
             ) : (
                 <>
-                    {user?.roles?.includes('ADMIN') ? (
-                        <>
-                            <Stack.Screen name="AdminDashboard" component={AdminScreen} />
-                            <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
-                            <Stack.Screen name="AdminFeedback" component={AdminFeedbackScreen} />
-                            <Stack.Screen name="AdminBusinessVerification" component={AdminBusinessVerificationScreen} />
-                            <Stack.Screen name="Home" component={HomeScreen} />
-                            <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
-                            <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
-                            <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
-                            <Stack.Screen name="Profile" component={ProfileScreen} />
-                            <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
-                            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-                        </>
-                    ) : (
-                        <>
-                            <Stack.Screen name="Home" component={HomeScreen} />
-                            <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
-                            <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
-                            <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
-                            <Stack.Screen name="Profile" component={ProfileScreen} />
-                            <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
-                            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-                            <Stack.Screen name="Balance" component={BalanceScreen} options={{ headerShown: false }} />
-                            <Stack.Screen name="MyPurchases" component={MyPurchasesScreen} options={{ headerShown: false }} />
-                            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
-                            <Stack.Screen name="BusinessVerificationStatus" component={BusinessVerificationStatusScreen} options={{ headerShown: false }} />
-                        </>
-                    )}
+                    {
+                        isAdmin ? (
+                            <>
+                                <Stack.Screen name="AdminDashboard" component={AdminScreen} />
+                                <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+                                <Stack.Screen name="AdminFeedback" component={AdminFeedbackScreen} />
+                                <Stack.Screen name="AdminBusinessVerification" component={AdminBusinessVerificationScreen} />
+                                <Stack.Screen name="Home" component={HomeScreen} />
+                                <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                                <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                                <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
+                                <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
+                                <Stack.Screen name="Profile" component={ProfileScreen} />
+                                <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
+                                <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                            </>
+                        ) : (
+                            <>
+                                <Stack.Screen name="Home" component={HomeScreen} />
+                                <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                                <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
+                                <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
+                                <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
+                                <Stack.Screen name="Profile" component={ProfileScreen} />
+                                <Stack.Screen name="ProfileStats" component={ProfileStats} options={{ headerShown: false }} />
+                                <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                                <Stack.Screen name="Balance" component={BalanceScreen} options={{ headerShown: false }} />
+                                <Stack.Screen name="MyPurchases" component={MyPurchasesScreen} options={{ headerShown: false }} />
+                                <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+                                <Stack.Screen name="BusinessVerificationStatus" component={BusinessVerificationStatusScreen} options={{ headerShown: false }} />
+                            </>
+                        )
+                    }
+                    <Stack.Screen name="EventList" component={EventListScreen} />
+                    <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
                 </>
             )}
+
         </Stack.Navigator>
     );
 }

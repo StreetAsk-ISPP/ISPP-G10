@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.streetask.app.auth.AuthService;
+import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -24,6 +26,7 @@ public class BusinessSubscriptionService {
 
     private final BusinessAccountRepository businessAccountRepository;
     private final BusinessPremiumAccessGuard businessPremiumAccessGuard;
+    private final AuthService authService;
     private final UserService userService;
 
     @Value("${streetask.stripe.secret-key:}")
@@ -45,9 +48,10 @@ public class BusinessSubscriptionService {
     private String stripeCancelUrl;
 
     public BusinessSubscriptionService(BusinessAccountRepository businessAccountRepository,
-            BusinessPremiumAccessGuard businessPremiumAccessGuard, UserService userService) {
+            BusinessPremiumAccessGuard businessPremiumAccessGuard, AuthService authService, UserService userService) {
         this.businessAccountRepository = businessAccountRepository;
         this.businessPremiumAccessGuard = businessPremiumAccessGuard;
+        this.authService = authService;
         this.userService = userService;
     }
 
@@ -91,9 +95,20 @@ public class BusinessSubscriptionService {
 
     @Transactional(readOnly = true)
     public StripeCheckoutSessionResponse createPublicStripeCheckoutSession(String email, String taxId,
-            Integer durationDays) {
-        BusinessAccount businessAccount = findBusinessByEmailAndTaxId(email, taxId);
-        return createStripeCheckoutSession(businessAccount, durationDays);
+            String companyName, String address, String website, String description, Integer durationDays) {
+        String normalizedEmail = normalizeEmail(email);
+        String normalizedTaxId = normalizeTaxId(taxId);
+
+        if (!hasPendingBasicSignup(normalizedEmail)) {
+            throw new AccessDeniedException("Basic user registration not found. Please complete the basic signup first.");
+        }
+
+        if (businessAccountRepository.existsByTaxId(normalizedTaxId)) {
+            throw new AccessDeniedException("Tax ID is already registered.");
+        }
+
+        return createPublicStripeCheckoutSessionForSignup(normalizedEmail, normalizedTaxId, companyName, address, website,
+                description, durationDays);
     }
 
     @Transactional
@@ -103,10 +118,9 @@ public class BusinessSubscriptionService {
     }
 
     @Transactional
-    public BusinessSubscriptionStatusResponse confirmPublicStripeCheckoutSession(String email, String taxId,
-            String sessionId) {
-        BusinessAccount businessAccount = findBusinessByEmailAndTaxId(email, taxId);
-        return confirmStripeCheckoutSession(businessAccount, sessionId);
+    public BusinessSubscriptionStatusResponse confirmPublicStripeCheckoutSession(
+            PublicStripeCheckoutSessionConfirmRequest request) {
+        return confirmStripeCheckoutSession(request);
     }
 
     private BusinessSubscriptionStatusResponse activateSubscription(BusinessAccount businessAccount,
@@ -129,6 +143,16 @@ public class BusinessSubscriptionService {
             throw new AccessDeniedException("Only business accounts can access this endpoint.");
         }
         return businessAccount;
+    }
+
+    private boolean hasPendingBasicSignup(String email) {
+        try {
+            User user = userService.findUser(email);
+            return user != null && user.getAccountType() == null && Boolean.FALSE.equals(user.getActive())
+                    && user.hasAuthority("USER");
+        } catch (Exception exception) {
+            return false;
+        }
     }
 
     private int resolveDurationDays(Integer durationDays) {
@@ -188,6 +212,48 @@ public class BusinessSubscriptionService {
         }
     }
 
+    private StripeCheckoutSessionResponse createPublicStripeCheckoutSessionForSignup(String email, String taxId,
+            String companyName, String address, String website, String description, Integer durationDays) {
+        ensureStripeConfigured();
+
+        Stripe.apiKey = stripeSecretKey;
+        int resolvedDurationDays = resolveDurationDays(durationDays);
+
+        SessionCreateParams params = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(appendQuery(stripeSuccessUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(stripeCancelUrl, "payment=cancel"))
+                .putMetadata("email", email)
+                .putMetadata("taxId", taxId)
+                .putMetadata("companyName", companyName)
+                .putMetadata("address", address == null ? "" : address)
+                .putMetadata("website", website == null ? "" : website)
+                .putMetadata("description", description == null ? "" : description)
+                .putMetadata("durationDays", String.valueOf(resolvedDurationDays))
+                .addLineItem(
+                        SessionCreateParams.LineItem.builder()
+                                .setQuantity(1L)
+                                .setPriceData(
+                                        SessionCreateParams.LineItem.PriceData.builder()
+                                                .setCurrency(normalizeCurrency())
+                                                .setUnitAmount(resolveAmount())
+                                                .setProductData(
+                                                        SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                .setName("StreetAsk Business Subscription")
+                                                                .setDescription("Business premium features activation")
+                                                                .build())
+                                                .build())
+                                .build())
+                .build();
+
+        try {
+            Session session = Session.create(params);
+            return new StripeCheckoutSessionResponse(session.getId(), session.getUrl(), stripePublishableKey);
+        } catch (StripeException ex) {
+            throw new IllegalStateException("Unable to create Stripe checkout session.", ex);
+        }
+    }
+
     private BusinessSubscriptionStatusResponse confirmStripeCheckoutSession(BusinessAccount businessAccount,
             String sessionId) {
         ensureStripeConfigured();
@@ -209,6 +275,68 @@ public class BusinessSubscriptionService {
             if (!businessAccount.getId().toString().equals(metadataBusinessId)) {
                 throw new AccessDeniedException("Stripe session does not belong to this business account.");
             }
+
+            String durationDaysMetadata = session.getMetadata() == null ? null
+                    : session.getMetadata().get("durationDays");
+            Integer durationDays = durationDaysMetadata == null ? null : Integer.valueOf(durationDaysMetadata);
+
+            LocalDateTime now = LocalDateTime.now();
+            businessAccount.setSubscriptionActive(true);
+            businessAccount.setSubscriptionExpiresAt(now.plusDays(resolveDurationDays(durationDays)));
+            businessAccountRepository.save(businessAccount);
+
+            return toStatusResponse(businessAccount);
+        } catch (StripeException ex) {
+            throw new IllegalStateException("Unable to confirm Stripe checkout session.", ex);
+        }
+    }
+
+    private BusinessSubscriptionStatusResponse confirmStripeCheckoutSession(
+            PublicStripeCheckoutSessionConfirmRequest request) {
+        ensureStripeConfigured();
+
+        if (!StringUtils.hasText(request.getSessionId())) {
+            throw new IllegalArgumentException("Stripe sessionId is required.");
+        }
+
+        Stripe.apiKey = stripeSecretKey;
+
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedTaxId = normalizeTaxId(request.getTaxId());
+
+        try {
+            Session session = Session.retrieve(request.getSessionId().trim());
+
+            if (!"paid".equalsIgnoreCase(session.getPaymentStatus())) {
+                throw new AccessDeniedException("Payment has not been completed yet.");
+            }
+
+            String metadataEmail = session.getMetadata() == null ? null : session.getMetadata().get("email");
+            String metadataTaxId = session.getMetadata() == null ? null : session.getMetadata().get("taxId");
+            String metadataCompanyName = session.getMetadata() == null ? null : session.getMetadata().get("companyName");
+            String metadataAddress = session.getMetadata() == null ? null : session.getMetadata().get("address");
+            String metadataWebsite = session.getMetadata() == null ? null : session.getMetadata().get("website");
+            String metadataDescription = session.getMetadata() == null ? null : session.getMetadata().get("description");
+
+            if (!normalizedEmail.equals(normalizeEmail(metadataEmail)) || !normalizedTaxId.equals(normalizeTaxId(metadataTaxId))) {
+                throw new AccessDeniedException("Stripe session does not belong to this business signup.");
+            }
+
+            if (!StringUtils.hasText(metadataCompanyName)) {
+                throw new AccessDeniedException("Stripe session is missing business profile data.");
+            }
+
+            BusinessSignupRequest businessSignupRequest = new BusinessSignupRequest();
+            businessSignupRequest.setEmail(normalizedEmail);
+            businessSignupRequest.setTaxId(normalizedTaxId);
+            businessSignupRequest.setCompanyName(metadataCompanyName);
+            businessSignupRequest.setAddress(StringUtils.hasText(metadataAddress) ? metadataAddress : null);
+            businessSignupRequest.setWebsite(StringUtils.hasText(metadataWebsite) ? metadataWebsite : null);
+            businessSignupRequest.setDescription(StringUtils.hasText(metadataDescription) ? metadataDescription : null);
+
+            authService.convertToBusinessUser(businessSignupRequest);
+
+            BusinessAccount businessAccount = findBusinessByEmailAndTaxId(normalizedEmail, normalizedTaxId);
 
             String durationDaysMetadata = session.getMetadata() == null ? null
                     : session.getMetadata().get("durationDays");

@@ -19,6 +19,7 @@ export default function LoginScreen({ navigation }) {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
+    const [pendingBusinessEmail, setPendingBusinessEmail] = useState(null);
 
     const handleLogin = async () => {
         setError('');
@@ -48,6 +49,18 @@ export default function LoginScreen({ navigation }) {
             }
             */
         } catch {
+            // Check if this is a pending business signup (user created basic account but didn't pay)
+            try {
+                const pendingRes = await apiClient.get('/api/v1/auth/signup/basic/pending', {
+                    params: { identifier: identifier.trim() },
+                });
+                if (pendingRes.data?.pending === true && pendingRes.data?.email) {
+                    setPendingBusinessEmail(pendingRes.data.email);
+                    setError('Your business registration is pending payment. Complete your payment to activate your account.');
+                    return;
+                }
+            } catch { /* ignore check failure */ }
+            setPendingBusinessEmail(null);
             setError('Login failed. Please check your credentials.');
         } finally {
             setIsSubmitting(false);
@@ -120,6 +133,17 @@ export default function LoginScreen({ navigation }) {
                     </View>
 
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                    {pendingBusinessEmail ? (
+                        <TouchableOpacity
+                            style={styles.pendingPaymentBtn}
+                            onPress={() => navigation.navigate('BusinessSignup', { email: pendingBusinessEmail, password })}
+                            activeOpacity={0.85}
+                        >
+                            <Ionicons name="card-outline" size={18} color="#fff" />
+                            <Text style={styles.pendingPaymentBtnText}>Complete Payment</Text>
+                        </TouchableOpacity>
+                    ) : null}
 
                     {/* Login Button */}
                     <TouchableOpacity
@@ -287,6 +311,21 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9ca3af',
         fontWeight: '600',
+    },
+    pendingPaymentBtn: {
+        backgroundColor: '#f59e0b',
+        borderRadius: 14,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 12,
+    },
+    pendingPaymentBtnText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
     },
     secondaryBtn: {
         backgroundColor: '#f3f4f6',

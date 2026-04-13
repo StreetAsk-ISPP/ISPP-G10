@@ -274,19 +274,37 @@ public class AuthService {
 		businessAccountRepository.save(businessAccount);
 	}
 
-	public boolean isPendingBasicSignup(String email) {
-		if (email == null || email.isBlank()) {
+	public boolean isPendingBasicSignup(String identifier) {
+		if (identifier == null || identifier.isBlank()) {
 			return false;
 		}
 
 		try {
-			User user = userService.findUser(email.trim());
-			if (user instanceof BusinessAccount) {
-				return true;
+			String normalized = identifier.trim();
+			User user = userRepository.findByEmailIgnoreCase(normalized)
+					.or(() -> userRepository.findByUserNameIgnoreCase(normalized))
+					.orElse(null);
+			if (user == null) {
+				return false;
 			}
 			return isPendingBasicSignup(user);
 		} catch (Exception exception) {
 			return false;
+		}
+	}
+
+	public String getPendingBasicSignupEmail(String identifier) {
+		if (identifier == null || identifier.isBlank()) {
+			return null;
+		}
+		try {
+			String normalized = identifier.trim();
+			User user = userRepository.findByEmailIgnoreCase(normalized)
+					.or(() -> userRepository.findByUserNameIgnoreCase(normalized))
+					.orElse(null);
+			return user != null ? user.getEmail() : null;
+		} catch (Exception exception) {
+			return null;
 		}
 	}
 
