@@ -1,38 +1,38 @@
-# Política de Uso de Clockify y Umbral de Cumplimiento (ISPP-G10)
+# Clockify Usage Policy and Compliance Threshold (ISPP-G10)
 
-Este documento establece las normas obligatorias para el registro de tiempos del equipo **StreetAsk**, garantizando que el esfuerzo dedicado por los 20 miembros sea transparente y auditable para las entregas y para los profesores.
+This document establishes the mandatory rules for time tracking for the **StreetAsk** team, ensuring that the effort contributed by the 20 members is transparent and auditable for deliverables and for the professors.
 
-## 1. Compromiso de Horas y Registro
-* **Compromiso Semanal:** Cada miembro del equipo tiene el compromiso obligatorio de registrar **10 horas semanales**.
-* **Identificación de Tareas:** Todos los registros deben incluir el ID de la Issue de GitHub correspondiente y una descripción breve pero clara de la actividad (ej: *#521 - Redacción de política de Clockify*).
-* **Naturaleza del Trabajo:** Se deben registrar todas las actividades: desarrollo de código, redacción de documentación, reuniones de subgrupo, la reunión general de los sábados en Teams y la preparación de presentaciones.
+## 1. Hour Commitment and Tracking
+* **Weekly Commitment:** Each team member is required to log **10 hours per week**.
+* **Task Identification:** All entries must include the corresponding GitHub Issue ID and a brief but clear description of the activity (e.g., *#521 - Writing Clockify policy*).
+* **Nature of Work:** All activities must be logged: code development, documentation writing, subgroup meetings, the Saturday general Teams meeting, and presentation preparation.
 
-## 2. Cierre Semanal y Plazos (Deadlines)
-El ciclo de registro es fundamental para la generación de métricas de equipo:
-* **Cierre de Horas:** El límite improrrogable para volcar las horas en el sistema es el **Miércoles a las 21:00h**.
-* **Consolidación de Datos:** * En semanas de **Presentación Evaluable**, los datos se extraen el miércoles después de las 21:00h o el jueves por la mañana para su entrega a los profesores.
-    * En semanas no evaluables, los datos se registran igualmente para mantener las métricas de rendimiento interno del equipo.
+## 2. Weekly Closure and Deadlines
+The tracking cycle is essential for generating team metrics:
+* **Hours Closure:** The non-extendable deadline to enter hours into the system is **Wednesday at 21:00**.
+* **Data Consolidation:** In weeks with a **graded presentation**, data is extracted Wednesday after 21:00 or Thursday morning for submission to the professors.
+    * In non-graded weeks, the data is still recorded to maintain the team’s internal performance metrics.
 
-## 3. Protocolo de Transparencia y Notificación
-Para asegurar que nadie se quede fuera de las actas por descuido:
-* **Penalización por Transparencia:** Antes de cerrar las actas definitivas en Clockify, se realizará una revisión del estado de los registros.
-* **Aviso Obligatorio:** Si se detecta que algún miembro no ha completado sus horas antes del cierre, **se le debe notificar directamente** para que pueda regularizar su situación de inmediato. 
-* **Umbral de Cumplimiento:** Una tarea no se considerará "Finalizada" si el esfuerzo dedicado no está reflejado fielmente en la plataforma antes del cierre semanal.
+## 3. Transparency and Notification Protocol
+To ensure no one is left out of the records by oversight:
+* **Transparency Review:** Before finalizing records in Clockify, the status of entries will be reviewed.
+* **Mandatory Notice:** If any member is found to have not completed their hours before the closure, **they must be notified directly** so they can regularize their record immediately.
+* **Compliance Threshold:** A task will not be considered "Completed" if the effort spent is not faithfully reflected in the platform before the weekly closure.
 
-## 4. Responsabilidades
-* **Gestión de Documentación:** Siguiendo nuestra política de equipo, cualquier miembro al que se le asigne la Issue de documentación puede actualizar este protocolo en el repositorio.
-* **Responsabilidad Individual:** Cada miembro es responsable de su propio registro. Es vital cumplir el horario para no distorsionar las métricas de esfuerzo del subgrupo (S, Z, J, G4).
-* **Soporte:** Si surgen problemas técnicos con Clockify, el miembro afectado debe comunicarlo en su subgrupo de WhatsApp antes del miércoles a las 21:00h.
-
----
-
-## 5. Qué se debe registrar (Categorías)
-No solo se registra el código. También es obligatorio registrar:
-* Reuniones (Teams de los sábados, reuniones de subgrupo).
-* Documentación y diseño.
-* Revisiones de Pull Requests (Code Review).
-* Preparación de la presentación (especialmente para el G4).
+## 4. Responsibilities
+* **Documentation Management:** Following our team policy, any member assigned the documentation Issue may update this protocol in the repository.
+* **Individual Responsibility:** Each member is responsible for their own time tracking. It is vital to comply with the schedule so as not to distort subgroup effort metrics (S, Z, J, G4).
+* **Support:** If technical issues arise with Clockify, the affected member must report it in their subgroup WhatsApp before Wednesday at 21:00.
 
 ---
 
-**Nota:** La métrica de Clockify es el reflejo oficial de nuestro trabajo hacia los profesores. El cumplimiento estricto de las 10 horas semanales garantiza que la carga de trabajo sea equilibrada y visible para todos. El incumplimiento sistemático de esta política afecta a la nota colectiva y a la visibilidad del proyecto ante los tutores. Si tienes problemas técnicos con la herramienta, contacta con tu SM de subgrupo de inmediato.
+## 5. What Should Be Logged (Categories)
+Not only code must be tracked. It is also mandatory to log:
+* Meetings (Saturday Teams, subgroup meetings).
+* Documentation and design.
+* Pull Request reviews (Code Review).
+* Presentation preparation (especially for G4).
+
+---
+
+**Note:** The Clockify metric is the official reflection of our work for the professors. Strict compliance with the 10-hour weekly commitment ensures the workload is balanced and visible to everyone. Systematic noncompliance with this policy affects the collective grade and the project’s visibility to tutors. If you have technical problems with the tool, contact your subgroup SM immediately.

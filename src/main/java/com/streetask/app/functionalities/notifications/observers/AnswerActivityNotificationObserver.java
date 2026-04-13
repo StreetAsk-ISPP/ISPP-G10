@@ -17,7 +17,7 @@ import com.streetask.app.functionalities.notifications.realtime.FrontendNotifica
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.Question;
 import com.streetask.app.question.QuestionRepository;
-import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.User;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,7 @@ public class AnswerActivityNotificationObserver {
 
         Question answerQuestion = answer.getQuestion();
         Question question = questionRepository.findById(answerQuestion.getId()).orElse(answerQuestion);
-        RegularUser actor = answer.getUser();
+        User actor = answer.getUser();
         String actorEmail = actor != null ? actor.getEmail() : null;
         String actorName = actor != null && actor.getUserName() != null ? actor.getUserName() : "Someone";
 

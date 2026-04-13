@@ -18,18 +18,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.streetask.app.event.EventRepository;
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.UpperPlanFeatureException;
 import com.streetask.app.functionalities.notifications.events.QuestionCreatedEvent;
+import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
+import com.streetask.app.user.User;
+import com.streetask.app.user.UserRepository;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class QuestionService {
 
+	private static final Logger logger = LoggerFactory.getLogger(QuestionService.class);
 	private static final float FREE_FIXED_RADIUS_KM = 0.5f;
 	private static final float PREMIUM_MIN_RADIUS_KM = 0.05f;
 	private static final float PREMIUM_MAX_RADIUS_KM = 1.0f;
@@ -37,60 +45,100 @@ public class QuestionService {
 	private static final int PREMIUM_MIN_DURATION_HOURS = 1;
 	private static final int PREMIUM_MAX_DURATION_HOURS = 24;
 	private static final long PREMIUM_DURATION_CLOCK_DRIFT_SECONDS = 59L;
+	private static final int FREE_DAILY_LIMIT = 3;
+	private static final int FREE_LIMIT_ROLLING_WINDOW_HOURS = 24;
 
 	private final QuestionRepository questionRepository;
 	private final RegularUserRepository regularUserRepository;
+	private final UserRepository userRepository;
+	private final EventRepository eventRepository;
 	private final ApplicationEventPublisher eventPublisher;
 
 	@Autowired
 	public QuestionService(
 			QuestionRepository questionRepository,
 			RegularUserRepository regularUserRepository,
+			UserRepository userRepository,
+			EventRepository eventRepository,
 			ApplicationEventPublisher eventPublisher) {
 		this.questionRepository = questionRepository;
 		this.regularUserRepository = regularUserRepository;
+		this.userRepository = userRepository;
+		this.eventRepository = eventRepository;
 		this.eventPublisher = eventPublisher;
 	}
+
 	public long questionsTodayCount(UUID creatorId) {
-		Instant now = Instant.now();
-		Instant startOfDay = now.atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+		Instant startOfDay = startOfTodayUtc();
 		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
-				.filter(q -> q.getCreatedAt() != null && q.getCreatedAt().isAfter(startOfDay))
+				.filter(q -> q.getCreatedAt() != null && !q.getCreatedAt().isBefore(startOfDay))
+				.count();
+	}
+
+	public long questionsTodayCountByEvent(UUID creatorId, UUID eventId) {
+		Instant startOfDay = startOfTodayUtc();
+		return StreamSupport
+				.stream(questionRepository.findByCreatorIdAndEventId(creatorId, eventId).spliterator(), false)
+				.filter(q -> q.getCreatedAt() != null && !q.getCreatedAt().isBefore(startOfDay))
 				.count();
 	}
 
 	@Transactional(readOnly = true)
-	public long getTodayQuestionCountForAuthenticatedUser() {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String email = auth.getName();
-		
-		RegularUser ru = regularUserRepository.findByEmail(email)
-				.orElseThrow(() -> new AccessDeniedException("Only regular users can check their question count"));
-		
-		return questionsTodayCount(ru.getId());
+	public long getTodayQuestionCountForAuthenticatedUser(UUID eventId) {
+		User user = getAuthenticatedUser();
+
+		if (eventId != null) {
+			return questionsTodayCountByEvent(user.getId(), eventId);
+		}
+
+		return questionsTodayCount(user.getId());
 	}
 
 	@Transactional
 	public Question saveQuestion(@Valid Question question) throws DataAccessException {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String email = auth.getName();
+		User authenticatedUser = getAuthenticatedUser();
 
-		RegularUser ru = regularUserRepository.findByEmail(email)
-				.orElseThrow(() -> new AccessDeniedException("Only regular users can create questions"));
-		boolean isPremium = Boolean.TRUE.equals(ru.getPremiumActive());
-		if (!isPremium) {
-			long userQuestionCount = questionRepository.countByCreatorId(ru.getId());
-			long todayQuestionCount = questionsTodayCount(ru.getId());
-			if (todayQuestionCount >= 3) {
+		UUID eventId = question.getEvent() != null ? question.getEvent().getId() : null;
+		logger.info("[QuestionService] saveQuestion - title='{}', eventId='{}'", question.getTitle(), eventId);
+
+		if (eventId != null) {
+			if (!(authenticatedUser instanceof RegularUser) && !(authenticatedUser instanceof BusinessAccount)) {
+				throw new AccessDeniedException("Only regular or business users can create event questions");
+			}
+
+			Event event = eventRepository.findById(eventId)
+					.orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+			question.setEvent(event);
+			logger.info("[QuestionService] Event set for question: {}", eventId);
+
+			long todayCountForEvent = questionsTodayCountByEvent(authenticatedUser.getId(), eventId);
+			if (todayCountForEvent >= 3) {
+				throw new UpperPlanFeatureException(
+						"A user can create a maximum of 3 questions per day in the same event.");
+			}
+		} else if (!(authenticatedUser instanceof RegularUser)) {
+			throw new AccessDeniedException("Only regular users can create questions outside events");
+		}
+
+		boolean isPremium = hasPremiumAccess(authenticatedUser);
+		if (!isPremium && eventId == null) {
+			long todayQuestionCount = questionsTodayCount(authenticatedUser.getId());
+			long rollingWindowQuestionCount = questionsCountInRollingHours(authenticatedUser.getId(),
+					FREE_LIMIT_ROLLING_WINDOW_HOURS);
+			if (todayQuestionCount >= FREE_DAILY_LIMIT || rollingWindowQuestionCount >= FREE_DAILY_LIMIT) {
 				throw new UpperPlanFeatureException("Free plan users can only create up to 3 questions.");
 			}
 		}
-		question.setCreator(ru);
+		question.setCreator(authenticatedUser);
 		question.setRadiusKm(resolveRadiusKm(question.getRadiusKm(), isPremium));
 		applyDefaults(question, isPremium);
-		questionRepository.save(question);
+		Question savedQuestion = questionRepository.save(question);
+		logger.info("[QuestionService] Question saved: id='{}', eventId='{}', title='{}'",
+				savedQuestion.getId(),
+				savedQuestion.getEvent() != null ? savedQuestion.getEvent().getId() : "null",
+				savedQuestion.getTitle());
 		eventPublisher.publishEvent(new QuestionCreatedEvent(question.getId()));
-		return question;
+		return savedQuestion;
 	}
 
 	@Transactional(readOnly = true)
@@ -111,7 +159,12 @@ public class QuestionService {
 
 	@Transactional(readOnly = true)
 	public Iterable<Question> findByEvent(UUID eventId) {
-		return questionRepository.findByEventId(eventId);
+		logger.info("[QuestionService] findByEvent called for eventId: {}", eventId);
+		java.util.List<Question> questions = StreamSupport
+				.stream(questionRepository.findByEventIdOrderByCreatedAtAsc(eventId).spliterator(), false)
+				.toList();
+		logger.info("[QuestionService] Found {} questions for event: {}", questions.size(), eventId);
+		return questions;
 	}
 
 	@Transactional(readOnly = true)
@@ -142,9 +195,8 @@ public class QuestionService {
 	@Transactional
 	public Question updateQuestion(@Valid Question question, UUID idToUpdate) {
 		Question toUpdate = findQuestion(idToUpdate);
-		BeanUtils.copyProperties(question, toUpdate, "id", "createdAt", "answerCount");
-		boolean isPremium = toUpdate.getCreator() != null
-				&& Boolean.TRUE.equals(toUpdate.getCreator().getPremiumActive());
+		BeanUtils.copyProperties(question, toUpdate, "id", "creator", "createdAt", "answerCount");
+		boolean isPremium = toUpdate.getCreator() != null && hasPremiumAccess(toUpdate.getCreator());
 		applyDefaults(toUpdate, isPremium);
 		questionRepository.save(toUpdate);
 		return toUpdate;
@@ -210,5 +262,48 @@ public class QuestionService {
 		}
 
 		return requestedRadiusKm;
+	}
+
+	private Instant startOfTodayUtc() {
+		return Instant.now().atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+	}
+
+	private User getAuthenticatedUser() {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+			throw new AccessDeniedException("Authenticated user required");
+		}
+
+		String identifier = auth.getName().trim();
+		return userRepository.findByEmailIgnoreCase(identifier)
+				.or(() -> userRepository.findByUserNameIgnoreCase(identifier))
+				.or(() -> findByUuid(identifier))
+				.orElseThrow(() -> new AccessDeniedException("Authenticated user required"));
+	}
+
+	private java.util.Optional<User> findByUuid(String identifier) {
+		try {
+			UUID id = UUID.fromString(identifier);
+			return userRepository.findById(id);
+		} catch (IllegalArgumentException ex) {
+			return java.util.Optional.empty();
+		}
+	}
+
+	private boolean hasPremiumAccess(User user) {
+		if (user instanceof RegularUser regularUser) {
+			return Boolean.TRUE.equals(regularUser.getPremiumActive());
+		}
+		if (user instanceof BusinessAccount businessAccount) {
+			return Boolean.TRUE.equals(businessAccount.getPremiumActive());
+		}
+		return false;
+	}
+
+	private long questionsCountInRollingHours(UUID creatorId, int hours) {
+		Instant windowStart = Instant.now().minus(hours, ChronoUnit.HOURS);
+		return StreamSupport.stream(questionRepository.findByCreatorId(creatorId).spliterator(), false)
+				.filter(q -> q.getCreatedAt() != null && !q.getCreatedAt().isBefore(windowStart))
+				.count();
 	}
 }

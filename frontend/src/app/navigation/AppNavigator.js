@@ -10,6 +10,7 @@ import ResetPasswordScreen from '../../features/auth/ui/ResetPasswordScreen';
 import HomeScreen from '../../features/home/ui/HomeScreen';
 import CreateQuestionScreen from '../../features/questions/ui/CreateQuestionScreen';
 import ManageEventsScreen from '../../features/events/ui/ManageEventsScreen';
+import MyAttendancesScreen from '../../features/events/ui/MyAttendancesScreen';
 import SubscriptionPlansScreen from '../../features/subscriptions/ui/SubscriptionPlansScreen';
 import QuestionThreadScreen from '../../features/answers/ui/QuestionThreadScreen';
 import ProfileScreen from '../../features/profile/ProfileScreen';
@@ -22,7 +23,6 @@ import BusinessVerificationStatusScreen from '../../features/business/ui/Busines
 import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
-import EventListScreen from '../../features/events/EventListScreen';
 import EventDetailsScreen from '../../features/events/EventDetailsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
@@ -239,6 +239,7 @@ export default function AppNavigator() {
                                 <Stack.Screen name="AdminBusinessVerification" component={AdminBusinessVerificationScreen} />
                                 <Stack.Screen name="Home" component={HomeScreen} />
                                 <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                                <Stack.Screen name="MyAttendances" component={MyAttendancesScreen} />
                                 <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
                                 <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
                                 <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
@@ -250,6 +251,7 @@ export default function AppNavigator() {
                             <>
                                 <Stack.Screen name="Home" component={HomeScreen} />
                                 <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
+                                <Stack.Screen name="MyAttendances" component={MyAttendancesScreen} />
                                 <Stack.Screen name="CreateQuestion" component={CreateQuestionScreen} />
                                 <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
                                 <Stack.Screen name="QuestionThread" component={QuestionThreadScreen} />
@@ -262,8 +264,15 @@ export default function AppNavigator() {
                             </>
                         )
                     }
-                    <Stack.Screen name="EventList" component={EventListScreen} />
-                    <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+                    <Stack.Screen
+                        name="EventDetails"
+                        component={EventDetailsScreen}
+                        options={{
+                            presentation: 'transparentModal',
+                            animation: 'fade',
+                            contentStyle: { backgroundColor: 'transparent' },
+                        }}
+                    />
                 </>
             )}
 

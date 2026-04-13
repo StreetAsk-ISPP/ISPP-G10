@@ -1,68 +1,93 @@
-# Protocolo de Comunicación y Gestión de Incidencias (ISPP-G10)
+# Communication and Incident Management Protocol (ISPP-G10)
 
-Este documento define el protocolo oficial para la gestión de bloqueos, comunicación interna y el ciclo de entregas del proyecto **StreetAsk**. El objetivo es garantizar que el ritmo de desarrollo no se detenga y que el **Grupo 4** disponga de material estable para las presentaciones de los jueves.
+This document defines the official protocol for managing blockers, internal communication, and the project delivery cycle for **StreetAsk**. The goal is to ensure that development momentum does not stop and that **Group 4** has stable material for Thursday presentations.
 
-## 1. Ciclo Semanal de Trabajo ("Ciclo StreetAsk")
-Nuestra semana de desarrollo se estructura de jueves a miércoles para alinearnos con el feedback de clase y las entregas:
+## 1. Weekly Work Cycle ("StreetAsk Cycle")
+Our development week is structured from Thursday to Wednesday to align with class feedback and deliverables:
 
-* **Jueves (19:30+):** Tras la clase, los **4 Scrum Masters (SM)** se reúnen para analizar el feedback recibido en la presentación y planificar la estrategia de la siguiente semana.
-* **Viernes:** Los SM crean las Issues en GitHub y organizan el tablero Kanban basándose en los nuevos requisitos y el feedback del jueves.
-* **Sábado (Mañana):** Reunión general por **Teams**. Se asignan las tareas y el desarrollo comienza oficialmente justo después de la llamada.
-* **Sábado (Tarde) - Domingo - Lunes - Martes:** Fase de desarrollo intensivo y resolución de dudas técnicas.
-* **Miércoles (18:00): DEADLINE INTERNO.** Todas las tareas deben estar en Pull Request (PR) o mergeadas a `Trunk`.
-* **Miércoles (Noche) y Jueves (Mañana):** El **Grupo de Presentación (G4)** consolida el material y prepara la presentación.
-* **Jueves (15:30):** Entrega y Presentación en clase.
+* **Thursday (19:30+):** After class, the **4 Scrum Masters (SM)** meet to review the feedback received during the presentation and plan the strategy for the following week.
+* **Friday:** The SMs create Issues in GitHub and organize the Kanban board based on the new requirements and Thursday feedback.
+* **Saturday (Morning):** General meeting on **Teams**. Tasks are assigned and development officially begins right after the call.
+* **Saturday (Afternoon) - Sunday - Monday - Tuesday:** Intensive development phase and technical issue resolution.
+* **Wednesday (18:00): INTERNAL DEADLINE.** All tasks must be in Pull Request (PR) or merged into `Trunk`.
+* **Wednesday (Night) and Thursday (Morning):** The **Presentation Group (G4)** consolidates the material and prepares the presentation.
+* **Thursday (15:30):** Delivery and presentation in class.
 
 ---
 
-## 2. Estructura de Canales (Comunidad WhatsApp)
-Para minimizar el ruido en un equipo de 20 personas, se establece la siguiente jerarquía:
+## 2. Channel Structure (WhatsApp Community)
+To minimize noise in a 20-person team, the following hierarchy is established:
 
-| Canal | Audiencia | Propósito |
+| Channel | Audience | Purpose |
 | :--- | :--- | :--- |
-| **Subgrupos (S, Z, J, G4)** | Miembros + 4 SM | **Primera línea de defensa.** Consultas técnicas y bloqueos de tareas del grupo. |
-| **Grupo General** | Todo el equipo | Avisos de impacto global (ej: servidor caído, errores críticos en `Trunk`). |
-| **Grupo Avisos** | Todo el equipo | **Solo lectura.** Comunicaciones oficiales y urgentes de los SM. |
-| **Administración** | Solo 4 SM | Coordinación de gestión, reasignación de tareas y decisiones estratégicas. |
-
----
-## 3. Roles y Colaboración Total
-Aunque el equipo se divide en subgrupos (S, Z, J, G4), seguimos una filosofía de **"todos hacen de todo"**:
-* **Multidisciplinar:** Los miembros del grupo de presentación (G4) también programan y tocan código.
-* **Apoyo Cruzado:** Cualquier miembro de un subgrupo puede (y debe) echar una mano a otros grupos si están bloqueados o si la carga de trabajo lo requiere, especialmente cuando se acerca el deadline del miércoles.
+| **Subgroups (S, Z, J, G4)** | Members + 4 SM | **First line of defense.** Technical questions and task blockers of the group. |
+| **General Group** | Entire team | Notices with global impact (e.g., server down, critical errors in `Trunk`). |
+| **Announcements Group** | Entire team | **Read-only.** Official and urgent communications from the SMs. |
+| **Administration** | Only 4 SM | Management coordination, task reassignment, and strategic decisions. |
 
 ---
 
-## 4. Gestión de Bloqueos (Escalada de Incidencias)
-Si un desarrollador no puede avanzar en su tarea (Bloqueo/Blocker), debe seguir estos tiempos:
-
-1.  **Auto-resolución (30 min):** Investigación en logs, documentación o StackOverflow.
-2.  **Consulta al Subgrupo (1-3 horas):** Preguntar por el WhatsApp del subequipo. Compañeros y SM asignados intentarán ayudar.
-3.  **Escalada a SM (+3 horas):** Si no hay solución, mencionar directamente a los Scrum Masters en el subgrupo.
-4.  **Registro en GitHub:** Mover la Issue a la columna **"Blocked"** y añadir un comentario detallando el error técnico. Esto es vital para la revisión de los jueves.
+## 3. Roles and Full Collaboration
+Although the team is divided into subgroups (S, Z, J, G4), we follow a philosophy of **"everyone does everything"**:
+* **Multidisciplinary:** Members of the presentation group (G4) also code and contribute technically.
+* **Cross Support:** Any member of a subgroup can (and should) help other groups if they are blocked or if the workload requires it, especially as the Wednesday deadline approaches.
 
 ---
 
-## 5. Flujo de Trabajo y Pull Requests (PR)
-Para mantener la integridad del código:
+## 4. Blocker Management (Incident Escalation)
+If a developer cannot advance on their task (Blocker), they must follow these timeframes:
 
-* **Regla de Oro:** Prohibido trabajar directamente sobre `Trunk`. Siempre rama por Issue (`feature/ID-desc`).
-* **Sincronización:** Antes de reportar un error o subir una PR, es obligatorio hacer `git pull trunk` para resolver conflictos en local.
-* **Revisión de PR:** Los revisores/SM deben dar feedback en un máximo de **24 horas** para evitar cuellos de botella antes del miércoles.
-* **Merge:** El flujo es `Branch` ➡️ `Trunk`. El paso a `Main` se realiza cada 2 semanas previo al Sprint.
-
----
-
-## 6. Compromiso con la Presentación (Grupo 4)
-El éxito de la presentación depende de la estabilidad del Miércoles:
-
-* **Disponibilidad:** El miércoles tarde/noche, los responsables de tareas deben estar atentos al WhatsApp para resolver dudas del Grupo 4 sobre el funcionamiento de las features.
-* **Hotfixes:** Si el Grupo 4 detecta un bug crítico durante la preparación de la presentación, se comunicará de forma **urgente** al subgrupo responsable para un fix inmediato.
-* **Transparencia:** Si una Issue no va a estar lista el miércoles a las 18:00, el responsable debe avisar con antelación a su subgrupo para que el Grupo 4 ajuste el contenido de la presentación.
+1. **Self-resolution (30 min):** Investigate logs, documentation, or StackOverflow.
+2. **Subgroup consultation (1-3 hours):** Ask in the subgroup WhatsApp. Teammates and assigned SMs will try to help.
+3. **Escalation to SM (+3 hours):** If there is no solution, mention the Scrum Masters directly in the subgroup.
+4. **Record on GitHub:** Move the Issue to the **"Blocked"** column and add a detailed comment describing the technical issue. This is vital for Thursday review.
 
 ---
 
-## 7. Responsabilidades de los Scrum Masters
-* **Supervisión:** Monitorizar que nadie esté bloqueado más de 4 horas sin recibir respuesta.
-* **Mediación:** Resolver conflictos de merge complejos que el subgrupo no pueda manejar.
-* **Control de Calidad:** Asegurar que los comentarios en las Issues bloqueadas sean claros para su revisión en la reunión post-clase.
+## 5. Workflow and Pull Requests (PR)
+To maintain code integrity:
+
+* **Golden rule:** Do not work directly on `Trunk`. Always branch for each Issue (`feature/ID-desc`).
+* **Sync:** Before reporting a bug or opening a PR, it is mandatory to run `git pull trunk` and resolve conflicts locally.
+* **PR review:** Reviewers/SMs must provide feedback within **24 hours** to avoid bottlenecks before Wednesday.
+* **Merge:** The flow is `Branch` ➡️ `Trunk`. Promotion to `Main` occurs every 2 weeks before the Sprint.
+
+---
+
+## 6. Commitment to the Presentation (Group 4)
+The success of the presentation depends on Wednesday’s stability:
+
+* **Availability:** On Wednesday afternoon/evening, task owners must stay alert on WhatsApp to resolve Group 4 questions about feature behavior.
+* **Hotfixes:** If Group 4 detects a critical bug while preparing the presentation, they must urgently notify the responsible subgroup for an immediate fix.
+* **Transparency:** If an Issue will not be ready by Wednesday at 18:00, the owner must warn their subgroup in advance so Group 4 can adjust the presentation content.
+
+---
+
+## 7. Responsibilities of the Scrum Masters
+* **Monitoring:** Ensure no one remains blocked for more than 4 hours without receiving a response.
+* **Mediation:** Resolve complex merge conflicts that the subgroup cannot handle.
+* **Quality Control:** Ensure comments on blocked Issues are clear for review in the post-class meeting.
+
+## 8. Plan to Improve Communication Flow and Effectiveness
+
+In response to stakeholder feedback, this plan aims to ensure information flows without interruption and that there are clear metrics to evaluate our coordination.
+
+### 8.1. Strategies to Improve Flow
+* **Inter-group synchronization:** The **4 Scrum Masters** will post a summary of the progress of their respective subgroups in the **General Group** every Tuesday at 20:00. This ensures a global view before Wednesday’s closure.
+* **Commitment to availability and delivery:** Once Issues are assigned on **Saturday at noon**, each member must communicate in their subgroup WhatsApp the estimated deadline for completing their task. This allows bottlenecks to be detected from the start of the cycle.
+* **Record decisions on GitHub:** Any technical decision made on WhatsApp that affects development must be recorded as a comment on the corresponding Issue. The project’s official source of truth is GitHub.
+
+### 8.2. Effectiveness Measurement Thresholds (KPIs)
+To measure whether communication is effective, we will evaluate the following indicators weekly:
+
+| Indicator (Metric) | Success Threshold | Measurement Method |
+| :--- | :--- | :--- |
+| **Delivery Commitment** | 100% of members | After the Saturday meeting, everyone must have provided an estimated completion date in their subgroup. |
+| **GitHub/Clockify Consistency** | 100% | All Clockify hours must match an active Issue with a clear description. |
+| **Blocker Resolution** | < 24 hours | Time from when an Issue is marked "Blocked" until a solution or progress is recorded. |
+| **Presentation Alignment** | 0 critical incidents | Group 4 confirms on Thursdays that there was no missing information for the demo. |
+
+### 8.3. Corrective Actions
+If success thresholds fall below 80% in any of the above points (except those with mandatory 100% compliance):
+1. The Scrum Masters will analyze whether the problem is subgroup-related or caused by a lack of tools.
+2. An "Emergency Retrospective" will be held on Saturday to adjust the flow and prevent the issue from repeating in the next cycle.
