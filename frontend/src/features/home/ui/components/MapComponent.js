@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -15,6 +15,8 @@ import { CountdownText } from './CountdownText';
 import { calculateDistanceInKm } from '../../../../shared/utils/helpers';
 import Toast from 'react-native-toast-message';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import apiClient from '../../../../shared/services/http/apiClient';
+import ConfirmationModal from '../../../../shared/components/ConfirmationModal';
 
 // Para web: importar Leaflet y CSS
 let MapContainer, TileLayer, Marker, Popup;
@@ -204,9 +206,29 @@ const formatDateTime = (value) => {
     return date.toLocaleString();
 };
 
+const isEventStillVisible = (event, nowTs) => {
+    if (!event || event.active === false) {
+        return false;
+    }
+
+    if (!event.endsAt) {
+        return true;
+    }
+
+    const endsAtTs = new Date(event.endsAt).getTime();
+    if (!Number.isFinite(endsAtTs)) {
+        return true;
+    }
+
+    return endsAtTs > nowTs;
+};
+
 export default function MapComponent({
     questions = [],
     events = [],
+    canAttendEvents = false,
+    onEventAttendanceUpdate,
+    eventNavigationTarget = null,
     onQuestionPress,
     onLocationChange,
     onPermissionChange,
@@ -219,8 +241,41 @@ export default function MapComponent({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [publishing, setPublishing] = useState(false);
+    const [togglingEventId, setTogglingEventId] = useState(null);
+    const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+    const [pendingLeaveEvent, setPendingLeaveEvent] = useState(null);
+    const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
     const mapRef = useRef(null);
     const [visibleQuestions, setVisibleQuestions] = useState([]);
+
+    const visibleEvents = useMemo(() => {
+        const source = Array.isArray(events) ? events : [];
+        return source.filter((event) => isEventStillVisible(event, eventsNowTs));
+    }, [events, eventsNowTs]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setEventsNowTs(Date.now());
+        }, 30000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') {
+            return;
+        }
+
+        const map = mapRef.current;
+        if (!map || !eventNavigationTarget || !Number.isFinite(eventNavigationTarget.lat) || !Number.isFinite(eventNavigationTarget.lng)) {
+            return;
+        }
+
+        if (typeof map.setView === 'function') {
+            map.setView([eventNavigationTarget.lat, eventNavigationTarget.lng], 16, { animate: true });
+        }
+    }, [eventNavigationTarget]);
+
     const userLocationIcon = useMemo(() => {
         if (!L) return undefined;
         return L.divIcon({
@@ -389,6 +444,57 @@ export default function MapComponent({
         }
     };
 
+    const performToggleAttendance = useCallback(async (eventItem) => {
+        if (!eventItem?.id) {
+            return;
+        }
+
+        setTogglingEventId(eventItem.id);
+        try {
+            const response = await apiClient.post(`/api/v1/events/${eventItem.id}/attendance`);
+            const updatedEvent = response?.data;
+            if (updatedEvent?.id) {
+                onEventAttendanceUpdate?.(updatedEvent);
+            }
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                error?.response?.data?.message || 'Could not update your attendance.'
+            );
+        } finally {
+            setTogglingEventId(null);
+        }
+    }, [onEventAttendanceUpdate]);
+
+    const handleToggleAttendance = useCallback((eventItem) => {
+        if (!eventItem?.id) {
+            return;
+        }
+
+        if (eventItem?.myAttendance === true) {
+            setPendingLeaveEvent(eventItem);
+            setLeaveConfirmVisible(true);
+            return;
+        }
+
+        performToggleAttendance(eventItem);
+    }, [performToggleAttendance]);
+
+    const handleCancelLeave = useCallback(() => {
+        setLeaveConfirmVisible(false);
+        setPendingLeaveEvent(null);
+    }, []);
+
+    const handleConfirmLeave = useCallback(() => {
+        const eventToLeave = pendingLeaveEvent;
+        setLeaveConfirmVisible(false);
+        setPendingLeaveEvent(null);
+
+        if (eventToLeave) {
+            performToggleAttendance(eventToLeave);
+        }
+    }, [pendingLeaveEvent, performToggleAttendance]);
+
     if (loading) {
         return (
             <View style={styles.container}>
@@ -429,14 +535,15 @@ export default function MapComponent({
         }
 
         return (
-            <div style={webStyles.container}>
-                {/* Mapa */}
-                <MapContainer
-                    center={[location.latitude, location.longitude]}
-                    zoom={15}
-                    ref={mapRef}
-                    style={webStyles.map}
-                >
+            <>
+                <div style={webStyles.container}>
+                    {/* Mapa */}
+                    <MapContainer
+                        center={[location.latitude, location.longitude]}
+                        zoom={15}
+                        ref={mapRef}
+                        style={webStyles.map}
+                    >
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -523,12 +630,17 @@ export default function MapComponent({
                     })}
 
                     {/* Event markers */}
-                    {(Array.isArray(events) ? events : []).map((event) => {
+                    {visibleEvents.map((event) => {
                         const coords = getEventCoords(event);
                         if (!coords) return null;
 
                         const startsAt = formatDateTime(event.startsAt);
                         const endsAt = formatDateTime(event.endsAt);
+                        const attendeeCount = Number.isFinite(Number(event?.attendeeCount))
+                            ? Number(event.attendeeCount)
+                            : 0;
+                        const isAttending = event?.myAttendance === true;
+                        const isToggling = togglingEventId === event.id;
 
                         return (
                             <Marker
@@ -566,6 +678,37 @@ export default function MapComponent({
                                                 <br />
                                             </>
                                         )}
+                                        <span style={{ fontWeight: 700, color: '#111827' }}>
+                                            Attendees: {attendeeCount}
+                                        </span>
+                                        <br />
+                                        {canAttendEvents && (
+                                            <>
+                                                <span style={{ opacity: 0.85 }}>
+                                                    {isAttending ? 'You are going' : 'Not attending yet'}
+                                                </span>
+                                                <br />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleAttendance(event)}
+                                                disabled={isToggling}
+                                                style={{
+                                                    marginTop: '8px',
+                                                    width: '100%',
+                                                    border: 'none',
+                                                    borderRadius: '10px',
+                                                    padding: '10px 12px',
+                                                    backgroundColor: isAttending ? '#b91c1c' : '#0f766e',
+                                                    color: '#ffffff',
+                                                    fontWeight: 700,
+                                                    cursor: isToggling ? 'wait' : 'pointer',
+                                                    opacity: isToggling ? 0.75 : 1,
+                                                }}
+                                            >
+                                                {isToggling ? 'Updating...' : (isAttending ? 'Leave event' : 'Join event')}
+                                            </button>
+                                            </>
+                                        )}
                                         <span style={{ opacity: 0.8 }}>
                                             {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
                                         </span>
@@ -594,15 +737,28 @@ export default function MapComponent({
                                 </Popup>
                             </Marker>
                         ))}
-                </MapContainer>
-            </div>
+                    </MapContainer>
+                </div>
+
+                <ConfirmationModal
+                    visible={leaveConfirmVisible}
+                    title="Leave event"
+                    message="Are you sure you want to stop attending this event?"
+                    confirmText="Yes, leave"
+                    cancelText="Cancel"
+                    onConfirm={handleConfirmLeave}
+                    onCancel={handleCancelLeave}
+                    confirmButtonColor="danger"
+                />
+            </>
         );
     }
 
     // Fallback: Versión simple para móvil o si Leaflet no está disponible
     return (
-        <ScrollView style={styles.webContainer}>
-            <View style={styles.webContent}>
+        <>
+            <ScrollView style={styles.webContainer}>
+                <View style={styles.webContent}>
                 <Text style={styles.webTitle}>📍 Your location</Text>
                 <View style={styles.locationCard}>
                     <Text style={styles.locationText}>Latitude: {location.latitude.toFixed(6)}</Text>
@@ -640,8 +796,20 @@ export default function MapComponent({
                         </View>
                     ))
                 )}
-            </View>
-        </ScrollView>
+                </View>
+            </ScrollView>
+
+            <ConfirmationModal
+                visible={leaveConfirmVisible}
+                title="Leave event"
+                message="Are you sure you want to stop attending this event?"
+                confirmText="Yes, leave"
+                cancelText="Cancel"
+                onConfirm={handleConfirmLeave}
+                onCancel={handleCancelLeave}
+                confirmButtonColor="danger"
+            />
+        </>
     );
 }
 

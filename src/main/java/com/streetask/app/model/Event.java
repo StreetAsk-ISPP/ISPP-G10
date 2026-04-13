@@ -12,6 +12,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -51,6 +52,9 @@ public class Event extends BaseEntity {
 
     @PositiveOrZero(message = "Attendee count must be zero or positive")
     private Integer attendeeCount;
+
+    @Transient
+    private Boolean myAttendance;
 
     private Boolean active;
 
