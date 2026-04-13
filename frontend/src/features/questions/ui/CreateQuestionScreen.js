@@ -71,8 +71,10 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const eventId = route?.params?.eventId || eventData?.id || null;
   const eventTitle = route?.params?.eventTitle || eventData?.title || null;
   const eventLoc = eventData?.location ?? null;
-  const eventLat = Number(eventLoc?.latitude ?? eventData?.latitude);
-  const eventLng = Number(eventLoc?.longitude ?? eventData?.longitude);
+  const eventLat = Number(eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat);
+  const eventLng = Number(
+    eventLoc?.longitude ?? eventLoc?.lng ?? eventLoc?.lon ?? eventLoc?.x ?? eventData?.longitude ?? eventData?.lng
+  );
   const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
   const [place, setPlace] = useState('');
