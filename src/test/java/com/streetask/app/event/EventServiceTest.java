@@ -31,15 +31,14 @@ import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
-import com.streetask.app.event.EventAttendeeSummary;
-import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.Event;
+import com.streetask.app.model.EventAttendance;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EventService Unit Tests")
-class EventServiceTest {
+class EventServiceUnitTest {
 
     @Mock
     private EventRepository eventRepository;

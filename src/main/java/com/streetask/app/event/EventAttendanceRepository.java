@@ -27,4 +27,7 @@ public interface EventAttendanceRepository extends CrudRepository<EventAttendanc
     @Modifying
     @Query("delete from EventAttendance ea where ea.event.id = :eventId")
     void deleteByEventId(@Param("eventId") UUID eventId);
+    
+    @Query("select ea from EventAttendance ea where ea.event.id = :eventId")
+    List<EventAttendance> findByEventId(@Param("eventId") UUID eventId);
 }

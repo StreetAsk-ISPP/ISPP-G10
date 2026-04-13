@@ -2,30 +2,30 @@ package com.streetask.app.event;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
-import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.Event;
+import com.streetask.app.model.EventAttendance;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
-import com.streetask.app.business.BusinessAccount;
-
-import jakarta.validation.Valid;
 
 @Service
 public class EventService {
@@ -96,8 +96,7 @@ public class EventService {
         }
 
         BeanUtils.copyProperties(event, toUpdate, "id", "creator", "createdAt", "updatedAt", "attendeeCount",
-                "questions",
-                "attendances");
+                "questions", "attendances");
         applyDefaultsOnUpdate(toUpdate);
         eventRepository.save(toUpdate);
         applyViewerAttendanceState(toUpdate);

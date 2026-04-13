@@ -24,6 +24,8 @@ import EditProfileScreen from '../../features/profile/EditProfileScreen';
 import BalanceScreen from '../../features/profile/BalanceScreen';
 import MyPurchasesScreen from '../../features/profile/MyPurchasesScreen';
 import SettingsScreen from '../../features/profile/SettingsScreen';
+import EventListScreen from '../../features/events/EventListScreen';
+import EventDetailsScreen from '../../features/events/EventDetailsScreen';
 import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
 import apiClient from '../../shared/services/http/apiClient';
@@ -213,6 +215,8 @@ export default function AppNavigator() {
         );
     }
 
+    const isAdmin = user?.roles?.includes('ADMIN');
+
     return (
         <Stack.Navigator
             key={`app-stack-${isAuthenticated ? 'auth' : 'guest'}-${navigationResetVersion}`}
@@ -229,7 +233,7 @@ export default function AppNavigator() {
             ) : (
                 <>
                     {
-                        user?.roles?.includes('ADMIN') ? (
+                        isAdmin ? (
                             <>
                                 <Stack.Screen name="AdminDashboard" component={AdminScreen} />
                                 <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
@@ -263,8 +267,11 @@ export default function AppNavigator() {
                             </>
                         )
                     }
+                    <Stack.Screen name="EventList" component={EventListScreen} />
+                    <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
                 </>
             )}
+
         </Stack.Navigator>
     );
 }
