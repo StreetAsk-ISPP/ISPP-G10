@@ -13,6 +13,8 @@ public interface QuestionRepository extends CrudRepository<Question, UUID> {
 
 	Iterable<Question> findByEventId(UUID eventId);
 
+	Iterable<Question> findByEventIdOrderByCreatedAtAsc(UUID eventId);
+
 	Iterable<Question> findByActive(Boolean active);
 
 	Iterable<Question> findByCreatorIdAndActive(UUID creatorId, Boolean active);

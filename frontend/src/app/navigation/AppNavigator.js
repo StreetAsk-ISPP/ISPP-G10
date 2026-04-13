@@ -266,7 +266,15 @@ export default function AppNavigator() {
                             </>
                         )
                     }
-                    <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+                    <Stack.Screen
+                        name="EventDetails"
+                        component={EventDetailsScreen}
+                        options={{
+                            presentation: 'transparentModal',
+                            animation: 'fade',
+                            contentStyle: { backgroundColor: 'transparent' },
+                        }}
+                    />
                 </>
             )}
 

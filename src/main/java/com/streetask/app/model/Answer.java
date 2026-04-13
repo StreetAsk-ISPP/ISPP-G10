@@ -7,7 +7,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -36,7 +36,7 @@ public class Answer extends BaseEntity {
     @JoinColumn(name = "user_id")
     @JsonIgnoreProperties({ "password", "authority", "questions", "answers", "eventAttendances", "notifications",
             "coinTransactions", "reports", "reputation", "active", "createdAt", "lastLogin" })
-    private RegularUser user;
+    private User user;
 
     @NotBlank(message = "Answer content is required")
     private String content;

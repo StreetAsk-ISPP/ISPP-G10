@@ -38,13 +38,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent;
 import com.streetask.app.model.Answer;
+import com.streetask.app.model.Event;
 import com.streetask.app.model.AnswerVote;
 import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.enums.VoteType;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
+import com.streetask.app.user.UserRepository;
 
 class AnswerServiceTest {
 
@@ -56,6 +59,9 @@ class AnswerServiceTest {
 
     @Mock
     private RegularUserRepository regularUserRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -94,9 +100,9 @@ class AnswerServiceTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
-        when(regularUserRepository.findByEmail(authenticatedUser.getEmail()))
+        when(userRepository.findByEmailIgnoreCase(authenticatedUser.getEmail()))
                 .thenReturn(Optional.of(authenticatedUser));
-        when(regularUserRepository.findByUserNameIgnoreCase(authenticatedUser.getEmail()))
+        when(userRepository.findByUserNameIgnoreCase(authenticatedUser.getEmail()))
                 .thenReturn(Optional.empty());
 
         answerOwner = new RegularUser();
@@ -177,9 +183,62 @@ class AnswerServiceTest {
         Answer savedAnswer = answerService.saveAnswer(answer, question);
 
         assertEquals(0, savedAnswer.getCoinsEarned());
+        assertEquals(false, savedAnswer.getIsVerified());
+        assertEquals(null, savedAnswer.getVerifiedAt());
         assertEquals(5, authenticatedUser.getCoinBalance());
         verify(coinTransactionRepository, never()).save(any());
         verify(answerRepository, times(1)).save(answer);
+    }
+
+    @Test
+    void testSaveAnswerByEventCreatorSetsVerified() {
+        BusinessAccount eventCreator = new BusinessAccount();
+        eventCreator.setId(authenticatedUser.getId());
+
+        Event event = new Event();
+        event.setCreator(eventCreator);
+
+        question.setEvent(event);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertTrue(Boolean.TRUE.equals(savedAnswer.getIsVerified()));
+        assertNotNull(savedAnswer.getVerifiedAt());
+        verify(answerRepository, times(2)).save(answer);
+    }
+
+    @Test
+    void testBusinessOwnerCanAnswerOwnEventQuestionAndGetsVerified() {
+        BusinessAccount businessUser = new BusinessAccount();
+        businessUser.setId(UUID.randomUUID());
+        businessUser.setEmail("biz-owner@streetask.com");
+        businessUser.setUserName("bizowner");
+
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.getName()).thenReturn(businessUser.getEmail());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(userRepository.findByEmailIgnoreCase(businessUser.getEmail()))
+                .thenReturn(Optional.of(businessUser));
+        when(userRepository.findByUserNameIgnoreCase(businessUser.getEmail()))
+                .thenReturn(Optional.empty());
+
+        Event event = new Event();
+        event.setCreator(businessUser);
+        question.setEvent(event);
+
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertTrue(Boolean.TRUE.equals(savedAnswer.getIsVerified()));
+        assertNotNull(savedAnswer.getVerifiedAt());
+        assertTrue(savedAnswer.getUser() instanceof BusinessAccount);
+        verify(coinTransactionRepository, never()).save(any());
     }
 
     @Test

@@ -19,20 +19,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.model.Event;
+import com.streetask.app.model.Question;
+import com.streetask.app.question.QuestionService;
 import com.streetask.app.util.RestPreconditions;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/events")
 @SecurityRequirement(name = "bearerAuth")
 public class EventRestController {
 
+    private static final Logger logger = LoggerFactory.getLogger(EventRestController.class);
     private final EventService eventService;
+    private final QuestionService questionService;
 
     @Autowired
-    public EventRestController(EventService eventService) {
+    public EventRestController(EventService eventService, QuestionService questionService) {
         this.eventService = eventService;
+        this.questionService = questionService;
     }
 
     @GetMapping
@@ -61,6 +68,37 @@ public class EventRestController {
     @GetMapping(value = "{eventId}/attendees")
     public ResponseEntity<java.util.List<EventAttendeeSummary>> findAttendees(@PathVariable("eventId") UUID id) {
         return new ResponseEntity<>(eventService.findAttendees(id), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "{eventId}/questions")
+    public ResponseEntity<java.util.List<EventQuestionDto>> findQuestions(@PathVariable("eventId") UUID id) {
+        logger.info("[EventRestController.findQuestions] Fetching questions for eventId: {}", id);
+        Iterable<Question> questions = questionService.findByEvent(id);
+        java.util.List<Question> questionList = new java.util.ArrayList<>();
+        questions.forEach(questionList::add);
+        logger.info("[EventRestController.findQuestions] Returning {} questions for event: {}", questionList.size(),
+                id);
+
+        java.util.List<EventQuestionDto> payload = questionList.stream()
+                .map(question -> new EventQuestionDto(
+                        question.getId(),
+                        question.getTitle(),
+                        question.getContent(),
+                        question.getCreatedAt(),
+                        question.getCreator() != null ? question.getCreator().getId() : null,
+                        question.getCreator() != null ? question.getCreator().getUserName() : null))
+                .toList();
+
+        return new ResponseEntity<>(payload, HttpStatus.OK);
+    }
+
+    private record EventQuestionDto(
+            UUID id,
+            String title,
+            String content,
+            java.time.Instant createdAt,
+            UUID creatorId,
+            String creatorUserName) {
     }
 
     @PutMapping(value = "{eventId}")

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { APP_CONFIG } from '../../../app/config/config';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_STORAGE_KEY = 'auth_token';
 
@@ -10,15 +11,17 @@ const isWebEnvironment = () => {
 };
 
 // Helper to get token from storage (handles both native and web)
-const getStoredToken = () => {
+const getStoredToken = async () => {
   try {
     if (isWebEnvironment()) {
       // Use localStorage on web (synchronous)
       const token = window.localStorage?.getItem(TOKEN_STORAGE_KEY);
       return token;
     }
-    // Note: AsyncStorage is async, but we need sync access here
-    return null;
+
+    // Use AsyncStorage on native platforms
+    const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+    return token;
   } catch (error) {
     return null;
   }
@@ -32,9 +35,9 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor - synchronous approach
-apiClient.interceptors.request.use((config) => {
-  const token = getStoredToken();
+// Request interceptor
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getStoredToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

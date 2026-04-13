@@ -38,6 +38,7 @@ import com.streetask.app.model.Event;
 import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.enums.EventCategory;
+import com.streetask.app.question.QuestionService;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.UserRepository;
@@ -53,6 +54,9 @@ class EventRestControllerUnitTest {
 
     @MockitoBean
     private EventService eventService;
+
+    @MockitoBean
+    private QuestionService questionService;
 
     private UUID eventId;
     private UUID businessAccountId;

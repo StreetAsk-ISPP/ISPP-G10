@@ -133,12 +133,7 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public List<EventAttendeeSummary> findAttendees(UUID eventId) {
-        Event event = findEvent(eventId);
-        BusinessAccount authenticatedBusiness = getAuthenticatedBusinessUser();
-
-        if (!authenticatedBusiness.getId().equals(event.getCreator().getId())) {
-            throw new ResourceNotOwnedException(event);
-        }
+        findEvent(eventId);
 
         return eventAttendanceRepository.findAttendingByEventId(eventId).stream()
                 .map(attendance -> {
