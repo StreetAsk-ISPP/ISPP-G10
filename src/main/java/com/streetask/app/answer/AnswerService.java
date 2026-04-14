@@ -266,6 +266,10 @@ public class AnswerService {
 	 *                                  allowed radius
 	 */
 	private void validateAnswerLocation(Answer answer, Question question) {
+		// Event questions are scoped to the event, not a geographic radius.
+		if (question.getEvent() != null) {
+			return;
+		}
 		// Only validate location if question has a location and a positive radius
 		if (question.getLocation() == null || question.getRadiusKm() == null || question.getRadiusKm() <= 0) {
 			// No location validation required
