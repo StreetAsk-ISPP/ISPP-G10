@@ -38,7 +38,7 @@ import com.streetask.app.user.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EventService Unit Tests")
-class EventServiceUnitTest {
+class EventServiceTest {
 
     @Mock
     private EventRepository eventRepository;
