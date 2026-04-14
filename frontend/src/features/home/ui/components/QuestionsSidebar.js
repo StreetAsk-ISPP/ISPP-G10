@@ -55,6 +55,23 @@ const getEventCoords = (event) => {
     return { lat, lng };
 };
 
+const isEventStillVisible = (event, nowTs) => {
+    if (!event || event.active === false) {
+        return false;
+    }
+
+    if (!event.endsAt) {
+        return true;
+    }
+
+    const endsAtTs = new Date(event.endsAt).getTime();
+    if (!Number.isFinite(endsAtTs)) {
+        return true;
+    }
+
+    return endsAtTs > nowTs;
+};
+
 const PAGE_SIZE = 5;
 
 export default function QuestionsSidebar({
@@ -75,7 +92,16 @@ export default function QuestionsSidebar({
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [questionsPage, setQuestionsPage] = useState(1);
     const [eventsPage, setEventsPage] = useState(1);
+    const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
     const animValue = React.useRef(new Animated.Value(visible ? 0 : -300)).current;
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setEventsNowTs(Date.now());
+        }, 30000);
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     // Filtrar preguntas que están en el viewport y ordenarlas por distancia
     useEffect(() => {
@@ -113,6 +139,7 @@ export default function QuestionsSidebar({
         }
 
         const sortedEvents = events
+            .filter((event) => isEventStillVisible(event, eventsNowTs))
             .map((event) => {
                 const coords = getEventCoords(event);
                 if (!coords) return { ...event, distance: null };
@@ -134,7 +161,7 @@ export default function QuestionsSidebar({
             });
 
         setFilteredEvents(sortedEvents);
-    }, [events, mapCenter]);
+    }, [events, mapCenter, eventsNowTs]);
 
     useEffect(() => {
         setQuestionsPage(1);

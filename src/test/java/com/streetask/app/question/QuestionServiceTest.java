@@ -34,6 +34,7 @@ import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.UpperPlanFeatureException;
 import com.streetask.app.functionalities.notifications.events.QuestionCreatedEvent;
 import com.streetask.app.event.EventRepository;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
@@ -59,6 +60,9 @@ class QuestionServiceTest {
 
 	@Mock
 	private EventRepository eventRepository;
+
+	@Mock
+	private CoinTransactionRepository coinTransactionRepository;
 
 	@Mock
 	private ApplicationEventPublisher eventPublisher;
@@ -93,6 +97,8 @@ class QuestionServiceTest {
 		SecurityContextHolder.setContext(securityContext);
 		lenient().when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(testCreator));
 		lenient().when(userRepository.findByUserNameIgnoreCase(TEST_EMAIL)).thenReturn(Optional.empty());
+		lenient().when(regularUserRepository.findByIdForUpdate(testCreator.getId()))
+				.thenReturn(Optional.of(testCreator));
 	}
 
 	@AfterEach
@@ -815,7 +821,7 @@ class QuestionServiceTest {
 
 		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
 				.isInstanceOf(UpperPlanFeatureException.class)
-				.hasMessageContaining("maximum of 3 questions per day in the same event");
+				.hasMessageContaining("confirm spending 1 StreetCoin");
 
 		verify(questionRepository, never()).save(any(Question.class));
 	}
@@ -871,10 +877,68 @@ class QuestionServiceTest {
 		// Act & Assert
 		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion))
 				.isInstanceOf(UpperPlanFeatureException.class)
-				.hasMessageContaining("Free plan users can only create up to 3 questions");
+				.hasMessageContaining("confirm spending 1 StreetCoin");
 
 		verify(questionRepository, never()).save(any(Question.class));
 		verify(eventPublisher, never()).publishEvent(any());
+	}
+
+	@Test
+	void saveQuestion_shouldSpendOneStreetCoinWhenFreeUserConfirmsOverLimitQuestion() {
+		testCreator.setPremiumActive(false);
+		testCreator.setCoinBalance(3);
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minus(2, ChronoUnit.HOURS));
+		Question question3 = new Question();
+		question3.setCreatedAt(now.minus(3, ChronoUnit.HOURS));
+
+		when(questionRepository.findByCreatorId(userId)).thenReturn(Arrays.asList(question1, question2, question3));
+		when(regularUserRepository.findByIdForUpdate(userId)).thenReturn(Optional.of(testCreator));
+		when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Extra question");
+		newQuestion.setContent("Consumes one coin");
+
+		Question saved = questionService.saveQuestion(newQuestion, true);
+
+		assertThat(saved).isNotNull();
+		assertThat(testCreator.getCoinBalance()).isEqualTo(2);
+		verify(coinTransactionRepository, times(1)).save(any());
+		verify(questionRepository, times(1)).save(newQuestion);
+	}
+
+	@Test
+	void saveQuestion_shouldRejectOverLimitQuestionWhenNoStreetCoinsAvailable() {
+		testCreator.setPremiumActive(false);
+		testCreator.setCoinBalance(0);
+		UUID userId = testCreator.getId();
+		Instant now = Instant.now();
+
+		Question question1 = new Question();
+		question1.setCreatedAt(now.minus(1, ChronoUnit.HOURS));
+		Question question2 = new Question();
+		question2.setCreatedAt(now.minus(2, ChronoUnit.HOURS));
+		Question question3 = new Question();
+		question3.setCreatedAt(now.minus(3, ChronoUnit.HOURS));
+
+		when(questionRepository.findByCreatorId(userId)).thenReturn(Arrays.asList(question1, question2, question3));
+		when(regularUserRepository.findByIdForUpdate(userId)).thenReturn(Optional.of(testCreator));
+
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Extra question");
+		newQuestion.setContent("Should fail due to balance");
+
+		assertThatThrownBy(() -> questionService.saveQuestion(newQuestion, true))
+				.isInstanceOf(UpperPlanFeatureException.class)
+				.hasMessageContaining("at least 1 StreetCoin");
+
+		verify(questionRepository, never()).save(any(Question.class));
 	}
 
 	@Test

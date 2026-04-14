@@ -71,8 +71,10 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const eventId = route?.params?.eventId || eventData?.id || null;
   const eventTitle = route?.params?.eventTitle || eventData?.title || null;
   const eventLoc = eventData?.location ?? null;
-  const eventLat = Number(eventLoc?.latitude ?? eventData?.latitude);
-  const eventLng = Number(eventLoc?.longitude ?? eventData?.longitude);
+  const eventLat = Number(eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat);
+  const eventLng = Number(
+    eventLoc?.longitude ?? eventLoc?.lng ?? eventLoc?.lon ?? eventLoc?.x ?? eventData?.longitude ?? eventData?.lng
+  );
   const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
   const [place, setPlace] = useState('');
@@ -99,6 +101,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const [adSecondsLeft, setAdSecondsLeft] = useState(FAKE_AD_DURATION_SECONDS);
   const [queuedPayload, setQueuedPayload] = useState(null);
   const [canSkipAd, setCanSkipAd] = useState(false);
+  const [showStreetCoinConsentModal, setShowStreetCoinConsentModal] = useState(false);
+  const [streetCoinConsentPayload, setStreetCoinConsentPayload] = useState(null);
+  const [streetCoinBalance, setStreetCoinBalance] = useState(null);
 
   const getCurrentPositionWeb = useCallback(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -242,6 +247,36 @@ export default function CreateQuestionScreen({ navigation, route }) {
   useEffect(() => {
     let isMounted = true;
 
+    const loadStreetCoinBalance = async () => {
+      const mustSpendStreetCoin = !isPremium && todayQuestionCount >= 3;
+      if (!mustSpendStreetCoin) {
+        if (isMounted) {
+          setStreetCoinBalance(null);
+        }
+        return;
+      }
+
+      try {
+        const response = await apiClient.get('/api/v1/streetcoins/balance');
+        if (!isMounted) return;
+        const balance = Number(response?.data?.balance ?? 0);
+        setStreetCoinBalance(Number.isFinite(balance) ? balance : 0);
+      } catch {
+        if (isMounted) {
+          setStreetCoinBalance(0);
+        }
+      }
+    };
+
+    loadStreetCoinBalance();
+    return () => {
+      isMounted = false;
+    };
+  }, [isPremium, todayQuestionCount]);
+
+  useEffect(() => {
+    let isMounted = true;
+
     const preloadCurrentLocation = async () => {
       if (eventId) {
         return;
@@ -308,6 +343,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
   const dailyLimitReached = eventId ? todayQuestionCount >= 3 : (!isPremium && todayQuestionCount >= 3);
+  const requiresStreetCoinSpend = !isPremium && todayQuestionCount >= 3;
+  const hasZeroStreetCoins = requiresStreetCoinSpend && streetCoinBalance === 0;
 
   const canPost = useMemo(
     () =>
@@ -315,10 +352,46 @@ export default function CreateQuestionScreen({ navigation, route }) {
       content.trim() &&
       premiumRadiusValid &&
       premiumHoursValid &&
-      !isSubmitting &&
-      !dailyLimitReached,
-    [title, content, premiumRadiusValid, premiumHoursValid, isSubmitting, dailyLimitReached]
+      !hasZeroStreetCoins &&
+      !isSubmitting,
+    [title, content, premiumRadiusValid, premiumHoursValid, hasZeroStreetCoins, isSubmitting]
   );
+
+  const proceedWithStreetCoinConsent = useCallback((payload) => {
+    const payloadWithConsent = {
+      ...payload,
+      confirmStreetCoinSpend: true,
+    };
+
+    if (!isPremium) {
+      setQueuedPayload(payloadWithConsent);
+      setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+      setShowFakeAd(true);
+      return;
+    }
+
+    submitQuestion(payloadWithConsent);
+  }, [isPremium, submitQuestion]);
+
+  const showStreetCoinConsentDialog = useCallback((payload) => {
+    setStreetCoinConsentPayload(payload);
+    setShowStreetCoinConsentModal(true);
+  }, []);
+
+  const cancelStreetCoinConsent = useCallback(() => {
+    setShowStreetCoinConsentModal(false);
+    setStreetCoinConsentPayload(null);
+  }, []);
+
+  const confirmStreetCoinConsent = useCallback(() => {
+    if (!streetCoinConsentPayload) {
+      return;
+    }
+    const payload = streetCoinConsentPayload;
+    setShowStreetCoinConsentModal(false);
+    setStreetCoinConsentPayload(null);
+    proceedWithStreetCoinConsent(payload);
+  }, [streetCoinConsentPayload, proceedWithStreetCoinConsent]);
 
   const searchAddress = async () => {
     if (eventId) {
@@ -507,6 +580,39 @@ export default function CreateQuestionScreen({ navigation, route }) {
       expiresAt: addHoursISO(finalHours),
       location: { latitude: finalLatitude, longitude: finalLongitude },
     };
+
+    if (eventId) {
+      payload.event = { id: eventId };
+    }
+
+    if (requiresStreetCoinSpend) {
+      try {
+        const balanceResponse = await apiClient.get('/api/v1/streetcoins/balance');
+        const balance = Number(balanceResponse?.data?.balance ?? 0);
+        setStreetCoinBalance(balance);
+
+        if (balance < 1) {
+          Toast.show({
+            type: 'error',
+            text1: 'Insufficient StreetCoins',
+            text2: 'You need at least 1 StreetCoin to post an extra question.',
+            position: 'top',
+          });
+          openStreetCoinsShop();
+          return;
+        }
+
+        showStreetCoinConsentDialog(payload);
+      } catch (e) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: e.response?.data?.message || e.message,
+          position: 'top',
+        });
+      }
+      return;
+    }
 
 
     if (!isPremium) {
@@ -836,19 +942,22 @@ export default function CreateQuestionScreen({ navigation, route }) {
                   <Text style={styles.dailyLimitTitle}>Daily limit reached</Text>
                   <Text style={styles.dailyLimitText}>
                     {eventId
-                      ? 'You can create a maximum of 3 questions per day inside this event.'
-                      : 'You can create a maximum of 3 questions per day. You can add more by using the coins you gain while answering questions, or by upgrading to the premium plan.'}
+                      ? 'You reached your 3 free questions in this event. You can continue by spending 1 StreetCoin per extra question.'
+                      : 'You reached your 3 free questions today. You can continue by spending 1 StreetCoin per extra question, or upgrade to premium.'}
                   </Text>
+                  {hasZeroStreetCoins ? (
+                    <Text style={styles.dailyLimitNoCoinsText}>
+                      You have 0 StreetCoins. Use Shop to continue.
+                    </Text>
+                  ) : null}
                 </View>
-                {!eventId ? (
-                  <TouchableOpacity
-                    style={styles.shopBtn}
-                    onPress={openStreetCoinsShop}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.shopBtnText}>Shop</Text>
-                  </TouchableOpacity>
-                ) : null}
+                <TouchableOpacity
+                  style={styles.shopBtn}
+                  onPress={openStreetCoinsShop}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.shopBtnText}>Shop</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -875,6 +984,48 @@ export default function CreateQuestionScreen({ navigation, route }) {
           </View>
         </ScrollView>
       </View>
+      <Modal
+        visible={showStreetCoinConsentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelStreetCoinConsent}
+      >
+        <View style={styles.consentOverlay}>
+          <View style={styles.consentCard}>
+            <View style={styles.consentIconWrap}>
+              <Ionicons name="cash-outline" size={20} color="#a52019" />
+            </View>
+            <Text style={styles.consentTitle}>Spend 1 StreetCoin?</Text>
+            <Text style={styles.consentText}>
+              {eventId
+                ? 'You already reached today\'s free limit in this event. Confirm to spend 1 StreetCoin and publish this question.'
+                : 'You already reached today\'s free limit. Confirm to spend 1 StreetCoin and publish this question.'}
+            </Text>
+            {typeof streetCoinBalance === 'number' ? (
+              <Text style={styles.consentBalanceText}>
+                Current balance: {streetCoinBalance} StreetCoins{`\n`}
+                After this question: {Math.max(0, streetCoinBalance - 1)} StreetCoins
+              </Text>
+            ) : null}
+            <View style={styles.consentActions}>
+              <TouchableOpacity
+                style={styles.consentCancelBtn}
+                onPress={cancelStreetCoinConsent}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.consentCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.consentConfirmBtn}
+                onPress={confirmStreetCoinConsent}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.consentConfirmText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => { }}>
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
@@ -901,6 +1052,85 @@ export default function CreateQuestionScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f3f4f6' },
+  consentOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17,24,39,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  consentCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  consentIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  consentTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1f2937',
+  },
+  consentText: {
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4b5563',
+  },
+  consentBalanceText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#a52019',
+    fontWeight: '700',
+  },
+  consentActions: {
+    marginTop: 18,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  consentCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: '#fff',
+  },
+  consentCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  consentConfirmBtn: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    backgroundColor: '#a52019',
+  },
+  consentConfirmText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
   adOverlay: {
     flex: 1,
     backgroundColor: 'rgba(17,24,39,0.72)',
@@ -1284,6 +1514,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#991b1b',
     lineHeight: 16,
+  },
+  dailyLimitNoCoinsText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#991b1b',
+    fontWeight: '700',
   },
   shopBtn: {
     backgroundColor: '#dc2626',

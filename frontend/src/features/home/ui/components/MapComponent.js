@@ -187,11 +187,13 @@ const getQuestionCoords = (q) => {
 
 const getEventCoords = (event) => {
     const loc = event?.location ?? {};
-    const lat = toNum(loc.latitude) ?? toNum(loc.lat) ?? toNum(event?.latitude) ?? toNum(event?.lat);
+    const lat =
+        toNum(loc.latitude) ?? toNum(loc.lat) ?? toNum(loc.y) ?? toNum(event?.latitude) ?? toNum(event?.lat);
     const lng =
         toNum(loc.longitude) ??
         toNum(loc.lng) ??
         toNum(loc.lon) ??
+        toNum(loc.x) ??
         toNum(event?.longitude) ??
         toNum(event?.lng);
 
@@ -572,7 +574,7 @@ export default function MapComponent({
                         </Marker>
 
                         {/* Question Markers */}
-                        {(Array.isArray(visibleQuestions) ? visibleQuestions.filter(q => !q.event) : []).map((q) => {
+                        {(Array.isArray(visibleQuestions) ? visibleQuestions : []).map((q) => {
                             const coords = getQuestionCoords(q);
                             if (!coords) return null;
                             const radiusKm = toNum(q?.radiusKm);
