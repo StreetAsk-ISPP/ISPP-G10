@@ -9,7 +9,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../app/providers/AuthProvider';
 import apiClient from '../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
-import { withCheckoutReturnHeader } from '../../shared/services/payments/checkoutReturnUrl';
+import {
+    getCurrentWebPathWithSearchAndHash,
+    withCheckoutReturnHeader,
+} from '../../shared/services/payments/checkoutReturnUrl';
 
 export default function BalanceScreen({ navigation, route }) {
     const { user } = useAuth();
@@ -106,6 +109,7 @@ export default function BalanceScreen({ navigation, route }) {
             }
 
             if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                const returnTo = getCurrentWebPathWithSearchAndHash();
                 window.localStorage.setItem(
                     STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT,
                     JSON.stringify({
@@ -113,6 +117,7 @@ export default function BalanceScreen({ navigation, route }) {
                         sessionId: response?.data?.sessionId,
                         streetCoins: response?.data?.streetCoins,
                         checkoutOrigin: route?.params?.checkoutOrigin || 'balance',
+                        returnTo: returnTo || '/',
                     })
                 );
                 window.location.assign(checkoutUrl);

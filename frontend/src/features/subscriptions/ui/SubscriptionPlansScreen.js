@@ -15,7 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
-import { withCheckoutReturnHeader } from '../../../shared/services/payments/checkoutReturnUrl';
+import {
+    getCurrentWebPathWithSearchAndHash,
+    withCheckoutReturnHeader,
+} from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function SubscriptionPlansScreen({ navigation }) {
     const { user } = useAuth();
@@ -105,11 +108,13 @@ export default function SubscriptionPlansScreen({ navigation }) {
                 }
 
                 if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    const returnTo = getCurrentWebPathWithSearchAndHash();
                     window.localStorage.setItem(
                         STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT,
                         JSON.stringify({
                             sessionId: checkoutSessionId || null,
                             createdAt: Date.now(),
+                            returnTo: returnTo || '/',
                         })
                     );
                     redirectedToStripeWeb = true;

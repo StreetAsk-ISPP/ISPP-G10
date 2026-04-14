@@ -5,7 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
-import { withCheckoutReturnHeader } from '../../../shared/services/payments/checkoutReturnUrl';
+import {
+    getCurrentWebPathWithSearchAndHash,
+    withCheckoutReturnHeader,
+} from '../../../shared/services/payments/checkoutReturnUrl';
 
 const STATUS_CONFIG = {
     PENDING: {
@@ -76,11 +79,13 @@ export default function BusinessVerificationStatusScreen() {
             }
 
             if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                const returnTo = getCurrentWebPathWithSearchAndHash();
                 window.localStorage.setItem(
                     STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT,
                     JSON.stringify({
                         sessionId: checkoutSessionId || null,
                         createdAt: Date.now(),
+                        returnTo: returnTo || '/',
                     })
                 );
                 window.location.assign(checkoutUrl);

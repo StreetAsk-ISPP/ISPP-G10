@@ -8,7 +8,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
-import { withCheckoutReturnHeader } from '../../../shared/services/payments/checkoutReturnUrl';
+import {
+	getCurrentWebPathWithSearchAndHash,
+	withCheckoutReturnHeader,
+} from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function BusinessSignupScreen({ navigation, route }) {
 	const { email } = route.params;
@@ -82,11 +85,13 @@ export default function BusinessSignupScreen({ navigation, route }) {
 			}
 
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
+				const returnTo = getCurrentWebPathWithSearchAndHash();
 				window.localStorage.setItem(
 					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
 					JSON.stringify({
 						...pendingBusinessSignup,
 						sessionId: checkoutSessionId || null,
+						returnTo: returnTo || '/',
 					})
 				);
 				window.location.assign(checkoutUrl);

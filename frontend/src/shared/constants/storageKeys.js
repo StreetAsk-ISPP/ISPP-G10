@@ -29,6 +29,9 @@ export const STORAGE_KEYS = {
     // Marca de checkout pendiente para upgrade premium
     PENDING_REGULAR_PREMIUM_CHECKOUT: 'streetask.pendingRegularPremiumCheckout',
 
+    // Aviso efímero para mostrar resultado de callback de checkout
+    CHECKOUT_CALLBACK_NOTICE: 'streetask.checkoutCallbackNotice',
+
     // =========================
     // CACHE HOME (FEATURE)
     // =========================

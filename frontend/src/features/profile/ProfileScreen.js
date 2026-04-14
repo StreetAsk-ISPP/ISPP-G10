@@ -16,7 +16,10 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import ConfirmationModal from '../../shared/components/ConfirmationModal';
 import apiClient from '../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
-import { withCheckoutReturnHeader } from '../../shared/services/payments/checkoutReturnUrl';
+import {
+  getCurrentWebPathWithSearchAndHash,
+  withCheckoutReturnHeader,
+} from '../../shared/services/payments/checkoutReturnUrl';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -90,11 +93,13 @@ export default function ProfileScreen({ navigation }) {
       }
 
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const returnTo = getCurrentWebPathWithSearchAndHash();
         window.localStorage.setItem(
           STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT,
           JSON.stringify({
             sessionId: checkoutSessionId || null,
             createdAt: Date.now(),
+            returnTo: returnTo || '/',
           })
         );
         window.location.assign(checkoutUrl);

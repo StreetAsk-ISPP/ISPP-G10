@@ -15,6 +15,24 @@ export const getCheckoutReturnUrl = () => {
     return origin;
 };
 
+export const getCurrentWebPathWithSearchAndHash = () => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return null;
+    }
+
+    const pathname = typeof window.location?.pathname === 'string'
+        ? window.location.pathname
+        : '/';
+    const search = typeof window.location?.search === 'string'
+        ? window.location.search
+        : '';
+    const hash = typeof window.location?.hash === 'string'
+        ? window.location.hash
+        : '';
+
+    return `${pathname}${search}${hash}`;
+};
+
 export const withCheckoutReturnHeader = (requestConfig = {}) => {
     const checkoutReturnUrl = getCheckoutReturnUrl();
     if (!checkoutReturnUrl) {
