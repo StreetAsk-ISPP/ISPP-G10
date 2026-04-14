@@ -55,13 +55,11 @@ export default function EditProfileScreen({ navigation }) {
         profilePictureUrl: '',
     });
 
-    const [passwords, setPasswords] = useState({
-        newPassword: '',
-        confirmPassword: '',
-    });
-
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [savingPassword, setSavingPassword] = useState(false);
 
     const [feedback, setFeedback] = useState({
         visible: false,
@@ -129,6 +127,7 @@ export default function EditProfileScreen({ navigation }) {
                         bio: currentUser?.bio || '',
                         profilePictureUrl: currentUser?.profilePictureUrl || '',
                     });
+                    setPasswordForm({ newPassword: '', confirmPassword: '' });
                 } catch (error) {
                     if (!cancelled) showFeedback('Error', 'Your data could not be loaded.', 'error');
                 } finally { if (!cancelled) setLoading(false); }
@@ -142,8 +141,38 @@ export default function EditProfileScreen({ navigation }) {
         setForm(prev => ({ ...prev, [field]: value }));
     };
 
-    const updatePasswordField = (field, value) => {
-        setPasswords(prev => ({ ...prev, [field]: value }));
+    const openPasswordModal = () => {
+        setPasswordForm({ newPassword: '', confirmPassword: '' });
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+        setShowPasswordModal(true);
+    };
+
+    const handleSavePassword = async () => {
+        if (!passwordForm.newPassword.trim()) {
+            showFeedback('Validation', 'Password is required.', 'error'); return;
+        }
+        if (passwordForm.newPassword.length < PROFILE_LIMITS.passwordMin) {
+            showFeedback('Validation', `Password must be at least ${PROFILE_LIMITS.passwordMin} characters.`, 'error'); return;
+        }
+        if (passwordForm.newPassword.length > PROFILE_LIMITS.passwordMax) {
+            showFeedback('Validation', `Password cannot exceed ${PROFILE_LIMITS.passwordMax} characters.`, 'error'); return;
+        }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            showFeedback('Validation', 'Passwords do not match.', 'error'); return;
+        }
+        if (!originalUser || !userId) return;
+
+        setSavingPassword(true);
+        try {
+            const payload = { ...originalUser, password: passwordForm.newPassword.trim() };
+            await apiClient.put(`/api/v1/users/${userId}`, payload);
+            setShowPasswordModal(false);
+            showFeedback('Password updated', 'Your password was changed successfully.', 'success');
+        } catch (error) {
+            const message = error?.response?.data?.message || 'Error while saving.';
+            showFeedback('Error', message, 'error');
+        } finally { setSavingPassword(false); }
     };
 
     const validateForm = () => {
@@ -167,21 +196,6 @@ export default function EditProfileScreen({ navigation }) {
             return false;
         }
         if (form.bio.length > PROFILE_LIMITS.bio) { showFeedback('Validation', `Bio cannot exceed ${PROFILE_LIMITS.bio} characters.`, 'error'); return false; }
-
-        if (passwords.newPassword || passwords.confirmPassword) {
-            if (passwords.newPassword.length < PROFILE_LIMITS.passwordMin) {
-                showFeedback('Validation', `Password must be at least ${PROFILE_LIMITS.passwordMin} characters.`, 'error');
-                return false;
-            }
-            if (passwords.newPassword.length > PROFILE_LIMITS.passwordMax) {
-                showFeedback('Validation', `Password cannot exceed ${PROFILE_LIMITS.passwordMax} characters.`, 'error');
-                return false;
-            }
-            if (passwords.newPassword !== passwords.confirmPassword) {
-                showFeedback('Validation', 'Passwords do not match.', 'error');
-                return false;
-            }
-        }
         return true;
     };
 
@@ -201,11 +215,7 @@ export default function EditProfileScreen({ navigation }) {
                 profilePictureUrl: form.profilePictureUrl,
             };
 
-            if (passwords.newPassword.trim()) {
-                payload.password = passwords.newPassword.trim();
-            } else {
-                delete payload.password;
-            }
+            delete payload.password;
 
             const res = await apiClient.put(`/api/v1/users/${userId}`, payload);
             const updatedUser = res.data;
@@ -327,27 +337,50 @@ export default function EditProfileScreen({ navigation }) {
                 {/* CARD 3: SEGURIDAD */}
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Security</Text>
-                    <Text style={styles.label}>New password</Text>
-                    <View style={styles.passwordWrapper}>
-                        <TextInput style={styles.passwordInput} value={passwords.newPassword} onChangeText={text => updatePasswordField('newPassword', text)} placeholder="New password" secureTextEntry={!showPassword} autoCapitalize="none" placeholderTextColor="#9ca3af" />
-                        <TouchableOpacity onPress={() => setShowPassword(prev => !prev)}>
-                            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#6b7280" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={styles.label}>Confirm new password</Text>
-                    <View style={styles.passwordWrapper}>
-                        <TextInput style={styles.passwordInput} value={passwords.confirmPassword} onChangeText={text => updatePasswordField('confirmPassword', text)} placeholder="Repeat new password" secureTextEntry={!showConfirmPassword} autoCapitalize="none" placeholderTextColor="#9ca3af" />
-                        <TouchableOpacity onPress={() => setShowConfirmPassword(prev => !prev)}>
-                            <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#6b7280" />
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={styles.changePasswordBtn} onPress={openPasswordModal}>
+                        <Ionicons name="lock-closed-outline" size={20} color="#d90429" />
+                        <Text style={styles.changePasswordText}>Change password</Text>
+                        <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+                    </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={handleSave} disabled={saving}>
                     {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>SAVE CHANGES</Text>}
                 </TouchableOpacity>
             </ScrollView>
+
+            <Modal transparent visible={showPasswordModal} animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Change password</Text>
+
+                        <Text style={styles.label}>New password</Text>
+                        <View style={styles.passwordWrapper}>
+                            <TextInput style={styles.passwordInput} value={passwordForm.newPassword} onChangeText={text => setPasswordForm(prev => ({ ...prev, newPassword: text }))} placeholder="New password" secureTextEntry={!showPassword} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" placeholderTextColor="#9ca3af" />
+                            <TouchableOpacity onPress={() => setShowPassword(prev => !prev)}>
+                                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.label}>Confirm new password</Text>
+                        <View style={styles.passwordWrapper}>
+                            <TextInput style={styles.passwordInput} value={passwordForm.confirmPassword} onChangeText={text => setPasswordForm(prev => ({ ...prev, confirmPassword: text }))} placeholder="Repeat new password" secureTextEntry={!showConfirmPassword} autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" placeholderTextColor="#9ca3af" />
+                            <TouchableOpacity onPress={() => setShowConfirmPassword(prev => !prev)}>
+                                <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#6b7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.passwordModalButtons}>
+                            <TouchableOpacity style={styles.passwordModalCancel} onPress={() => setShowPasswordModal(false)}>
+                                <Text style={styles.passwordModalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.saveBtn, { flex: 1 }, savingPassword && styles.saveBtnDisabled]} onPress={handleSavePassword} disabled={savingPassword}>
+                                {savingPassword ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal transparent visible={feedback.visible} animationType="fade" onRequestClose={closeFeedback}>
                 <View style={styles.modalOverlay}>
@@ -401,8 +434,13 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
 
-    passwordWrapper: { backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 4, borderWidth: 1, borderColor: '#e5e7eb', flexDirection: 'row', alignItems: 'center' },
+    changePasswordBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 10 },
+    changePasswordText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#d90429' },
+    passwordWrapper: { backgroundColor: '#f3f4f6', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 4, borderWidth: 1, borderColor: '#e5e7eb', flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
     passwordInput: { flex: 1, paddingVertical: 10, fontSize: 15, color: '#111827' },
+    passwordModalButtons: { flexDirection: 'row', gap: 10, marginTop: 18 },
+    passwordModalCancel: { flex: 1, borderRadius: 12, paddingVertical: 16, alignItems: 'center', backgroundColor: '#f3f4f6' },
+    passwordModalCancelText: { fontSize: 16, fontWeight: 'bold', color: '#6b7280' },
     saveBtn: { backgroundColor: '#d90429', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 4 },
     saveBtnDisabled: { opacity: 0.7 },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },

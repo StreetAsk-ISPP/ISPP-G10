@@ -51,21 +51,24 @@ export default function AdminScreen() {
     const fetchDashboardData = () => {
         setLoading(true);
 
-        Promise.all([
+        Promise.allSettled([
             apiClient.get('/api/v1/users'),
-            apiClient.get('/api/v1/questions'),
+            apiClient.get('/api/v1/questions', { params: { active: true } }),
             apiClient.get('/api/v1/answers'),
         ])
-            .then(([usersRes, questionsRes, answersRes]) => {
+            .then(([usersResult, questionsResult, answersResult]) => {
+                const usersData = usersResult.status === 'fulfilled' ? usersResult.value.data : [];
+                const allUsers = Array.isArray(usersData) ? usersData : [];
+                const activeUsers = allUsers.filter(u => u.active !== false && u.accountType != null);
+
+                const questionsData = questionsResult.status === 'fulfilled' ? questionsResult.value.data : [];
+                const answersData = answersResult.status === 'fulfilled' ? answersResult.value.data : [];
+
                 setStats({
-                    users: getCollectionCount(usersRes.data),
-                    questions: getCollectionCount(questionsRes.data),
-                    answers: getCollectionCount(answersRes.data),
+                    users: activeUsers.length,
+                    questions: getCollectionCount(questionsData),
+                    answers: getCollectionCount(answersData),
                 });
-            })
-            .catch((error) => {
-                console.error('Error fetching admin data:', error);
-                Alert.alert('Error', 'Dashboard data could not be loaded');
             })
             .finally(() => {
                 setLoading(false);

@@ -112,10 +112,20 @@ public class UserService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null)
             throw new ResourceNotFoundException("Nobody authenticated!");
-        else {
-            User user = userRepository.findByEmail(auth.getName())
-                    .orElseThrow(() -> new ResourceNotFoundException("User", "Email", auth.getName()));
-            return enrichReputation(user);
+
+        String identifier = auth.getName().trim();
+        User user = userRepository.findByEmailIgnoreCase(identifier)
+                .or(() -> userRepository.findByUserNameIgnoreCase(identifier))
+                .or(() -> findByUuid(identifier))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "identifier", identifier));
+        return enrichReputation(user);
+    }
+
+    private java.util.Optional<User> findByUuid(String identifier) {
+        try {
+            return userRepository.findById(java.util.UUID.fromString(identifier));
+        } catch (IllegalArgumentException ex) {
+            return java.util.Optional.empty();
         }
     }
 
