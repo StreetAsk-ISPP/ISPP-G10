@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessPremiumAccessGuard;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
@@ -33,13 +34,15 @@ public class EventService {
     private final EventRepository eventRepository;
     private final EventAttendanceRepository eventAttendanceRepository;
     private final UserRepository userRepository;
+    private final BusinessPremiumAccessGuard businessPremiumAccessGuard;
 
     @Autowired
     public EventService(EventRepository eventRepository, EventAttendanceRepository eventAttendanceRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository, BusinessPremiumAccessGuard businessPremiumAccessGuard) {
         this.eventRepository = eventRepository;
         this.eventAttendanceRepository = eventAttendanceRepository;
         this.userRepository = userRepository;
+        this.businessPremiumAccessGuard = businessPremiumAccessGuard;
     }
 
     @Transactional
@@ -79,6 +82,7 @@ public class EventService {
     @Transactional
     public Event saveEvent(@Valid Event event) {
         BusinessAccount creator = getAuthenticatedBusinessUser();
+        businessPremiumAccessGuard.requireVerified(creator);
         event.setCreator(creator);
         applyDefaultsOnCreate(event);
         eventRepository.save(event);
@@ -90,6 +94,7 @@ public class EventService {
     public Event updateEvent(@Valid Event event, UUID idToUpdate) {
         Event toUpdate = findEvent(idToUpdate);
         BusinessAccount authenticatedBusiness = getAuthenticatedBusinessUser();
+        businessPremiumAccessGuard.requireVerified(authenticatedBusiness);
 
         if (!authenticatedBusiness.getId().equals(toUpdate.getCreator().getId())) {
             throw new ResourceNotOwnedException(toUpdate);
@@ -153,6 +158,7 @@ public class EventService {
     public void deleteEvent(UUID id) {
         Event toDelete = findEvent(id);
         BusinessAccount authenticatedBusiness = getAuthenticatedBusinessUser();
+        businessPremiumAccessGuard.requireVerified(authenticatedBusiness);
 
         if (!authenticatedBusiness.getId().equals(toDelete.getCreator().getId())) {
             throw new ResourceNotOwnedException(toDelete);
