@@ -151,6 +151,22 @@ public class QuestionService {
 			}
 		}
 		question.setCreator(authenticatedUser);
+
+		if (question.getLocation() != null) {
+			double lat = question.getLocation().getLatitude();
+			double lng = question.getLocation().getLongitude();
+
+			int maxAttempts = 10;
+			for (int i = 0; i < maxAttempts
+					&& questionRepository.existsByLocationLatitudeAndLocationLongitude(lat, lng); i++) {
+				lat = question.getLocation().getLatitude() + (Math.random() - 0.5) * 0.00002;
+				lng = question.getLocation().getLongitude() + (Math.random() - 0.5) * 0.00002;
+			}
+
+			question.getLocation().setLatitude(lat);
+			question.getLocation().setLongitude(lng);
+		}
+
 		// Event questions are scoped to the event itself, not a geographic radius.
 		// Setting radiusKm to null disables the geo restriction check when answering.
 		question.setRadiusKm(eventId != null ? null : resolveRadiusKm(question.getRadiusKm(), isPremium));
