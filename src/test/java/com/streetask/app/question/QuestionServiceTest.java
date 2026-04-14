@@ -251,6 +251,7 @@ class QuestionServiceTest {
 		UUID eventId = UUID.randomUUID();
 		Event managedEvent = new Event();
 		managedEvent.setId(eventId);
+		managedEvent.setCreator(businessUser);
 
 		Question newQuestion = new Question();
 		newQuestion.setTitle("Question from business");

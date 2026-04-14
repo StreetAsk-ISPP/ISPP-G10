@@ -195,6 +195,7 @@ export default function ManageEventsScreen({ navigation }) {
     const [userLat, setUserLat] = useState(null);
     const [userLng, setUserLng] = useState(null);
     const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
+    const [isVerified, setIsVerified] = useState(null); // null = loading, true/false = loaded
 
     const isBusiness = useMemo(
         () => Array.isArray(user?.roles) && user.roles.includes('BUSINESS'),
@@ -260,6 +261,13 @@ export default function ManageEventsScreen({ navigation }) {
     useEffect(() => {
         loadMyEvents();
     }, [loadMyEvents]);
+
+    useEffect(() => {
+        if (!isBusiness) return;
+        apiClient.get('/api/v1/business-subscriptions/me')
+            .then((res) => setIsVerified(Boolean(res?.data?.verified)))
+            .catch(() => setIsVerified(false));
+    }, [isBusiness]);
 
     const getCurrentPositionWeb = useCallback(() => {
         if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -577,6 +585,27 @@ export default function ManageEventsScreen({ navigation }) {
                     <Text style={styles.centerTitle}>Business accounts only</Text>
                     <Text style={styles.centerText}>
                         You need a BUSINESS account to create, edit, or delete events.
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (isVerified === false) {
+        return (
+            <SafeAreaView style={styles.screen}>
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={20} color="#374151" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Event management</Text>
+                    <View style={styles.iconBtnPlaceholder} />
+                </View>
+                <View style={styles.centerBox}>
+                    <Ionicons name="shield-outline" size={42} color="#6b7280" />
+                    <Text style={styles.centerTitle}>Verification required</Text>
+                    <Text style={styles.centerText}>
+                        Your business account must be verified by an admin before you can create or manage events.
                     </Text>
                 </View>
             </SafeAreaView>
