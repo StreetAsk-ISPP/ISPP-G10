@@ -14,6 +14,36 @@ export default function AdminScreen() {
     const [loading, setLoading] = useState(true);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+    const getCollectionCount = (payload) => {
+        let data = payload;
+
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch {
+                return 0;
+            }
+        }
+
+        if (Array.isArray(data)) {
+            return data.length;
+        }
+
+        if (data && typeof data === 'object') {
+            if (Array.isArray(data.content)) return data.content.length;
+            if (Array.isArray(data.items)) return data.items.length;
+            if (Array.isArray(data.results)) return data.results.length;
+
+            const totalElements = Number(data.totalElements);
+            if (Number.isFinite(totalElements)) return totalElements;
+
+            const count = Number(data.count);
+            if (Number.isFinite(count)) return count;
+        }
+
+        return 0;
+    };
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
@@ -28,9 +58,9 @@ export default function AdminScreen() {
         ])
             .then(([usersRes, questionsRes, answersRes]) => {
                 setStats({
-                    users: usersRes.data?.length || 0,
-                    questions: questionsRes.data?.length || 0,
-                    answers: answersRes.data?.length || 0,
+                    users: getCollectionCount(usersRes.data),
+                    questions: getCollectionCount(questionsRes.data),
+                    answers: getCollectionCount(answersRes.data),
                 });
             })
             .catch((error) => {
