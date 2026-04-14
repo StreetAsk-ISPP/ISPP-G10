@@ -1124,7 +1124,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
             <Text style={styles.adBadge}>Sponsored</Text>
-            <Text style={styles.adTitle}>Universidad de Sevilla</Text>
+            <Text style={styles.adTitle}>University of Seville</Text>
             <Text style={styles.adText}>Simulated ad shown to free users before their question is published.</Text>
             <View style={styles.adVisual}>
               <Text style={styles.adVisualTitle}>Study, research, connect</Text>

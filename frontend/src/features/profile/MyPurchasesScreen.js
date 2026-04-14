@@ -9,16 +9,16 @@ import { useAuth } from '../../app/providers/AuthProvider';
 import apiClient from '../../shared/services/http/apiClient';
 
 const STATUS_META = {
-    success: { label: 'Completado', color: '#15803d', backgroundColor: '#dcfce7' },
-    pending: { label: 'Pendiente', color: '#b45309', backgroundColor: '#fef3c7' },
-    failed: { label: 'Fallido', color: '#b91c1c', backgroundColor: '#fee2e2' },
-    unknown: { label: 'Desconocido', color: '#4b5563', backgroundColor: '#e5e7eb' },
+    success: { label: 'Completed', color: '#15803d', backgroundColor: '#dcfce7' },
+    pending: { label: 'Pending', color: '#b45309', backgroundColor: '#fef3c7' },
+    failed: { label: 'Failed', color: '#b91c1c', backgroundColor: '#fee2e2' },
+    unknown: { label: 'Unknown', color: '#4b5563', backgroundColor: '#e5e7eb' },
 };
 
 const TYPE_LABELS = {
-    purchase: 'Compra',
-    spend: 'Gasto',
-    earn: 'Ingreso',
+    purchase: 'Purchase',
+    spend: 'Spend',
+    earn: 'Earn',
 };
 
 const sortByDateDesc = (left, right) => {
@@ -54,12 +54,12 @@ const formatAmount = (amount, currency) => {
 
 const formatPurchaseDate = (value) => {
     if (!value) {
-        return 'Fecha no disponible';
+        return 'Date not available';
     }
 
     const parsedDate = new Date(value);
     if (Number.isNaN(parsedDate.getTime())) {
-        return 'Fecha no disponible';
+        return 'Date not available';
     }
 
     return parsedDate.toLocaleString();
@@ -88,9 +88,9 @@ export default function MyPurchasesScreen({ navigation }) {
             const statusCode = error?.response?.status;
 
             if (statusCode === 403) {
-                setNetworkError('No tienes permisos para consultar tus compras.');
+                setNetworkError('You do not have permission to view your purchases.');
             } else {
-                setNetworkError('No se pudo cargar tu historial de compras. Intentalo de nuevo.');
+                setNetworkError('Your purchase history could not be loaded. Please try again.');
             }
 
             setPurchases([]);
@@ -123,7 +123,7 @@ export default function MyPurchasesScreen({ navigation }) {
 
     const renderPurchaseItem = ({ item }) => {
         const statusMeta = STATUS_META[item.status] || STATUS_META.unknown;
-        const typeLabel = TYPE_LABELS[item.type] || 'Transaccion';
+        const typeLabel = TYPE_LABELS[item.type] || 'Transaction';
 
         return (
             <View style={styles.purchaseItem}>
@@ -160,25 +160,25 @@ export default function MyPurchasesScreen({ navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={28} color="white" />
                 </TouchableOpacity>
-                <Text style={styles.navTitle}>Mis Compras</Text>
+                <Text style={styles.navTitle}>My Purchases</Text>
             </View>
 
             <View style={styles.container}>
                 {networkError ? (
                     <View style={styles.feedbackState}>
                         <Ionicons name="wifi-outline" size={56} color="#9ca3af" />
-                        <Text style={styles.feedbackTitle}>Error de red</Text>
+                        <Text style={styles.feedbackTitle}>Network error</Text>
                         <Text style={styles.feedbackSubtitle}>{networkError}</Text>
                         <TouchableOpacity style={styles.retryButton} onPress={loadPurchases}>
-                            <Text style={styles.retryButtonText}>Reintentar</Text>
+                            <Text style={styles.retryButtonText}>Retry</Text>
                         </TouchableOpacity>
                     </View>
                 ) : purchases.length === 0 ? (
                     <View style={styles.feedbackState}>
                         <Ionicons name="cart-outline" size={64} color="#ccc" />
-                        <Text style={styles.feedbackTitle}>Aún no tienes compras</Text>
+                        <Text style={styles.feedbackTitle}>You do not have purchases yet</Text>
                         <Text style={styles.feedbackSubtitle}>
-                            Cuando realices un pago, aparecerá aquí automáticamente.
+                            Once you make a payment, it will appear here automatically.
                         </Text>
                     </View>
                 ) : (
