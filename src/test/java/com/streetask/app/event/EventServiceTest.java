@@ -28,6 +28,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessPremiumAccessGuard;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.exceptions.ResourceNotOwnedException;
@@ -48,6 +49,9 @@ class EventServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private BusinessPremiumAccessGuard businessPremiumAccessGuard;
 
     @InjectMocks
     private EventService eventService;
