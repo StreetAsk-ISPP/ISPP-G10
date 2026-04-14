@@ -71,7 +71,7 @@ const normalizeReturnPath = (rawPath) => {
 };
 
 export default function AppNavigator() {
-    const { isAuthenticated, isLoadingAuth, user } = useAuth();
+    const { isAuthenticated, isLoadingAuth, user, login } = useAuth();
     const stripeCallbackHandledRef = useRef(false);
     const [navigationResetVersion, setNavigationResetVersion] = useState(0);
 
@@ -258,6 +258,24 @@ export default function AppNavigator() {
                                         sessionId: effectiveSessionId,
                                     }
                                 );
+
+                                const pendingBusinessPassword = typeof pendingBusinessSignup?.password === 'string'
+                                    ? pendingBusinessSignup.password.trim()
+                                    : '';
+
+                                if (!isAuthenticated && pendingBusinessPassword) {
+                                    const signInResponse = await apiClient.post('/api/v1/auth/signin', {
+                                        email: pendingBusinessSignup.email,
+                                        password: pendingBusinessPassword,
+                                    });
+
+                                    await login(signInResponse?.data?.token, {
+                                        id: signInResponse?.data?.id,
+                                        username: signInResponse?.data?.username,
+                                        roles: signInResponse?.data?.roles,
+                                    });
+                                }
+
                                 callbackSucceeded = true;
                             }
                         }
@@ -339,7 +357,7 @@ export default function AppNavigator() {
         };
 
         processStripeCallback();
-    }, [isAuthenticated, isLoadingAuth, user?.roles]);
+    }, [isAuthenticated, isLoadingAuth, login, user?.roles]);
 
     if (isLoadingAuth) {
         return (

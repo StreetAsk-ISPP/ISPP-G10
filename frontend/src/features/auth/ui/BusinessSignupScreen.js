@@ -14,7 +14,7 @@ import {
 } from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function BusinessSignupScreen({ navigation, route }) {
-	const { email } = route.params;
+	const { email, password } = route.params || {};
 	const { width } = useWindowDimensions();
 	const isNarrow = width < 500;
 
@@ -62,6 +62,7 @@ export default function BusinessSignupScreen({ navigation, route }) {
 				address: address.trim() || null,
 				website: website.trim() || null,
 				description: description.trim() || null,
+				password: typeof password === 'string' ? password : null,
 			};
 
 			const checkoutResponse = await apiClient.post(
