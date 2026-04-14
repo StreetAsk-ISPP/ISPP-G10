@@ -9,6 +9,7 @@ import {
   Image,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,11 +28,14 @@ export default function ProfileScreen({ navigation }) {
     profilePictureUrl: null,
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [businessEventsStats, setBusinessEventsStats] = useState({ eventsCount: 0, totalAttendance: 0 });
   const [businessSubscription, setBusinessSubscription] = useState(null);
   const [regularPremiumActive, setRegularPremiumActive] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [subscriptionActionError, setSubscriptionActionError] = useState('');
+  const [deleteAccountError, setDeleteAccountError] = useState('');
 
   const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
   const isRegularUser = Array.isArray(user?.roles) && user.roles.includes('USER');
@@ -68,6 +72,28 @@ export default function ProfileScreen({ navigation }) {
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     await logout();
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    if (isDeletingAccount) {
+      return;
+    }
+
+    setShowDeleteAccountModal(false);
+    setDeleteAccountError('');
+    setIsDeletingAccount(true);
+
+    try {
+      await apiClient.delete('/api/v1/users/me');
+      await logout();
+    } catch (error) {
+      const rawMessage = error?.response?.data?.message || error?.response?.data || error?.message;
+      const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
+      setDeleteAccountError(message || 'Unable to delete your account right now.');
+      Alert.alert('Delete account failed', message || 'Unable to delete your account right now.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const startBusinessStripeCheckout = async () => {
@@ -146,6 +172,7 @@ export default function ProfileScreen({ navigation }) {
       })();
     } else {
       setBusinessSubscription(null);
+      setBusinessEventsStats({ eventsCount: 0, totalAttendance: 0 });
     }
 
     if (isRegularUser && !isBusinessUser) {
@@ -366,10 +393,24 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.menuItemText}>Log out</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.menuItem, { marginTop: 20, backgroundColor: '#fee2e2' }]}>
+        <TouchableOpacity
+          style={[
+            styles.menuItem,
+            { marginTop: 20, backgroundColor: '#fee2e2' },
+            isDeletingAccount && styles.disabledButton,
+          ]}
+          onPress={() => setShowDeleteAccountModal(true)}
+          disabled={isDeletingAccount}
+        >
           <Ionicons name="trash-outline" size={24} color="#ef4444" />
-          <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Delete my account</Text>
+          <Text style={[styles.menuItemText, { color: '#ef4444' }]}>
+            {isDeletingAccount ? 'Deleting account...' : 'Delete my account'}
+          </Text>
         </TouchableOpacity>
+
+        {deleteAccountError ? (
+          <Text style={styles.deleteErrorText}>{deleteAccountError}</Text>
+        ) : null}
       </ScrollView>
       <ConfirmationModal
         visible={showLogoutModal}
@@ -379,6 +420,16 @@ export default function ProfileScreen({ navigation }) {
         cancelText="Go Back"
         onConfirm={handleLogoutConfirm}
         onCancel={() => setShowLogoutModal(false)}
+        confirmButtonColor="danger"
+      />
+      <ConfirmationModal
+        visible={showDeleteAccountModal}
+        title="Delete account?"
+        message="This action cannot be undone. Your account and related data will be permanently deleted."
+        confirmText="Delete account"
+        cancelText="Cancel"
+        onConfirm={handleDeleteAccountConfirm}
+        onCancel={() => setShowDeleteAccountModal(false)}
         confirmButtonColor="danger"
       />
     </SafeAreaView>
@@ -483,6 +534,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  deleteErrorText: {
+    marginTop: 8,
+    color: '#b91c1c',
+    fontWeight: '600',
+    fontSize: 12,
   },
   statsBar: {
     flexDirection: 'row',
