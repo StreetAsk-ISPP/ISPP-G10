@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
    * Called after successful role change from backend.
    */
   const updateUserRoles = async (newToken, newRoles) => {
-    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+    await saveToStorage(TOKEN_STORAGE_KEY, newToken);
     setToken(newToken);
 
     // Update user object with new roles
@@ -109,12 +109,12 @@ export function AuthProvider({ children }) {
       roles: newRoles,
     }));
 
-    // Also update AsyncStorage
-    const userData = await AsyncStorage.getItem(USER_STORAGE_KEY);
+    // Also update persistent storage
+    const userData = await getFromStorage(USER_STORAGE_KEY);
     if (userData) {
       const userObj = JSON.parse(userData);
       userObj.roles = newRoles;
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userObj));
+      await saveToStorage(USER_STORAGE_KEY, JSON.stringify(userObj));
     }
   };
 
