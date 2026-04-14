@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Event;
 import com.streetask.app.model.EventAttendance;
 import com.streetask.app.model.GeoPoint;
+import com.streetask.app.model.Question;
 import com.streetask.app.model.enums.EventCategory;
 import com.streetask.app.question.QuestionService;
 import com.streetask.app.user.Authorities;
@@ -47,7 +49,7 @@ import jakarta.transaction.Transactional;
 
 @WebMvcTest(EventRestController.class)
 @DisplayName("EventRestController Unit Tests")
-class EventRestControllerUnitTest {
+class EventRestControllerWebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -158,6 +160,43 @@ class EventRestControllerUnitTest {
                 .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/events/{id}/questions should map creator and null creator branches")
+    @WithMockUser(username = BUSINESS_EMAIL)
+    void getEventQuestions_shouldReturnMappedPayload() throws Exception {
+        Question withCreator = new Question();
+        withCreator.setId(UUID.randomUUID());
+        withCreator.setTitle("Question title");
+        withCreator.setContent("Question content");
+        withCreator.setCreatedAt(Instant.now());
+
+        RegularUser creator = new RegularUser();
+        creator.setId(UUID.randomUUID());
+        creator.setUserName("john-user");
+        withCreator.setCreator(creator);
+
+        Question withoutCreator = new Question();
+        withoutCreator.setId(UUID.randomUUID());
+        withoutCreator.setTitle("Question without creator");
+        withoutCreator.setContent("Content no creator");
+        withoutCreator.setCreatedAt(Instant.now());
+        withoutCreator.setCreator(null);
+
+        when(questionService.findByEvent(eventId)).thenReturn(List.of(withCreator, withoutCreator));
+
+        mockMvc.perform(get(EVENT_URL + "/{id}/questions", eventId)
+                .contentType(APPLICATION_JSON)
+                .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id", is(withCreator.getId().toString())))
+                .andExpect(jsonPath("$[0].creatorId", is(creator.getId().toString())))
+                .andExpect(jsonPath("$[0].creatorUserName", is("john-user")))
+                .andExpect(jsonPath("$[1].id", is(withoutCreator.getId().toString())))
+                .andExpect(jsonPath("$[1].creatorId").doesNotExist())
+                .andExpect(jsonPath("$[1].creatorUserName").doesNotExist());
     }
 }
 

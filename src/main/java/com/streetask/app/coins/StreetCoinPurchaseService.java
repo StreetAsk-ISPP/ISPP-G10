@@ -54,10 +54,13 @@ public class StreetCoinPurchaseService {
     @Value("${streetask.stripe.currency:eur}")
     private String stripeCurrency;
 
-    @Value("${streetask.stripe.streetcoins-success-url:http://localhost:8081}")
+    @Value("${FRONTEND_URL:http://localhost:8081}")
+    private String frontendUrl;
+
+    @Value("${streetask.stripe.streetcoins-success-url:${FRONTEND_URL:http://localhost:8081}}")
     private String streetCoinsSuccessUrl;
 
-    @Value("${streetask.stripe.streetcoins-cancel-url:http://localhost:8081}")
+    @Value("${streetask.stripe.streetcoins-cancel-url:${FRONTEND_URL:http://localhost:8081}}")
     private String streetCoinsCancelUrl;
 
     public StreetCoinPurchaseService(UserService userService,
@@ -444,7 +447,9 @@ public class StreetCoinPurchaseService {
     }
 
     private String appendQuery(String baseUrl, String query) {
-        String safeBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "http://localhost:8081";
+        String safeBaseUrl = StringUtils.hasText(baseUrl)
+                ? baseUrl.trim()
+                : (StringUtils.hasText(frontendUrl) ? frontendUrl.trim() : "http://localhost:8081");
         String separator = safeBaseUrl.contains("?") ? "&" : "?";
         return safeBaseUrl + separator + query;
     }

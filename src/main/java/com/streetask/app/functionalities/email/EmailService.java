@@ -20,14 +20,14 @@ public class EmailService {
         Email from = new Email("streetask0@gmail.com", "Streetask");
         Email to   = new Email(toEmail);
 
-        String subject = "Tu cuenta ha sido eliminada";
+        String subject = "Your account has been removed";
         Content content = new Content("text/plain",
-            "Hola,\n\n" +
-            "Te informamos de que tu cuenta en Streetask ha sido eliminada por el equipo de moderación " +
-            "debido al incumplimiento de nuestras normas de uso.\n\n" +
-            "Si crees que esto es un error, puedes ponerte en contacto con nosotros respondiendo a este correo.\n\n" +
-            "Atentamente,\n" +
-            "El Equipo de Streetask"
+            "Hello,\n\n" +
+            "We are informing you that your Streetask account has been removed by the moderation team " +
+            "due to a violation of our usage guidelines.\n\n" +
+            "If you believe this is a mistake, you can contact us by replying to this email.\n\n" +
+            "Best regards,\n" +
+            "The Streetask Team"
         );
 
         Mail mail = new Mail(from, subject, to, content);

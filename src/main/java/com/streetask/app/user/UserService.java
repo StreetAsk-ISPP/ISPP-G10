@@ -24,6 +24,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.answer.AnswerRepository;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
@@ -31,10 +32,15 @@ import com.streetask.app.model.Question;
 import com.streetask.app.payments.StripeRedirectUrlResolver;
 import com.streetask.app.question.QuestionRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
 
 @Service
 public class UserService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private UserRepository userRepository;
     private AnswerRepository answerRepository;
@@ -58,10 +64,13 @@ public class UserService {
     @Value("${streetask.stripe.regular-premium-amount-cents:${STRIPE_REGULAR_PREMIUM_AMOUNT_CENTS:999}}")
     private Integer stripeRegularPremiumAmountCents;
 
-    @Value("${streetask.stripe.success-url:http://localhost:8081}")
+    @Value("${FRONTEND_URL:http://localhost:8081}")
+    private String frontendUrl;
+
+    @Value("${streetask.stripe.success-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeSuccessUrl;
 
-    @Value("${streetask.stripe.cancel-url:http://localhost:8081}")
+    @Value("${streetask.stripe.cancel-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeCancelUrl;
 
     @Autowired
@@ -149,6 +158,104 @@ public class UserService {
     public void deleteUser(UUID id) {
         User toDelete = findUser(id);
         this.userRepository.delete(toDelete);
+    }
+
+    @Transactional
+    public void deleteCurrentUserAccount() {
+        User currentUser = findCurrentUser();
+        deleteUserAccount(currentUser);
+    }
+
+    private void deleteUserAccount(User user) {
+        UUID userId = user.getId();
+
+        deleteByUserId("DELETE FROM password_reset_tokens WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM user_role_change_logs WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM feedback_messages WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM user_locations WHERE user_id = :userId", userId);
+
+        if (user instanceof RegularUser) {
+            cleanupRegularUserData(userId);
+        }
+
+        if (user instanceof BusinessAccount) {
+            cleanupBusinessUserData(userId);
+        }
+
+        if (user instanceof Admin) {
+            cleanupAdminUserData(userId);
+        }
+
+        this.userRepository.delete(user);
+    }
+
+    private void cleanupRegularUserData(UUID userId) {
+        // First remove references where this user is the actor.
+        deleteByUserId("DELETE FROM answer_votes WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM answer_reports WHERE reporter_id = :userId", userId);
+        deleteByUserId("DELETE FROM question_reports WHERE reporter_id = :userId", userId);
+        deleteByUserId("DELETE FROM reports WHERE reporter_id = :userId", userId);
+        deleteByUserId("DELETE FROM coin_transactions WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM notifications WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM push_devices WHERE user_id = :userId", userId);
+        deleteByUserId("DELETE FROM event_attendances WHERE regular_user_id = :userId", userId);
+        deleteByUserId("DELETE FROM strikes WHERE user_id = :userId", userId);
+
+        // Then remove references for this user's answers.
+        deleteByUserId("DELETE FROM answer_reports WHERE answer_id IN (SELECT id FROM answers WHERE user_id = :userId)",
+                userId);
+        deleteByUserId("DELETE FROM answer_votes WHERE answer_id IN (SELECT id FROM answers WHERE user_id = :userId)",
+                userId);
+        deleteByUserId("DELETE FROM answers WHERE user_id = :userId", userId);
+
+        // Finally remove references for this user's questions.
+        deleteByUserId(
+                "DELETE FROM answer_reports WHERE answer_id IN (SELECT a.id FROM answers a WHERE a.question_id IN (SELECT q.id FROM questions q WHERE q.creator_id = :userId))",
+                userId);
+        deleteByUserId(
+                "DELETE FROM answer_votes WHERE answer_id IN (SELECT a.id FROM answers a WHERE a.question_id IN (SELECT q.id FROM questions q WHERE q.creator_id = :userId))",
+                userId);
+        deleteByUserId(
+                "DELETE FROM answers WHERE question_id IN (SELECT q.id FROM questions q WHERE q.creator_id = :userId)",
+                userId);
+        deleteByUserId(
+                "DELETE FROM question_reports WHERE question_id IN (SELECT id FROM questions WHERE creator_id = :userId)",
+                userId);
+        deleteByUserId("DELETE FROM questions WHERE creator_id = :userId", userId);
+    }
+
+    private void cleanupBusinessUserData(UUID userId) {
+        deleteByUserId(
+                "DELETE FROM answer_reports WHERE answer_id IN (SELECT a.id FROM answers a WHERE a.question_id IN (SELECT q.id FROM questions q WHERE q.event_id IN (SELECT e.id FROM events e WHERE e.creator_id = :userId)))",
+                userId);
+        deleteByUserId(
+                "DELETE FROM answer_votes WHERE answer_id IN (SELECT a.id FROM answers a WHERE a.question_id IN (SELECT q.id FROM questions q WHERE q.event_id IN (SELECT e.id FROM events e WHERE e.creator_id = :userId)))",
+                userId);
+        deleteByUserId(
+                "DELETE FROM answers WHERE question_id IN (SELECT q.id FROM questions q WHERE q.event_id IN (SELECT e.id FROM events e WHERE e.creator_id = :userId))",
+                userId);
+        deleteByUserId(
+                "DELETE FROM question_reports WHERE question_id IN (SELECT q.id FROM questions q WHERE q.event_id IN (SELECT e.id FROM events e WHERE e.creator_id = :userId))",
+                userId);
+        deleteByUserId("DELETE FROM questions WHERE event_id IN (SELECT id FROM events WHERE creator_id = :userId)",
+                userId);
+        deleteByUserId(
+                "DELETE FROM event_attendances WHERE event_id IN (SELECT id FROM events WHERE creator_id = :userId)",
+                userId);
+        deleteByUserId("DELETE FROM events WHERE creator_id = :userId", userId);
+    }
+
+    private void cleanupAdminUserData(UUID userId) {
+        deleteByUserId("DELETE FROM report_admin_reviews WHERE admin_id = :userId", userId);
+        deleteByUserId("UPDATE reports SET resolved_by_admin_id = NULL WHERE resolved_by_admin_id = :userId", userId);
+        deleteByUserId("UPDATE business_accounts SET verified_by_id = NULL WHERE verified_by_id = :userId", userId);
+        deleteByUserId("DELETE FROM strikes WHERE issued_by_id = :userId", userId);
+    }
+
+    private void deleteByUserId(String sql, UUID userId) {
+        entityManager.createNativeQuery(sql)
+                .setParameter("userId", userId)
+                .executeUpdate();
     }
 
     private User enrichReputation(User user) {
@@ -359,7 +466,9 @@ public class UserService {
     }
 
     private String appendQuery(String baseUrl, String query) {
-        String safeBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "http://localhost:8081";
+        String safeBaseUrl = StringUtils.hasText(baseUrl)
+                ? baseUrl.trim()
+                : (StringUtils.hasText(frontendUrl) ? frontendUrl.trim() : "http://localhost:8081");
         String separator = safeBaseUrl.contains("?") ? "&" : "?";
         return safeBaseUrl + separator + query;
     }

@@ -151,7 +151,9 @@ public class QuestionService {
 			}
 		}
 		question.setCreator(authenticatedUser);
-		question.setRadiusKm(resolveRadiusKm(question.getRadiusKm(), isPremium));
+		// Event questions are scoped to the event itself, not a geographic radius.
+		// Setting radiusKm to null disables the geo restriction check when answering.
+		question.setRadiusKm(eventId != null ? null : resolveRadiusKm(question.getRadiusKm(), isPremium));
 		applyDefaults(question, isPremium);
 		Question savedQuestion = questionRepository.save(question);
 		logger.info("[QuestionService] Question saved: id='{}', eventId='{}', title='{}'",
