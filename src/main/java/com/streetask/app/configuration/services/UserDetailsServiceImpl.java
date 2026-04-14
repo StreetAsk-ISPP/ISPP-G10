@@ -1,5 +1,8 @@
 package com.streetask.app.configuration.services;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
@@ -18,13 +21,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 	@Transactional
 	public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
 		String normalizedIdentifier = identifier == null ? "" : identifier.trim();
-
-		User user = userRepository.findByEmailIgnoreCase(normalizedIdentifier)
+		Optional<User> userByIdentifier = userRepository.findByEmailIgnoreCase(normalizedIdentifier)
 				.or(() -> userRepository.findByUserNameIgnoreCase(normalizedIdentifier))
+				.or(() -> findByIdIfUuid(normalizedIdentifier));
+		User user = userByIdentifier
 				.orElseThrow(() -> new UsernameNotFoundException(
-						"User Not Found with email or username: " + normalizedIdentifier));
+						"User Not Found with email, username, or id: " + normalizedIdentifier));
 
 		return UserDetailsImpl.build(user);
+	}
+
+	private Optional<User> findByIdIfUuid(String identifier) {
+		try {
+			return userRepository.findById(UUID.fromString(identifier));
+		} catch (IllegalArgumentException ex) {
+			return Optional.empty();
+		}
 	}
 
 }
