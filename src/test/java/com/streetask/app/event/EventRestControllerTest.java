@@ -240,6 +240,7 @@ class EventRestControllerTest {
         creator.setCompanyName("Events Corp");
         creator.setTaxId("B11223344");
         creator.setAuthority(businessAuthority);
+        creator.setVerified(true);
         creator = (BusinessAccount) userRepository.save(creator);
 
         event1 = new Event();
@@ -262,6 +263,7 @@ class EventRestControllerTest {
         otherCreator.setCompanyName("Other Events Corp");
         otherCreator.setTaxId("B44332211");
         otherCreator.setAuthority(businessAuthority);
+        otherCreator.setVerified(true);
         otherCreator = (BusinessAccount) userRepository.save(otherCreator);
 
         Authorities regularAuthority = entityManager.find(Authorities.class,

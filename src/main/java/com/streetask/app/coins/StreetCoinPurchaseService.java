@@ -98,6 +98,7 @@ public class StreetCoinPurchaseService {
 
         return coinTransactionRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
+                .filter(tx -> tx.getStatus() != CoinTransactionStatus.PENDING)
                 .map(this::toTransactionResponse)
                 .toList();
     }

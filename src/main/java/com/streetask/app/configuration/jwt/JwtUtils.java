@@ -36,8 +36,12 @@ public class JwtUtils {
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("authorities",
 				userPrincipal.getAuthorities().stream().map(auth -> auth.getAuthority()).collect(Collectors.toList()));
+		claims.put("username", userPrincipal.getUsername());
+		String subject = userPrincipal.getId() != null
+				? userPrincipal.getId().toString()
+				: userPrincipal.getUsername();
 
-		return Jwts.builder().setClaims(claims).setSubject((userPrincipal.getUsername())).setIssuedAt(new Date())
+		return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date())
 				.setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
 				.signWith(SignatureAlgorithm.HS512, jwtSecret).compact();
 	}
@@ -73,6 +77,5 @@ public class JwtUtils {
 		return false;
 	}
 }
-
 
 

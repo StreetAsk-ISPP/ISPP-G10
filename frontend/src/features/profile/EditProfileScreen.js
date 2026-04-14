@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../app/providers/AuthProvider';
 import apiClient from '../../shared/services/http/apiClient';
@@ -109,27 +110,33 @@ export default function EditProfileScreen({ navigation }) {
         if (shouldGoBack) { navigation.goBack(); }
     };
 
-    useEffect(() => {
-        if (!userId) { setLoading(false); return; }
-        const loadProfile = async () => {
-            try {
-                const res = await apiClient.get(`/api/v1/users/${userId}`);
-                const currentUser = res.data;
-                setOriginalUser(currentUser);
-                setForm({
-                    email: currentUser?.email || '',
-                    userName: currentUser?.userName || '',
-                    firstName: currentUser?.firstName || '',
-                    lastName: currentUser?.lastName || '',
-                    bio: currentUser?.bio || '',
-                    profilePictureUrl: currentUser?.profilePictureUrl || '',
-                });
-            } catch (error) {
-                showFeedback('Error', 'Your data could not be loaded.', 'error');
-            } finally { setLoading(false); }
-        };
-        loadProfile();
-    }, [userId]);
+    useFocusEffect(
+        useCallback(() => {
+            if (!userId) { setLoading(false); return; }
+            let cancelled = false;
+            const loadProfile = async () => {
+                setLoading(true);
+                try {
+                    const res = await apiClient.get(`/api/v1/users/${userId}`);
+                    if (cancelled) return;
+                    const currentUser = res.data;
+                    setOriginalUser(currentUser);
+                    setForm({
+                        email: currentUser?.email || '',
+                        userName: currentUser?.userName || '',
+                        firstName: currentUser?.firstName || '',
+                        lastName: currentUser?.lastName || '',
+                        bio: currentUser?.bio || '',
+                        profilePictureUrl: currentUser?.profilePictureUrl || '',
+                    });
+                } catch (error) {
+                    if (!cancelled) showFeedback('Error', 'Your data could not be loaded.', 'error');
+                } finally { if (!cancelled) setLoading(false); }
+            };
+            loadProfile();
+            return () => { cancelled = true; };
+        }, [userId])
+    );
 
     const updateField = (field, value) => {
         setForm(prev => ({ ...prev, [field]: value }));
