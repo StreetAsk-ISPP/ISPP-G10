@@ -396,7 +396,12 @@ export default function MapComponent({
         }
 
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
+        // También excluimos las preguntas asociadas a eventos (se muestran dentro del evento)
         const preguntasActivas = questions.filter((q) => {
+            if (q?.event) {
+                return false;
+            }
+
             if (q?.active === false) {
                 return false;
             }
@@ -413,7 +418,7 @@ export default function MapComponent({
             return fechaExpiracion > ahora; // Solo dejamos las que expiran en el futuro
         });
 
-        setVisibleQuestions(preguntasActivas.length > 0 ? preguntasActivas : questions.filter((q) => q?.active !== false));
+        setVisibleQuestions(preguntasActivas.length > 0 ? preguntasActivas : questions.filter((q) => !q?.event && q?.active !== false));
     }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {

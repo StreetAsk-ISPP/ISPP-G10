@@ -41,10 +41,13 @@ public class BusinessSubscriptionService {
     @Value("${streetask.stripe.subscription-amount-cents:1999}")
     private Integer stripeSubscriptionAmountCents;
 
-    @Value("${streetask.stripe.success-url:http://localhost:8081}")
+    @Value("${FRONTEND_URL:http://localhost:8081}")
+    private String frontendUrl;
+
+    @Value("${streetask.stripe.success-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeSuccessUrl;
 
-    @Value("${streetask.stripe.cancel-url:http://localhost:8081}")
+    @Value("${streetask.stripe.cancel-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeCancelUrl;
 
     public BusinessSubscriptionService(BusinessAccountRepository businessAccountRepository,
@@ -100,14 +103,16 @@ public class BusinessSubscriptionService {
         String normalizedTaxId = normalizeTaxId(taxId);
 
         if (!hasPendingBasicSignup(normalizedEmail)) {
-            throw new AccessDeniedException("Basic user registration not found. Please complete the basic signup first.");
+            throw new AccessDeniedException(
+                    "Basic user registration not found. Please complete the basic signup first.");
         }
 
         if (businessAccountRepository.existsByTaxId(normalizedTaxId)) {
             throw new AccessDeniedException("Tax ID is already registered.");
         }
 
-        return createPublicStripeCheckoutSessionForSignup(normalizedEmail, normalizedTaxId, companyName, address, website,
+        return createPublicStripeCheckoutSessionForSignup(normalizedEmail, normalizedTaxId, companyName, address,
+                website,
                 description, durationDays);
     }
 
@@ -313,12 +318,15 @@ public class BusinessSubscriptionService {
 
             String metadataEmail = session.getMetadata() == null ? null : session.getMetadata().get("email");
             String metadataTaxId = session.getMetadata() == null ? null : session.getMetadata().get("taxId");
-            String metadataCompanyName = session.getMetadata() == null ? null : session.getMetadata().get("companyName");
+            String metadataCompanyName = session.getMetadata() == null ? null
+                    : session.getMetadata().get("companyName");
             String metadataAddress = session.getMetadata() == null ? null : session.getMetadata().get("address");
             String metadataWebsite = session.getMetadata() == null ? null : session.getMetadata().get("website");
-            String metadataDescription = session.getMetadata() == null ? null : session.getMetadata().get("description");
+            String metadataDescription = session.getMetadata() == null ? null
+                    : session.getMetadata().get("description");
 
-            if (!normalizedEmail.equals(normalizeEmail(metadataEmail)) || !normalizedTaxId.equals(normalizeTaxId(metadataTaxId))) {
+            if (!normalizedEmail.equals(normalizeEmail(metadataEmail))
+                    || !normalizedTaxId.equals(normalizeTaxId(metadataTaxId))) {
                 throw new AccessDeniedException("Stripe session does not belong to this business signup.");
             }
 
@@ -378,7 +386,9 @@ public class BusinessSubscriptionService {
     }
 
     private String appendQuery(String baseUrl, String query) {
-        String safeBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "http://localhost:8081";
+        String safeBaseUrl = StringUtils.hasText(baseUrl)
+                ? baseUrl.trim()
+                : (StringUtils.hasText(frontendUrl) ? frontendUrl.trim() : "http://localhost:8081");
         String separator = safeBaseUrl.contains("?") ? "&" : "?";
         return safeBaseUrl + separator + query;
     }

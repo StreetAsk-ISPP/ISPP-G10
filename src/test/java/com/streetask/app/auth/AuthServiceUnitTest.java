@@ -3,15 +3,19 @@ package com.streetask.app.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,22 +24,28 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.streetask.app.auth.payload.request.BusinessSignupRequest;
 import com.streetask.app.auth.payload.request.CompleteSignupRequest;
 import com.streetask.app.auth.payload.request.SignupRequest;
+import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.business.BusinessAccountRepository;
 import com.streetask.app.business.RequestStatus;
+import com.streetask.app.configuration.jwt.JwtUtils;
 import com.streetask.app.user.AccountType;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.AuthoritiesService;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
 import com.streetask.app.user.User;
+import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.UserService;
+import com.streetask.app.user.UserTypeChangeService;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceUnitTest {
@@ -56,6 +66,21 @@ class AuthServiceUnitTest {
     private BusinessAccountRepository businessAccountRepository;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
+    private JavaMailSender mailSender;
+
+    @Mock
+    private UserTypeChangeService userTypeChangeService;
+
+    @Mock
+    private JwtUtils jwtUtils;
+
+    @Mock
     private EntityManager entityManager;
 
     @InjectMocks
@@ -64,6 +89,7 @@ class AuthServiceUnitTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(authService, "mailFrom", "noreply@streetask.com");
     }
 
     @Test
@@ -249,5 +275,237 @@ class AuthServiceUnitTest {
         verify(userService).findUser("business@streetask.com");
         verify(userService, never()).deleteUser(any());
         verify(businessAccountRepository, never()).save(any(BusinessAccount.class));
+    }
+
+    @Test
+    void requestPasswordResetShouldReturnEarlyWhenEmailIsBlank() {
+        authService.requestPasswordReset("   ");
+
+        verify(userRepository, never()).findByEmailIgnoreCase(any());
+        verify(passwordResetTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void requestPasswordResetShouldReturnEarlyWhenUserDoesNotExist() {
+        when(userRepository.findByEmailIgnoreCase("missing@streetask.com")).thenReturn(Optional.empty());
+
+        authService.requestPasswordReset("missing@streetask.com");
+
+        verify(userRepository).findByEmailIgnoreCase("missing@streetask.com");
+        verify(passwordResetTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void requestPasswordResetShouldCreateTokenAndUseFallbackMailWhenHtmlSendFails() {
+        User user = new User();
+        user.setEmail("user@streetask.com");
+
+        when(userRepository.findByEmailIgnoreCase("user@streetask.com")).thenReturn(Optional.of(user));
+        when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("smtp html failure"));
+
+        authService.requestPasswordReset("user@streetask.com");
+
+        ArgumentCaptor<PasswordResetToken> tokenCaptor = ArgumentCaptor.forClass(PasswordResetToken.class);
+        verify(passwordResetTokenRepository).save(tokenCaptor.capture());
+        PasswordResetToken savedToken = tokenCaptor.getValue();
+
+        assertThat(savedToken.getUser()).isEqualTo(user);
+        assertThat(savedToken.getToken()).isNotBlank();
+        assertThat(savedToken.getExpiresAt()).isAfter(LocalDateTime.now().plusMinutes(25));
+        assertThat(savedToken.getUsedAt()).isNull();
+
+        ArgumentCaptor<SimpleMailMessage> mailCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(mailCaptor.capture());
+        assertThat(mailCaptor.getValue().getTo()).containsExactly("user@streetask.com");
+    }
+
+    @Test
+    void requestPasswordResetShouldUseHtmlMailWhenMimeSendSucceeds() {
+        User user = new User();
+        user.setEmail("html@streetask.com");
+
+        when(userRepository.findByEmailIgnoreCase("html@streetask.com")).thenReturn(Optional.of(user));
+        when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
+
+        authService.requestPasswordReset("html@streetask.com");
+
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void resetPasswordShouldReturnFalseWhenInputIsInvalid() {
+        assertThat(authService.resetPassword(" ", "newPass")).isFalse();
+        assertThat(authService.resetPassword("token", " ")).isFalse();
+        verify(passwordResetTokenRepository, never()).findByToken(any());
+    }
+
+    @Test
+    void resetPasswordShouldReturnFalseWhenTokenDoesNotExist() {
+        when(passwordResetTokenRepository.findByToken("unknown")).thenReturn(Optional.empty());
+
+        boolean result = authService.resetPassword("unknown", "newPass");
+
+        assertThat(result).isFalse();
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void resetPasswordShouldReturnFalseWhenTokenIsUsed() {
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUsedAt(LocalDateTime.now().minusMinutes(1));
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        when(passwordResetTokenRepository.findByToken("used-token")).thenReturn(Optional.of(token));
+
+        boolean result = authService.resetPassword("used-token", "newPass");
+
+        assertThat(result).isFalse();
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void resetPasswordShouldReturnFalseWhenTokenIsExpired() {
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUsedAt(null);
+        token.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        when(passwordResetTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(token));
+
+        boolean result = authService.resetPassword("expired-token", "newPass");
+
+        assertThat(result).isFalse();
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void resetPasswordShouldUpdatePasswordAndMarkTokenAsUsedWhenTokenIsValid() {
+        User user = new User();
+        user.setEmail("valid@streetask.com");
+
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setUsedAt(null);
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+
+        when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(token));
+        when(encoder.encode("newPass")).thenReturn("encoded-new-pass");
+
+        boolean result = authService.resetPassword("valid-token", "newPass");
+
+        assertThat(result).isTrue();
+        assertThat(user.getPassword()).isEqualTo("encoded-new-pass");
+        assertThat(token.getUsedAt()).isNotNull();
+        verify(userRepository).save(user);
+        verify(passwordResetTokenRepository).save(token);
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnFalseForBlankIdentifier() {
+        assertThat(authService.isPendingBasicSignup(" ")).isFalse();
+        verify(userRepository, never()).findByEmailIgnoreCase(any());
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnTrueUsingUsernameFallback() {
+        User pendingUser = new User();
+        pendingUser.setAccountType(null);
+        pendingUser.setActive(false);
+        Authorities authority = new Authorities();
+        authority.setAuthority("USER");
+        pendingUser.setAuthority(authority);
+
+        when(userRepository.findByEmailIgnoreCase("pending-user")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("pending-user")).thenReturn(Optional.of(pendingUser));
+
+        boolean result = authService.isPendingBasicSignup("pending-user");
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnFalseWhenRepositoryThrows() {
+        when(userRepository.findByEmailIgnoreCase("boom")).thenThrow(new RuntimeException("db down"));
+
+        boolean result = authService.isPendingBasicSignup("boom");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnFalseWhenResolvedUserIsNotPending() {
+        User existingUser = new User();
+        existingUser.setActive(true);
+
+        when(userRepository.findByEmailIgnoreCase("existing@streetask.com")).thenReturn(Optional.of(existingUser));
+
+        boolean result = authService.isPendingBasicSignup("existing@streetask.com");
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void getPendingBasicSignupEmailShouldReturnNullForBlankIdentifier() {
+        assertThat(authService.getPendingBasicSignupEmail(" ")).isNull();
+        verify(userRepository, never()).findByEmailIgnoreCase(any());
+    }
+
+    @Test
+    void getPendingBasicSignupEmailShouldResolveEmailUsingUsernameFallback() {
+        User pendingUser = new User();
+        pendingUser.setEmail("pending@streetask.com");
+
+        when(userRepository.findByEmailIgnoreCase("pending-user")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("pending-user")).thenReturn(Optional.of(pendingUser));
+
+        String result = authService.getPendingBasicSignupEmail("pending-user");
+
+        assertThat(result).isEqualTo("pending@streetask.com");
+    }
+
+    @Test
+    void getPendingBasicSignupEmailShouldReturnNullWhenUserDoesNotExist() {
+        when(userRepository.findByEmailIgnoreCase("missing")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("missing")).thenReturn(Optional.empty());
+
+        String result = authService.getPendingBasicSignupEmail("missing");
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void getPendingBasicSignupEmailShouldReturnNullWhenRepositoryThrows() {
+        when(userRepository.findByEmailIgnoreCase("boom")).thenThrow(new RuntimeException("db down"));
+
+        String result = authService.getPendingBasicSignupEmail("boom");
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void changeUserAccountTypeShouldReturnJwtResponseWithUpdatedRoles() {
+        UUID userId = UUID.randomUUID();
+        UUID changedBy = UUID.randomUUID();
+
+        User original = new User();
+        original.setId(userId);
+        original.setEmail("user@streetask.com");
+
+        User updated = new User();
+        updated.setId(userId);
+        updated.setEmail("user@streetask.com");
+        Authorities authority = new Authorities();
+        authority.setAuthority("BUSINESS");
+        updated.setAuthority(authority);
+
+        when(userService.findUser(userId)).thenReturn(original, updated);
+        when(jwtUtils.generateJwtToken(any())).thenReturn("jwt-new-token");
+
+        JwtResponse response = authService.changeUserAccountType(userId, AccountType.BUSINESS, changedBy,
+                "requested change", "127.0.0.1");
+
+        verify(userTypeChangeService).changeAccountType(eq(original), eq(AccountType.BUSINESS), eq(changedBy),
+                eq("requested change"), eq("127.0.0.1"));
+        assertThat(response.getToken()).isEqualTo("jwt-new-token");
+        assertThat(response.getId()).isEqualTo(userId);
+        assertThat(response.getUsername()).isEqualTo("user@streetask.com");
+        assertThat(response.getRoles()).containsExactly("BUSINESS");
     }
 }

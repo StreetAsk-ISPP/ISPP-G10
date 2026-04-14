@@ -162,8 +162,9 @@ export default function QuestionThreadScreen({ route, navigation }) {
         return { latitude: qLat, longitude: qLng };
     }, [question?.location?.latitude, question?.location?.longitude]);
     const hasGeoRestriction = useMemo(
-        () => questionCoords !== null && questionRadiusKm != null,
-        [questionCoords, questionRadiusKm]
+        // Event questions are scoped to the event itself — no geographic radius restriction.
+        () => !question?.event && questionCoords !== null && questionRadiusKm != null,
+        [question?.event, questionCoords, questionRadiusKm]
     );
 
     const isWithinRadius = useMemo(() => {

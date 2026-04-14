@@ -62,10 +62,13 @@ public class UserService {
     @Value("${streetask.stripe.regular-premium-amount-cents:${STRIPE_REGULAR_PREMIUM_AMOUNT_CENTS:999}}")
     private Integer stripeRegularPremiumAmountCents;
 
-    @Value("${streetask.stripe.success-url:http://localhost:8081}")
+    @Value("${FRONTEND_URL:http://localhost:8081}")
+    private String frontendUrl;
+
+    @Value("${streetask.stripe.success-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeSuccessUrl;
 
-    @Value("${streetask.stripe.cancel-url:http://localhost:8081}")
+    @Value("${streetask.stripe.cancel-url:${FRONTEND_URL:http://localhost:8081}}")
     private String stripeCancelUrl;
 
     @Autowired
@@ -452,7 +455,9 @@ public class UserService {
     }
 
     private String appendQuery(String baseUrl, String query) {
-        String safeBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl.trim() : "http://localhost:8081";
+        String safeBaseUrl = StringUtils.hasText(baseUrl)
+                ? baseUrl.trim()
+                : (StringUtils.hasText(frontendUrl) ? frontendUrl.trim() : "http://localhost:8081");
         String separator = safeBaseUrl.contains("?") ? "&" : "?";
         return safeBaseUrl + separator + query;
     }
