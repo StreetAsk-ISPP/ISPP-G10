@@ -3,6 +3,7 @@ package com.streetask.app.business;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,7 @@ public class BusinessSubscriptionService {
     @Value("${streetask.stripe.cancel-url:http://localhost:8081}")
     private String stripeCancelUrl;
 
+    @Autowired
     public BusinessSubscriptionService(BusinessAccountRepository businessAccountRepository,
             BusinessPremiumAccessGuard businessPremiumAccessGuard, AuthService authService, UserService userService,
             StripeRedirectUrlResolver stripeRedirectUrlResolver) {
@@ -57,6 +59,20 @@ public class BusinessSubscriptionService {
         this.authService = authService;
         this.userService = userService;
         this.stripeRedirectUrlResolver = stripeRedirectUrlResolver;
+    }
+
+    /**
+     * Backward-compatible constructor kept for tests that still instantiate
+     * BusinessSubscriptionService without the StripeRedirectUrlResolver argument.
+     */
+    public BusinessSubscriptionService(BusinessAccountRepository businessAccountRepository,
+            BusinessPremiumAccessGuard businessPremiumAccessGuard, AuthService authService, UserService userService) {
+        this(
+                businessAccountRepository,
+                businessPremiumAccessGuard,
+                authService,
+                userService,
+                new StripeRedirectUrlResolver(new String[0]));
     }
 
     @Transactional(readOnly = true)
