@@ -319,8 +319,6 @@ class BusinessSubscriptionServiceTest {
         businessAccount.setSubscriptionActive(true);
         businessAccount.setSubscriptionExpiresAt(LocalDateTime.now().plusDays(1));
 
-        Field method = BusinessSubscriptionService.class.getDeclaredField("businessPremiumAccessGuard");
-        method.setAccessible(true);
         ReflectionTestUtils.setField(service, "businessPremiumAccessGuard", businessPremiumAccessGuard);
         when(businessPremiumAccessGuard.hasPremiumAccess(businessAccount)).thenReturn(true);
 
