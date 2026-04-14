@@ -331,8 +331,8 @@ export default function ManageEventsScreen({ navigation }) {
         if (!q) {
             Toast.show({
                 type: 'info',
-                text1: 'Empty address',
-                text2: 'Enter an address or place to search.',
+                text1: 'Search field is empty',
+                text2: 'Enter an address or place before searching.',
                 position: 'top',
             });
             return;
