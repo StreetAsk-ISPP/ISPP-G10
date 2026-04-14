@@ -39,6 +39,9 @@ class BusinessSubscriptionRestControllerTest {
     @MockitoBean
     private BusinessSubscriptionService businessSubscriptionService;
 
+    @MockitoBean
+    private com.streetask.app.payments.CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver;
+
     private BusinessSubscriptionStatusResponse responseBody;
 
     @BeforeEach
@@ -71,7 +74,7 @@ class BusinessSubscriptionRestControllerTest {
     void createStripeCheckoutSessionShouldReturnOkAndDelegate() throws Exception {
         StripeCheckoutSessionResponse checkoutResponse = new StripeCheckoutSessionResponse("session", "url", "pk");
         when(businessSubscriptionService.createPublicStripeCheckoutSession(any(), any(), any(), any(), any(), any(),
-                any()))
+                any(), any()))
                 .thenReturn(checkoutResponse);
 
         mockMvc.perform(post("/api/v1/business-subscriptions/stripe/checkout-session")
@@ -130,7 +133,7 @@ class BusinessSubscriptionRestControllerTest {
     @Test
     void createCurrentBusinessStripeCheckoutSessionShouldSupportNullRequest() throws Exception {
         StripeCheckoutSessionResponse checkoutResponse = new StripeCheckoutSessionResponse("session", "url", "pk");
-        when(businessSubscriptionService.createCurrentBusinessStripeCheckoutSession(null)).thenReturn(checkoutResponse);
+        when(businessSubscriptionService.createCurrentBusinessStripeCheckoutSession(any(), any())).thenReturn(checkoutResponse);
 
         mockMvc.perform(post("/api/v1/business-subscriptions/me/stripe/checkout-session")
                 .with(csrf())

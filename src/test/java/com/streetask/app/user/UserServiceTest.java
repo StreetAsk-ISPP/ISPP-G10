@@ -165,7 +165,7 @@ class UserServiceTest {
     void findCurrentUser_shouldReturnAuthenticatedUserWhenPresent() {
 
         setupSecurityContext(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(testUser));
 
         User currentUser = userService.findCurrentUser();
 
@@ -179,17 +179,18 @@ class UserServiceTest {
         SecurityContextHolder.clearContext();
 
         assertThrows(ResourceNotFoundException.class, () -> userService.findCurrentUser());
-        verify(userRepository, never()).findByEmail(anyString());
+        verify(userRepository, never()).findByEmailIgnoreCase(anyString());
     }
 
     @Test
     @DisplayName("findCurrentUser should throw ResourceNotFoundException when authenticated user is missing in repository")
     void findCurrentUser_shouldThrowResourceNotFoundExceptionWhenRepositoryUserIsMissing() {
         setupSecurityContext(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase(TEST_EMAIL)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> userService.findCurrentUser());
-        verify(userRepository).findByEmail(TEST_EMAIL);
+        verify(userRepository).findByEmailIgnoreCase(TEST_EMAIL);
     }
 
     // ================= EXISTS =================
@@ -660,7 +661,7 @@ class UserServiceTest {
         regularUser.setPremiumActive(false);
 
         setupSecurityContext(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
 
         RegularUser updated = userService.updateCurrentRegularPremiumAccess(true);
@@ -682,7 +683,7 @@ class UserServiceTest {
         businessAccount.setAccountType(AccountType.BUSINESS);
 
         setupSecurityContext(TEST_EMAIL);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(businessAccount));
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(businessAccount));
 
         assertThrows(AccessDeniedException.class,
                 () -> userService.updateCurrentRegularPremiumAccess(true));

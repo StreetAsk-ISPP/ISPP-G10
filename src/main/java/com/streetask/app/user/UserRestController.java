@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ import com.streetask.app.auth.payload.request.ChangeRoleRequest;
 import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.exceptions.AccessDeniedException;
+import com.streetask.app.payments.CheckoutReturnUrlRequestResolver;
 import com.streetask.app.util.RestPreconditions;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -51,12 +53,15 @@ class UserRestController {
     private final UserService userService;
     private final AuthoritiesService authService;
     private final AuthService authServiceImpl;
+    private final CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver;
 
     @Autowired
-    public UserRestController(UserService userService, AuthoritiesService authService, AuthService authServiceImpl) {
+    public UserRestController(UserService userService, AuthoritiesService authService, AuthService authServiceImpl,
+            CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver) {
         this.userService = userService;
         this.authService = authService;
         this.authServiceImpl = authServiceImpl;
+        this.checkoutReturnUrlRequestResolver = checkoutReturnUrlRequestResolver;
     }
 
     @GetMapping
@@ -178,8 +183,11 @@ class UserRestController {
 
     @PostMapping(value = "/me/premium/stripe/checkout-session")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<StripeCheckoutSessionResponse> createCurrentRegularPremiumStripeCheckoutSession() {
-        StripeCheckoutSessionResponse response = userService.createCurrentRegularPremiumStripeCheckoutSession();
+    public ResponseEntity<StripeCheckoutSessionResponse> createCurrentRegularPremiumStripeCheckoutSession(
+            HttpServletRequest httpRequest) {
+        String requestedReturnUrl = checkoutReturnUrlRequestResolver.resolve(httpRequest);
+        StripeCheckoutSessionResponse response = userService
+                .createCurrentRegularPremiumStripeCheckoutSession(requestedReturnUrl);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

@@ -36,6 +36,9 @@ class StreetCoinPurchaseRestControllerTest {
     @MockitoBean
     private StreetCoinPurchaseService streetCoinPurchaseService;
 
+    @MockitoBean
+    private com.streetask.app.payments.CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver;
+
     private StreetCoinPurchaseResponse purchaseResponse;
     private StreetCoinPurchaseConfirmResponse confirmResponse;
     private StreetCoinBalanceResponse balanceResponse;
@@ -92,7 +95,7 @@ class StreetCoinPurchaseRestControllerTest {
 
     @Test
     void createPurchaseShouldReturnCreatedAndDelegateHeader() throws Exception {
-        when(streetCoinPurchaseService.createPurchase(any(StreetCoinPurchaseRequest.class), any()))
+        when(streetCoinPurchaseService.createPurchase(any(StreetCoinPurchaseRequest.class), any(), any()))
                 .thenReturn(purchaseResponse);
 
         mockMvc.perform(post("/api/v1/streetcoins/purchase")
@@ -104,7 +107,7 @@ class StreetCoinPurchaseRestControllerTest {
                 .andExpect(jsonPath("$.status").value("pending"))
                 .andExpect(jsonPath("$.streetCoins").value(10));
 
-        verify(streetCoinPurchaseService).createPurchase(any(StreetCoinPurchaseRequest.class), any());
+        verify(streetCoinPurchaseService).createPurchase(any(StreetCoinPurchaseRequest.class), any(), any());
     }
 
     @Test

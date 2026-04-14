@@ -25,6 +25,7 @@ import com.streetask.app.model.CoinTransaction;
 import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.enums.CoinTransactionStatus;
 import com.streetask.app.model.enums.CoinTransactionType;
+import com.streetask.app.payments.StripeRedirectUrlResolver;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
 import com.streetask.app.user.User;
@@ -39,6 +40,7 @@ public class StreetCoinPurchaseService {
     private final UserService userService;
     private final RegularUserRepository regularUserRepository;
     private final CoinTransactionRepository coinTransactionRepository;
+    private final StripeRedirectUrlResolver stripeRedirectUrlResolver;
 
     @Value("${streetask.coins.purchase.mode:stripe}")
     private String purchaseMode;
@@ -63,10 +65,12 @@ public class StreetCoinPurchaseService {
 
     public StreetCoinPurchaseService(UserService userService,
             RegularUserRepository regularUserRepository,
-            CoinTransactionRepository coinTransactionRepository) {
+            CoinTransactionRepository coinTransactionRepository,
+            StripeRedirectUrlResolver stripeRedirectUrlResolver) {
         this.userService = userService;
         this.regularUserRepository = regularUserRepository;
         this.coinTransactionRepository = coinTransactionRepository;
+        this.stripeRedirectUrlResolver = stripeRedirectUrlResolver;
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +115,8 @@ public class StreetCoinPurchaseService {
     }
 
     @Transactional
-    public StreetCoinPurchaseResponse createPurchase(StreetCoinPurchaseRequest request, String idempotencyHeader) {
+    public StreetCoinPurchaseResponse createPurchase(StreetCoinPurchaseRequest request, String idempotencyHeader,
+            String requestedReturnUrl) {
         RegularUser currentUser = requireCurrentRegularUser();
         String idempotencyKey = resolveIdempotencyKey(idempotencyHeader, request.getIdempotencyKey());
 
@@ -153,7 +158,12 @@ public class StreetCoinPurchaseService {
             return toPurchaseResponse(tx, null);
         }
 
-        return createStripeCheckout(tx, selectedPack);
+        return createStripeCheckout(tx, selectedPack, requestedReturnUrl);
+    }
+
+    @Transactional
+    public StreetCoinPurchaseResponse createPurchase(StreetCoinPurchaseRequest request, String idempotencyHeader) {
+        return createPurchase(request, idempotencyHeader, null);
     }
 
     @Transactional
@@ -257,15 +267,20 @@ public class StreetCoinPurchaseService {
                 tx.getExternalPaymentId());
     }
 
-    private StreetCoinPurchaseResponse createStripeCheckout(CoinTransaction tx, StreetCoinPack pack) {
+    private StreetCoinPurchaseResponse createStripeCheckout(CoinTransaction tx, StreetCoinPack pack,
+            String requestedReturnUrl) {
         ensureStripeConfigured();
         Stripe.apiKey = stripeSecretKey;
+        String successBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl,
+                streetCoinsSuccessUrl);
+        String cancelBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl,
+                streetCoinsCancelUrl);
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(streetCoinsSuccessUrl,
+                .setSuccessUrl(appendQuery(successBaseUrl,
                         "payment=success&flow=streetcoins&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(streetCoinsCancelUrl, "payment=cancel&flow=streetcoins"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel&flow=streetcoins"))
                 .putMetadata("flow", "streetcoins")
                 .putMetadata("userId", tx.getUser().getId().toString())
                 .putMetadata("transactionId", tx.getId().toString())

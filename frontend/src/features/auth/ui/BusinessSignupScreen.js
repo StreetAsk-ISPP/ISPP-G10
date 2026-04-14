@@ -8,9 +8,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+import {
+	getCurrentWebPathWithSearchAndHash,
+	withCheckoutReturnHeader,
+} from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function BusinessSignupScreen({ navigation, route }) {
-	const { email } = route.params;
+	const { email, password } = route.params || {};
 	const { width } = useWindowDimensions();
 	const isNarrow = width < 500;
 
@@ -58,27 +62,38 @@ export default function BusinessSignupScreen({ navigation, route }) {
 				address: address.trim() || null,
 				website: website.trim() || null,
 				description: description.trim() || null,
+				password: typeof password === 'string' ? password : null,
 			};
 
-			const checkoutResponse = await apiClient.post('/api/v1/business-subscriptions/stripe/checkout-session', {
-				email,
-				taxId: normalizedTaxId,
-				companyName: companyName.trim(),
-				address: address.trim() || null,
-				website: website.trim() || null,
-				description: description.trim() || null,
-			});
+			const checkoutResponse = await apiClient.post(
+				'/api/v1/business-subscriptions/stripe/checkout-session',
+				{
+					email,
+					taxId: normalizedTaxId,
+					companyName: companyName.trim(),
+					address: address.trim() || null,
+					website: website.trim() || null,
+					description: description.trim() || null,
+				},
+				withCheckoutReturnHeader()
+			);
 
 			const checkoutUrl = checkoutResponse?.data?.checkoutUrl;
+			const checkoutSessionId = checkoutResponse?.data?.sessionId;
 			if (!checkoutUrl) {
 				setError('Stripe checkout session could not be initialized.');
 				return;
 			}
 
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
+				const returnTo = getCurrentWebPathWithSearchAndHash();
 				window.localStorage.setItem(
 					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
-					JSON.stringify(pendingBusinessSignup)
+					JSON.stringify({
+						...pendingBusinessSignup,
+						sessionId: checkoutSessionId || null,
+						returnTo: returnTo || '/',
+					})
 				);
 				window.location.assign(checkoutUrl);
 				return;

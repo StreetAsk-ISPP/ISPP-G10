@@ -16,6 +16,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../app/providers/AuthProvider';
 import ConfirmationModal from '../../shared/components/ConfirmationModal';
 import apiClient from '../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
+import {
+  getCurrentWebPathWithSearchAndHash,
+  withCheckoutReturnHeader,
+} from '../../shared/services/payments/checkoutReturnUrl';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
@@ -103,9 +108,11 @@ export default function ProfileScreen({ navigation }) {
     try {
       const response = await apiClient.post(
         '/api/v1/business-subscriptions/me/stripe/checkout-session',
-        {}
+        {},
+        withCheckoutReturnHeader()
       );
       const checkoutUrl = response?.data?.checkoutUrl;
+      const checkoutSessionId = response?.data?.sessionId;
 
       if (!checkoutUrl) {
         setSubscriptionActionError('Stripe checkout session could not be initialized.');
@@ -113,6 +120,15 @@ export default function ProfileScreen({ navigation }) {
       }
 
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const returnTo = getCurrentWebPathWithSearchAndHash();
+        window.localStorage.setItem(
+          STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT,
+          JSON.stringify({
+            sessionId: checkoutSessionId || null,
+            createdAt: Date.now(),
+            returnTo: returnTo || '/',
+          })
+        );
         window.location.assign(checkoutUrl);
         return;
       }

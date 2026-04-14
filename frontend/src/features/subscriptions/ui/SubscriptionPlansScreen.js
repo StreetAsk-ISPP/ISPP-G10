@@ -15,6 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../../app/providers/AuthProvider';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+import {
+    getCurrentWebPathWithSearchAndHash,
+    withCheckoutReturnHeader,
+} from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function SubscriptionPlansScreen({ navigation }) {
     const { user } = useAuth();
@@ -91,15 +95,28 @@ export default function SubscriptionPlansScreen({ navigation }) {
         setIsUpdatingPlan(true);
         try {
             if (targetPlan === 'PREMIUM') {
-                const response = await apiClient.post('/api/v1/users/me/premium/stripe/checkout-session', {});
+                const response = await apiClient.post(
+                    '/api/v1/users/me/premium/stripe/checkout-session',
+                    {},
+                    withCheckoutReturnHeader()
+                );
                 const checkoutUrl = response?.data?.checkoutUrl;
+                const checkoutSessionId = response?.data?.sessionId;
 
                 if (!checkoutUrl) {
                     throw new Error('Stripe checkout session could not be initialized.');
                 }
 
                 if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                    window.localStorage.setItem(STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT, '1');
+                    const returnTo = getCurrentWebPathWithSearchAndHash();
+                    window.localStorage.setItem(
+                        STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT,
+                        JSON.stringify({
+                            sessionId: checkoutSessionId || null,
+                            createdAt: Date.now(),
+                            returnTo: returnTo || '/',
+                        })
+                    );
                     redirectedToStripeWeb = true;
                     window.location.assign(checkoutUrl);
                     return;

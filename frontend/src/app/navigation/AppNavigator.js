@@ -28,13 +28,81 @@ import { useAuth } from '../providers/AuthProvider';
 import { theme } from '../../shared/ui/theme/theme';
 import apiClient from '../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
+import Toast from 'react-native-toast-message';
 
 const Stack = createNativeStackNavigator();
 
+const parsePendingCheckout = (rawValue) => {
+    if (!rawValue) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(rawValue);
+    } catch {
+        return null;
+    }
+};
+
+const normalizeReturnPath = (rawPath) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+        return null;
+    }
+
+    if (typeof rawPath !== 'string') {
+        return null;
+    }
+
+    const trimmedPath = rawPath.trim();
+    if (!trimmedPath) {
+        return null;
+    }
+
+    try {
+        const parsed = new URL(trimmedPath, window.location.origin);
+        if (parsed.origin !== window.location.origin) {
+            return null;
+        }
+
+        return `${parsed.pathname || '/'}${parsed.search || ''}${parsed.hash || ''}`;
+    } catch {
+        return null;
+    }
+};
+
 export default function AppNavigator() {
-    const { isAuthenticated, isLoadingAuth, user } = useAuth();
+    const { isAuthenticated, isLoadingAuth, user, login } = useAuth();
     const stripeCallbackHandledRef = useRef(false);
     const [navigationResetVersion, setNavigationResetVersion] = useState(0);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+        const rawNotice = window.localStorage.getItem(STORAGE_KEYS.CHECKOUT_CALLBACK_NOTICE);
+        if (!rawNotice) return;
+
+        try {
+            const parsedNotice = JSON.parse(rawNotice);
+            const type = parsedNotice?.type === 'error' ? 'error' : 'success';
+            const text1 = typeof parsedNotice?.text1 === 'string' ? parsedNotice.text1.trim() : '';
+            const text2 = typeof parsedNotice?.text2 === 'string' ? parsedNotice.text2.trim() : '';
+
+            if (text1) {
+                Toast.show({
+                    type,
+                    text1,
+                    text2,
+                    visibilityTime: 4500,
+                    autoHide: true,
+                    topOffset: 16,
+                });
+            }
+        } catch (error) {
+            console.warn('Invalid checkout callback notice format.', error);
+        } finally {
+            window.localStorage.removeItem(STORAGE_KEYS.CHECKOUT_CALLBACK_NOTICE);
+        }
+    }, [navigationResetVersion]);
 
     useEffect(() => {
         if (isLoadingAuth) return;
@@ -53,42 +121,75 @@ export default function AppNavigator() {
         stripeCallbackHandledRef.current = true;
 
         const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
+        const mapUrl = window.location.origin;
 
         const clearUrlParams = () => {
             window.history.replaceState({}, document.title, cleanUrl);
+        };
+
+        const queueCheckoutNotice = (type, text1, text2 = '') => {
+            window.localStorage.setItem(
+                STORAGE_KEYS.CHECKOUT_CALLBACK_NOTICE,
+                JSON.stringify({
+                    type,
+                    text1,
+                    text2,
+                    createdAt: Date.now(),
+                })
+            );
         };
 
         const processStripeCallback = async () => {
             let callbackSucceeded = false;
             let shouldClearParams = true;
             let shouldClearStreetCoinsPending = true;
-            let shouldClearBusinessPending = true;
+            let shouldClearBusinessSignupPending = flow !== 'streetcoins';
+            let shouldClearBusinessSubscriptionPending = flow !== 'streetcoins';
+            let shouldClearRegularPremiumPending = flow !== 'streetcoins';
+            let redirectAfterCallback = null;
+
+            const pendingStreetCoins = parsePendingCheckout(window.localStorage.getItem(
+                STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT
+            ));
+
+            const pendingBusinessSignup = parsePendingCheckout(window.localStorage.getItem(
+                STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT
+            ));
+
+            const pendingBusinessSubscription = parsePendingCheckout(window.localStorage.getItem(
+                STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT
+            ));
+
+            const rawPendingRegularPremium = window.localStorage.getItem(
+                STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
+            );
+            const pendingRegularPremium = parsePendingCheckout(rawPendingRegularPremium)
+                || (rawPendingRegularPremium ? { legacyFlag: true } : null);
+
+            const pendingReturnTo = flow === 'streetcoins'
+                ? pendingStreetCoins?.returnTo
+                : pendingBusinessSubscription?.returnTo
+                    || pendingRegularPremium?.returnTo
+                    || pendingBusinessSignup?.returnTo;
+            const fallbackReturnTo = normalizeReturnPath(
+                pendingReturnTo
+                || pendingStreetCoins?.returnTo
+                || pendingBusinessSubscription?.returnTo
+                || pendingRegularPremium?.returnTo
+                || pendingBusinessSignup?.returnTo
+            );
 
             try {
-                // =========================
-                // STREETCOINS FLOW (feature/buy-streetcoins)
-                // =========================
-                const rawPendingStreetCoins = window.localStorage.getItem(
-                    STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT
-                );
-
-                let pendingStreetCoins = null;
-                if (rawPendingStreetCoins) {
-                    try {
-                        pendingStreetCoins = JSON.parse(rawPendingStreetCoins);
-                    } catch {
-                        pendingStreetCoins = null;
-                    }
-                }
-
-                const effectiveSessionId = sessionId || pendingStreetCoins?.sessionId;
-
-                if (paymentState === 'success' && effectiveSessionId) {
+                if (paymentState === 'success') {
                     if (flow === 'streetcoins') {
-                        // Handle streetcoins purchase
+                        const effectiveStreetCoinsSessionId = sessionId || pendingStreetCoins?.sessionId;
+                        if (!effectiveStreetCoinsSessionId) {
+                            throw new Error('Missing Stripe session ID for StreetCoins checkout callback.');
+                        }
+
                         const response = await apiClient.post(
                             '/api/v1/streetcoins/purchase/confirm',
-                            { sessionId: effectiveSessionId }
+                            { sessionId: effectiveStreetCoinsSessionId }
                         );
 
                         const addedStreetCoins = response?.data?.addedStreetCoins;
@@ -119,6 +220,15 @@ export default function AppNavigator() {
                         return;
                     }
 
+                    const effectiveSessionId = sessionId
+                        || pendingBusinessSubscription?.sessionId
+                        || pendingRegularPremium?.sessionId
+                        || pendingBusinessSignup?.sessionId;
+
+                    if (!effectiveSessionId) {
+                        throw new Error('Missing Stripe session ID for checkout callback.');
+                    }
+
                     // =========================
                     // BUSINESS FLOW (feature/buy-streetcoins + trunk)
                     // =========================
@@ -132,56 +242,99 @@ export default function AppNavigator() {
                         // =========================
                         // PREMIUM USER (trunk)
                         // =========================
-                        const pendingRegularPremiumCheckout =
-                            window.localStorage.getItem(
-                                STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
-                            );
-
-                        if (pendingRegularPremiumCheckout && isAuthenticated) {
+                        if (pendingRegularPremium && isAuthenticated) {
                             await apiClient.post(
                                 '/api/v1/users/me/premium/stripe/confirm-session',
                                 { sessionId: effectiveSessionId }
                             );
                             callbackSucceeded = true;
                         } else {
-                            const rawPendingData = window.localStorage.getItem(
-                                STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT
-                            );
+                            if (pendingBusinessSignup?.email && pendingBusinessSignup?.taxId) {
+                                await apiClient.post(
+                                    '/api/v1/business-subscriptions/stripe/confirm-session',
+                                    {
+                                        email: pendingBusinessSignup.email,
+                                        taxId: pendingBusinessSignup.taxId,
+                                        sessionId: effectiveSessionId,
+                                    }
+                                );
 
-                            if (rawPendingData) {
-                                const pendingData = JSON.parse(rawPendingData);
+                                const pendingBusinessPassword = typeof pendingBusinessSignup?.password === 'string'
+                                    ? pendingBusinessSignup.password.trim()
+                                    : '';
 
-                                if (pendingData?.email && pendingData?.taxId) {
-                                    await apiClient.post(
-                                        '/api/v1/business-subscriptions/stripe/confirm-session',
-                                        {
-                                            email: pendingData.email,
-                                            taxId: pendingData.taxId,
-                                            sessionId: effectiveSessionId,
-                                        }
-                                    );
-                                    callbackSucceeded = true;
+                                if (!isAuthenticated && pendingBusinessPassword) {
+                                    const signInResponse = await apiClient.post('/api/v1/auth/signin', {
+                                        email: pendingBusinessSignup.email,
+                                        password: pendingBusinessPassword,
+                                    });
+
+                                    await login(signInResponse?.data?.token, {
+                                        id: signInResponse?.data?.id,
+                                        username: signInResponse?.data?.username,
+                                        roles: signInResponse?.data?.roles,
+                                    });
                                 }
+
+                                callbackSucceeded = true;
                             }
                         }
                     }
+
+                    if (!callbackSucceeded) {
+                        throw new Error('Stripe callback could not resolve a business/premium flow.');
+                    }
+
+                    const successDescription = pendingBusinessSignup?.email
+                        ? 'Business account activated successfully.'
+                        : (pendingBusinessSubscription || (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')))
+                            ? 'Business premium subscription activated.'
+                            : 'Premium plan activated successfully.';
+
+                    queueCheckoutNotice('success', 'Payment completed', successDescription);
+                    redirectAfterCallback = mapUrl;
+                    return;
                 }
+
+                const failureTitle = paymentState === 'cancel'
+                    ? 'Payment canceled'
+                    : 'Payment failed';
+                queueCheckoutNotice(
+                    'error',
+                    failureTitle,
+                    'You were returned to the previous screen.'
+                );
+                redirectAfterCallback = fallbackReturnTo;
             } catch (error) {
                 console.error('Stripe callback processing failed:', error);
 
-                stripeCallbackHandledRef.current = false;
-                shouldClearParams = false;
-
                 if (flow === 'streetcoins') {
+                    stripeCallbackHandledRef.current = false;
+                    shouldClearParams = false;
                     shouldClearStreetCoinsPending = false;
-                } else {
-                    shouldClearBusinessPending = false;
+                    return;
                 }
+
+                queueCheckoutNotice(
+                    'error',
+                    'Payment confirmation failed',
+                    'We returned you to the previous screen. Please try again.'
+                );
+                redirectAfterCallback = fallbackReturnTo;
             } finally {
-                if (shouldClearBusinessPending) {
+                if (shouldClearBusinessSignupPending) {
                     window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                }
+
+                if (shouldClearRegularPremiumPending) {
                     window.localStorage.removeItem(
                         STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
+                    );
+                }
+
+                if (shouldClearBusinessSubscriptionPending) {
+                    window.localStorage.removeItem(
+                        STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT
                     );
                 }
 
@@ -195,15 +348,16 @@ export default function AppNavigator() {
                     clearUrlParams();
                 }
 
-                // Comportamiento de trunk: refrescar UI después de éxito (excepto streetcoins)
                 if (callbackSucceeded && flow !== 'streetcoins') {
-                    window.location.reload();
+                    window.location.replace(mapUrl);
+                } else if (redirectAfterCallback) {
+                    window.location.replace(redirectAfterCallback);
                 }
             }
         };
 
         processStripeCallback();
-    }, [isAuthenticated, isLoadingAuth, user?.roles]);
+    }, [isAuthenticated, isLoadingAuth, login, user?.roles]);
 
     if (isLoadingAuth) {
         return (

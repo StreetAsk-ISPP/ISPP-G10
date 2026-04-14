@@ -6,6 +6,9 @@ export const STORAGE_KEYS = {
     // Checkout de registro empresarial
     PENDING_BUSINESS_CHECKOUT: 'streetask.pendingBusinessCheckout',
 
+    // Checkout pendiente para suscripción de negocio (usuario BUSINESS autenticado)
+    PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT: 'streetask.pendingBusinessSubscriptionCheckout',
+
     // =========================
     // STREETCOINS
     // =========================
@@ -25,6 +28,9 @@ export const STORAGE_KEYS = {
 
     // Marca de checkout pendiente para upgrade premium
     PENDING_REGULAR_PREMIUM_CHECKOUT: 'streetask.pendingRegularPremiumCheckout',
+
+    // Aviso efímero para mostrar resultado de callback de checkout
+    CHECKOUT_CALLBACK_NOTICE: 'streetask.checkoutCallbackNotice',
 
     // =========================
     // CACHE HOME (FEATURE)
