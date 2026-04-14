@@ -156,10 +156,11 @@ public class QuestionService {
 			double lat = question.getLocation().getLatitude();
 			double lng = question.getLocation().getLongitude();
 
-			while (existsSameLocation(lat, lng)) {
-				double[] newCoords = applyOffset(lat, lng);
-				lat = newCoords[0];
-				lng = newCoords[1];
+			int maxAttempts = 10;
+			for (int i = 0; i < maxAttempts
+					&& questionRepository.existsByLocationLatitudeAndLocationLongitude(lat, lng); i++) {
+				lat = question.getLocation().getLatitude() + (Math.random() - 0.5) * 0.00002;
+				lng = question.getLocation().getLongitude() + (Math.random() - 0.5) * 0.00002;
 			}
 
 			question.getLocation().setLatitude(lat);
@@ -350,27 +351,6 @@ public class QuestionService {
 			throw new UpperPlanFeatureException(
 					"You must confirm spending 1 StreetCoin before creating an extra question.");
 		}
-	}
-
-	// Check if a question already exists with that exact location.
-	private boolean existsSameLocation(double lat, double lng) {
-		return StreamSupport.stream(questionRepository.findAll().spliterator(), false)
-				.anyMatch(q -> {
-					if (q.getLocation() == null)
-						return false;
-					return q.getLocation().getLatitude() == lat
-							&& q.getLocation().getLongitude() == lng;
-				});
-	}
-
-	// Apply small displacement (~2 meters)
-	private double[] applyOffset(double lat, double lng) {
-		double offset = 0.00002; // ≈ 2 metros
-
-		double newLat = lat + (Math.random() - 0.5) * offset;
-		double newLng = lng + (Math.random() - 0.5) * offset;
-
-		return new double[] { newLat, newLng };
 	}
 
 	private void spendStreetCoinForExtraQuestion(RegularUser user, Question question, String description) {
