@@ -27,6 +27,7 @@ export default function ProfileScreen({ navigation }) {
     profilePictureUrl: null,
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [businessEventsStats, setBusinessEventsStats] = useState({ eventsCount: 0, totalAttendance: 0 });
   const [businessSubscription, setBusinessSubscription] = useState(null);
   const [regularPremiumActive, setRegularPremiumActive] = useState(false);
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
@@ -131,6 +132,18 @@ export default function ProfileScreen({ navigation }) {
         .catch(() => {
           setBusinessSubscription(null);
         });
+
+      (async () => {
+        try {
+          const resEvents = await apiClient.get('/api/v1/events');
+          const allEvents = Array.isArray(resEvents?.data) ? resEvents.data : [];
+          const myEvents = allEvents.filter((event) => event?.creator?.id === user?.id);
+          const totalAttendance = myEvents.reduce((sum, e) => sum + (e.attendeeCount || 0), 0);
+          setBusinessEventsStats({ eventsCount: myEvents.length, totalAttendance });
+        } catch {
+          // silently ignore — stats will stay at 0
+        }
+      })();
     } else {
       setBusinessSubscription(null);
     }
@@ -192,23 +205,47 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Stats card — floats above menu */}
       <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.questions}</Text>
-          <Text style={styles.statItemLabel}>Asked{'\n'}questions</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.answers}</Text>
-          <Text style={styles.statItemLabel}>Answered{'\n'}questions</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {parseFloat(stats.rating).toFixed(1)}
-            <Text style={styles.statNumberSub}>/5</Text>
-          </Text>
-          <Text style={styles.statItemLabel}>Rated{'\n'}with</Text>
-        </View>
+        {isBusinessUser ? (
+          <>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{businessEventsStats.eventsCount}</Text>
+              <Text style={styles.statItemLabel}>Events{'\n'}Created</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{businessEventsStats.totalAttendance}</Text>
+              <Text style={styles.statItemLabel}>Total{'\n'}Attendance</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {parseFloat(stats.rating).toFixed(1)}
+                <Text style={styles.statNumberSub}>/5</Text>
+              </Text>
+              <Text style={styles.statItemLabel}>Rated{'\n'}with</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{stats.questions}</Text>
+              <Text style={styles.statItemLabel}>Asked{'\n'}questions</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{stats.answers}</Text>
+              <Text style={styles.statItemLabel}>Answered{'\n'}questions</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>
+                {parseFloat(stats.rating).toFixed(1)}
+                <Text style={styles.statNumberSub}>/5</Text>
+              </Text>
+              <Text style={styles.statItemLabel}>Rated{'\n'}with</Text>
+            </View>
+          </>
+        )}
       </View>
 
       <ScrollView style={styles.menuContainer}>
@@ -294,18 +331,22 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.menuItemText}>Insights</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Balance')}>
-          <Ionicons name="wallet-outline" size={24} color="#fff" />
-          <Text style={styles.menuItemText}>Balance</Text>
-        </TouchableOpacity>
+        {!isBusinessUser && (
+          <>
+            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Balance')}>
+              <Ionicons name="wallet-outline" size={24} color="#fff" />
+              <Text style={styles.menuItemText}>Balance</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('MyPurchases')}
-        >
-          <Ionicons name="cart-outline" size={24} color="#fff" />
-          <Text style={styles.menuItemText}>My purchases</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('MyPurchases')}
+            >
+              <Ionicons name="cart-outline" size={24} color="#fff" />
+              <Text style={styles.menuItemText}>My purchases</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         {user?.roles?.includes('BUSINESS') && (
           <TouchableOpacity
