@@ -28,6 +28,7 @@ import com.streetask.app.answer.AnswerRepository;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Question;
+import com.streetask.app.payments.StripeRedirectUrlResolver;
 import com.streetask.app.question.QuestionRepository;
 
 import jakarta.validation.Valid;
@@ -39,6 +40,7 @@ public class UserService {
     private AnswerRepository answerRepository;
     private QuestionRepository questionRepository;
     private PasswordEncoder passwordEncoder;
+    private final StripeRedirectUrlResolver stripeRedirectUrlResolver;
 
     private static final int LIKE_WEIGHT = 2;
     private static final int DISLIKE_WEIGHT = 1;
@@ -64,11 +66,13 @@ public class UserService {
 
     @Autowired
     public UserService(UserRepository userRepository, AnswerRepository answerRepository,
-            QuestionRepository questionRepository, PasswordEncoder passwordEncoder) {
+            QuestionRepository questionRepository, PasswordEncoder passwordEncoder,
+            StripeRedirectUrlResolver stripeRedirectUrlResolver) {
         this.userRepository = userRepository;
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.stripeRedirectUrlResolver = stripeRedirectUrlResolver;
     }
 
     private PasswordEncoder getPasswordEncoder() {
@@ -245,7 +249,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public StripeCheckoutSessionResponse createCurrentRegularPremiumStripeCheckoutSession() {
+    public StripeCheckoutSessionResponse createCurrentRegularPremiumStripeCheckoutSession(String requestedReturnUrl) {
         RegularUser regularUser = getCurrentRegularUser();
         if (Boolean.TRUE.equals(regularUser.getPremiumActive())) {
             throw new AccessDeniedException("Regular premium access is already active.");
@@ -253,11 +257,13 @@ public class UserService {
 
         ensureStripeConfigured();
         Stripe.apiKey = stripeSecretKey;
+        String successBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeSuccessUrl);
+        String cancelBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeCancelUrl);
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(stripeSuccessUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(stripeCancelUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
                 .putMetadata("regularUserId", regularUser.getId().toString())
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
@@ -281,6 +287,11 @@ public class UserService {
         } catch (StripeException ex) {
             throw new IllegalStateException("Unable to create Stripe checkout session.", ex);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public StripeCheckoutSessionResponse createCurrentRegularPremiumStripeCheckoutSession() {
+        return createCurrentRegularPremiumStripeCheckoutSession(null);
     }
 
     @Transactional

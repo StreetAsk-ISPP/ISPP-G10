@@ -2,6 +2,7 @@ package com.streetask.app.business;
 
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.streetask.app.auth.payload.response.MessageResponse;
+import com.streetask.app.payments.CheckoutReturnUrlRequestResolver;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -21,9 +23,13 @@ import jakarta.validation.Valid;
 public class BusinessSubscriptionRestController {
 
     private final BusinessSubscriptionService businessSubscriptionService;
+    private final CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver;
 
-    public BusinessSubscriptionRestController(BusinessSubscriptionService businessSubscriptionService) {
+    public BusinessSubscriptionRestController(
+            BusinessSubscriptionService businessSubscriptionService,
+            CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver) {
         this.businessSubscriptionService = businessSubscriptionService;
+        this.checkoutReturnUrlRequestResolver = checkoutReturnUrlRequestResolver;
     }
 
     @PostMapping("/mock/activate")
@@ -36,7 +42,8 @@ public class BusinessSubscriptionRestController {
 
     @PostMapping("/stripe/checkout-session")
     public ResponseEntity<StripeCheckoutSessionResponse> createStripeCheckoutSession(
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> request,
+            HttpServletRequest httpRequest) {
         String email = request.get("email") == null ? null : request.get("email").toString();
         String taxId = request.get("taxId") == null ? null : request.get("taxId").toString();
         String companyName = request.get("companyName") == null ? null : request.get("companyName").toString();
@@ -45,9 +52,10 @@ public class BusinessSubscriptionRestController {
         String description = request.get("description") == null ? null : request.get("description").toString();
         Integer durationDays = request.get("durationDays") == null ? null
             : Integer.valueOf(request.get("durationDays").toString());
+        String requestedReturnUrl = checkoutReturnUrlRequestResolver.resolve(httpRequest);
 
         StripeCheckoutSessionResponse response = businessSubscriptionService.createPublicStripeCheckoutSession(
-            email, taxId, companyName, address, website, description, durationDays);
+            email, taxId, companyName, address, website, description, durationDays, requestedReturnUrl);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -75,10 +83,12 @@ public class BusinessSubscriptionRestController {
 
     @PostMapping("/me/stripe/checkout-session")
     public ResponseEntity<StripeCheckoutSessionResponse> createCurrentBusinessStripeCheckoutSession(
-            @RequestBody(required = false) MockBusinessSubscriptionActivationRequest request) {
+            @RequestBody(required = false) MockBusinessSubscriptionActivationRequest request,
+            HttpServletRequest httpRequest) {
         Integer durationDays = request == null ? null : request.getDurationDays();
+        String requestedReturnUrl = checkoutReturnUrlRequestResolver.resolve(httpRequest);
         StripeCheckoutSessionResponse response = businessSubscriptionService
-                .createCurrentBusinessStripeCheckoutSession(durationDays);
+                .createCurrentBusinessStripeCheckoutSession(durationDays, requestedReturnUrl);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

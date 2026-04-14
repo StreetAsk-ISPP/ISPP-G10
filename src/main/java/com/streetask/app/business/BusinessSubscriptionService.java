@@ -16,6 +16,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
+import com.streetask.app.payments.StripeRedirectUrlResolver;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserService;
 
@@ -28,6 +29,7 @@ public class BusinessSubscriptionService {
     private final BusinessPremiumAccessGuard businessPremiumAccessGuard;
     private final AuthService authService;
     private final UserService userService;
+    private final StripeRedirectUrlResolver stripeRedirectUrlResolver;
 
     @Value("${streetask.stripe.secret-key:}")
     private String stripeSecretKey;
@@ -48,11 +50,13 @@ public class BusinessSubscriptionService {
     private String stripeCancelUrl;
 
     public BusinessSubscriptionService(BusinessAccountRepository businessAccountRepository,
-            BusinessPremiumAccessGuard businessPremiumAccessGuard, AuthService authService, UserService userService) {
+            BusinessPremiumAccessGuard businessPremiumAccessGuard, AuthService authService, UserService userService,
+            StripeRedirectUrlResolver stripeRedirectUrlResolver) {
         this.businessAccountRepository = businessAccountRepository;
         this.businessPremiumAccessGuard = businessPremiumAccessGuard;
         this.authService = authService;
         this.userService = userService;
+        this.stripeRedirectUrlResolver = stripeRedirectUrlResolver;
     }
 
     @Transactional(readOnly = true)
@@ -88,14 +92,22 @@ public class BusinessSubscriptionService {
     }
 
     @Transactional(readOnly = true)
-    public StripeCheckoutSessionResponse createCurrentBusinessStripeCheckoutSession(Integer durationDays) {
+    public StripeCheckoutSessionResponse createCurrentBusinessStripeCheckoutSession(
+            Integer durationDays,
+            String requestedReturnUrl) {
         BusinessAccount businessAccount = getCurrentBusinessAccount();
-        return createStripeCheckoutSession(businessAccount, durationDays);
+        return createStripeCheckoutSession(businessAccount, durationDays, requestedReturnUrl);
+    }
+
+    @Transactional(readOnly = true)
+    public StripeCheckoutSessionResponse createCurrentBusinessStripeCheckoutSession(Integer durationDays) {
+        return createCurrentBusinessStripeCheckoutSession(durationDays, null);
     }
 
     @Transactional(readOnly = true)
     public StripeCheckoutSessionResponse createPublicStripeCheckoutSession(String email, String taxId,
-            String companyName, String address, String website, String description, Integer durationDays) {
+            String companyName, String address, String website, String description, Integer durationDays,
+            String requestedReturnUrl) {
         String normalizedEmail = normalizeEmail(email);
         String normalizedTaxId = normalizeTaxId(taxId);
 
@@ -107,8 +119,22 @@ public class BusinessSubscriptionService {
             throw new AccessDeniedException("Tax ID is already registered.");
         }
 
-        return createPublicStripeCheckoutSessionForSignup(normalizedEmail, normalizedTaxId, companyName, address, website,
-                description, durationDays);
+        return createPublicStripeCheckoutSessionForSignup(
+                normalizedEmail,
+                normalizedTaxId,
+                companyName,
+                address,
+                website,
+                description,
+                durationDays,
+                requestedReturnUrl);
+    }
+
+    @Transactional(readOnly = true)
+    public StripeCheckoutSessionResponse createPublicStripeCheckoutSession(String email, String taxId,
+            String companyName, String address, String website, String description, Integer durationDays) {
+        return createPublicStripeCheckoutSession(email, taxId, companyName, address, website, description,
+                durationDays, null);
     }
 
     @Transactional
@@ -172,7 +198,8 @@ public class BusinessSubscriptionService {
     }
 
     private StripeCheckoutSessionResponse createStripeCheckoutSession(BusinessAccount businessAccount,
-            Integer durationDays) {
+            Integer durationDays,
+            String requestedReturnUrl) {
         ensureStripeConfigured();
 
         if (businessPremiumAccessGuard.hasPremiumAccess(businessAccount)) {
@@ -181,11 +208,13 @@ public class BusinessSubscriptionService {
 
         Stripe.apiKey = stripeSecretKey;
         int resolvedDurationDays = resolveDurationDays(durationDays);
+        String successBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeSuccessUrl);
+        String cancelBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeCancelUrl);
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(stripeSuccessUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(stripeCancelUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
                 .putMetadata("businessId", businessAccount.getId().toString())
                 .putMetadata("durationDays", String.valueOf(resolvedDurationDays))
                 .addLineItem(
@@ -213,16 +242,19 @@ public class BusinessSubscriptionService {
     }
 
     private StripeCheckoutSessionResponse createPublicStripeCheckoutSessionForSignup(String email, String taxId,
-            String companyName, String address, String website, String description, Integer durationDays) {
+            String companyName, String address, String website, String description, Integer durationDays,
+            String requestedReturnUrl) {
         ensureStripeConfigured();
 
         Stripe.apiKey = stripeSecretKey;
         int resolvedDurationDays = resolveDurationDays(durationDays);
+        String successBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeSuccessUrl);
+        String cancelBaseUrl = stripeRedirectUrlResolver.resolveCheckoutBaseUrl(requestedReturnUrl, stripeCancelUrl);
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(stripeSuccessUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(stripeCancelUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
                 .putMetadata("email", email)
                 .putMetadata("taxId", taxId)
                 .putMetadata("companyName", companyName)

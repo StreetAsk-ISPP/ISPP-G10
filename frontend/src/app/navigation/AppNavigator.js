@@ -58,37 +58,58 @@ export default function AppNavigator() {
             window.history.replaceState({}, document.title, cleanUrl);
         };
 
+        const parsePendingCheckout = (rawValue) => {
+            if (!rawValue) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(rawValue);
+            } catch {
+                return null;
+            }
+        };
+
         const processStripeCallback = async () => {
             let callbackSucceeded = false;
             let shouldClearParams = true;
             let shouldClearStreetCoinsPending = true;
-            let shouldClearBusinessPending = true;
+            let shouldClearBusinessSignupPending = flow !== 'streetcoins';
+            let shouldClearBusinessSubscriptionPending = flow !== 'streetcoins';
+            let shouldClearRegularPremiumPending = flow !== 'streetcoins';
 
             try {
                 // =========================
                 // STREETCOINS FLOW (feature/buy-streetcoins)
                 // =========================
-                const rawPendingStreetCoins = window.localStorage.getItem(
+                const pendingStreetCoins = parsePendingCheckout(window.localStorage.getItem(
                     STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT
+                ));
+
+                const pendingBusinessSignup = parsePendingCheckout(window.localStorage.getItem(
+                    STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT
+                ));
+
+                const pendingBusinessSubscription = parsePendingCheckout(window.localStorage.getItem(
+                    STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT
+                ));
+
+                const rawPendingRegularPremium = window.localStorage.getItem(
+                    STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
                 );
+                const pendingRegularPremium = parsePendingCheckout(rawPendingRegularPremium)
+                    || (rawPendingRegularPremium ? { legacyFlag: true } : null);
 
-                let pendingStreetCoins = null;
-                if (rawPendingStreetCoins) {
-                    try {
-                        pendingStreetCoins = JSON.parse(rawPendingStreetCoins);
-                    } catch {
-                        pendingStreetCoins = null;
-                    }
-                }
-
-                const effectiveSessionId = sessionId || pendingStreetCoins?.sessionId;
-
-                if (paymentState === 'success' && effectiveSessionId) {
+                if (paymentState === 'success') {
                     if (flow === 'streetcoins') {
-                        // Handle streetcoins purchase
+                        const effectiveStreetCoinsSessionId = sessionId || pendingStreetCoins?.sessionId;
+                        if (!effectiveStreetCoinsSessionId) {
+                            throw new Error('Missing Stripe session ID for StreetCoins checkout callback.');
+                        }
+
                         const response = await apiClient.post(
                             '/api/v1/streetcoins/purchase/confirm',
-                            { sessionId: effectiveSessionId }
+                            { sessionId: effectiveStreetCoinsSessionId }
                         );
 
                         const addedStreetCoins = response?.data?.addedStreetCoins;
@@ -119,6 +140,15 @@ export default function AppNavigator() {
                         return;
                     }
 
+                    const effectiveSessionId = sessionId
+                        || pendingBusinessSubscription?.sessionId
+                        || pendingRegularPremium?.sessionId
+                        || pendingBusinessSignup?.sessionId;
+
+                    if (!effectiveSessionId) {
+                        throw new Error('Missing Stripe session ID for checkout callback.');
+                    }
+
                     // =========================
                     // BUSINESS FLOW (feature/buy-streetcoins + trunk)
                     // =========================
@@ -132,36 +162,23 @@ export default function AppNavigator() {
                         // =========================
                         // PREMIUM USER (trunk)
                         // =========================
-                        const pendingRegularPremiumCheckout =
-                            window.localStorage.getItem(
-                                STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
-                            );
-
-                        if (pendingRegularPremiumCheckout && isAuthenticated) {
+                        if (pendingRegularPremium && isAuthenticated) {
                             await apiClient.post(
                                 '/api/v1/users/me/premium/stripe/confirm-session',
                                 { sessionId: effectiveSessionId }
                             );
                             callbackSucceeded = true;
                         } else {
-                            const rawPendingData = window.localStorage.getItem(
-                                STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT
-                            );
-
-                            if (rawPendingData) {
-                                const pendingData = JSON.parse(rawPendingData);
-
-                                if (pendingData?.email && pendingData?.taxId) {
-                                    await apiClient.post(
-                                        '/api/v1/business-subscriptions/stripe/confirm-session',
-                                        {
-                                            email: pendingData.email,
-                                            taxId: pendingData.taxId,
-                                            sessionId: effectiveSessionId,
-                                        }
-                                    );
-                                    callbackSucceeded = true;
-                                }
+                            if (pendingBusinessSignup?.email && pendingBusinessSignup?.taxId) {
+                                await apiClient.post(
+                                    '/api/v1/business-subscriptions/stripe/confirm-session',
+                                    {
+                                        email: pendingBusinessSignup.email,
+                                        taxId: pendingBusinessSignup.taxId,
+                                        sessionId: effectiveSessionId,
+                                    }
+                                );
+                                callbackSucceeded = true;
                             }
                         }
                     }
@@ -175,13 +192,24 @@ export default function AppNavigator() {
                 if (flow === 'streetcoins') {
                     shouldClearStreetCoinsPending = false;
                 } else {
-                    shouldClearBusinessPending = false;
+                    shouldClearBusinessSignupPending = false;
+                    shouldClearBusinessSubscriptionPending = false;
+                    shouldClearRegularPremiumPending = false;
                 }
             } finally {
-                if (shouldClearBusinessPending) {
+                if (shouldClearBusinessSignupPending) {
                     window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                }
+
+                if (shouldClearRegularPremiumPending) {
                     window.localStorage.removeItem(
                         STORAGE_KEYS.PENDING_REGULAR_PREMIUM_CHECKOUT
+                    );
+                }
+
+                if (shouldClearBusinessSubscriptionPending) {
+                    window.localStorage.removeItem(
+                        STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT
                     );
                 }
 

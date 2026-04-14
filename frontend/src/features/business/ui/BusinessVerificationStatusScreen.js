@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../../../shared/services/http/apiClient';
+import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+import { withCheckoutReturnHeader } from '../../../shared/services/payments/checkoutReturnUrl';
 
 const STATUS_CONFIG = {
     PENDING: {
@@ -60,8 +62,13 @@ export default function BusinessVerificationStatusScreen() {
         setIsStartingCheckout(true);
 
         try {
-            const response = await apiClient.post('/api/v1/business-subscriptions/me/stripe/checkout-session', {});
+            const response = await apiClient.post(
+                '/api/v1/business-subscriptions/me/stripe/checkout-session',
+                {},
+                withCheckoutReturnHeader()
+            );
             const checkoutUrl = response?.data?.checkoutUrl;
+            const checkoutSessionId = response?.data?.sessionId;
 
             if (!checkoutUrl) {
                 setSubscriptionActionError('Stripe checkout session could not be initialized.');
@@ -69,6 +76,13 @@ export default function BusinessVerificationStatusScreen() {
             }
 
             if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.localStorage.setItem(
+                    STORAGE_KEYS.PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT,
+                    JSON.stringify({
+                        sessionId: checkoutSessionId || null,
+                        createdAt: Date.now(),
+                    })
+                );
                 window.location.assign(checkoutUrl);
                 return;
             }

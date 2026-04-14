@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../app/providers/AuthProvider';
 import apiClient from '../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
+import { withCheckoutReturnHeader } from '../../shared/services/payments/checkoutReturnUrl';
 
 export default function BalanceScreen({ navigation, route }) {
     const { user } = useAuth();
@@ -95,7 +96,7 @@ export default function BalanceScreen({ navigation, route }) {
             const response = await apiClient.post(
                 '/api/v1/streetcoins/purchase',
                 { packId },
-                { headers: { 'Idempotency-Key': idempotencyKey } }
+                withCheckoutReturnHeader({ headers: { 'Idempotency-Key': idempotencyKey } })
             );
 
             const checkoutUrl = response?.data?.checkoutUrl;

@@ -2,6 +2,7 @@ package com.streetask.app.coins;
 
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.streetask.app.payments.CheckoutReturnUrlRequestResolver;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 
@@ -20,9 +22,12 @@ import jakarta.validation.Valid;
 public class StreetCoinPurchaseRestController {
 
     private final StreetCoinPurchaseService streetCoinPurchaseService;
+    private final CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver;
 
-    public StreetCoinPurchaseRestController(StreetCoinPurchaseService streetCoinPurchaseService) {
+    public StreetCoinPurchaseRestController(StreetCoinPurchaseService streetCoinPurchaseService,
+            CheckoutReturnUrlRequestResolver checkoutReturnUrlRequestResolver) {
         this.streetCoinPurchaseService = streetCoinPurchaseService;
+        this.checkoutReturnUrlRequestResolver = checkoutReturnUrlRequestResolver;
     }
 
     @GetMapping("/packs")
@@ -48,8 +53,11 @@ public class StreetCoinPurchaseRestController {
     @PostMapping("/purchase")
     public ResponseEntity<StreetCoinPurchaseResponse> createPurchase(
             @Valid @RequestBody StreetCoinPurchaseRequest request,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        StreetCoinPurchaseResponse response = streetCoinPurchaseService.createPurchase(request, idempotencyKey);
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            HttpServletRequest httpRequest) {
+        String requestedReturnUrl = checkoutReturnUrlRequestResolver.resolve(httpRequest);
+        StreetCoinPurchaseResponse response = streetCoinPurchaseService
+                .createPurchase(request, idempotencyKey, requestedReturnUrl);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 

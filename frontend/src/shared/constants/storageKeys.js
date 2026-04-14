@@ -6,6 +6,9 @@ export const STORAGE_KEYS = {
     // Checkout de registro empresarial
     PENDING_BUSINESS_CHECKOUT: 'streetask.pendingBusinessCheckout',
 
+    // Checkout pendiente para suscripción de negocio (usuario BUSINESS autenticado)
+    PENDING_BUSINESS_SUBSCRIPTION_CHECKOUT: 'streetask.pendingBusinessSubscriptionCheckout',
+
     // =========================
     // STREETCOINS
     // =========================

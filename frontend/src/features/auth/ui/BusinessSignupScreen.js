@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../../shared/services/http/apiClient';
 import { STORAGE_KEYS } from '../../../shared/constants/storageKeys';
+import { withCheckoutReturnHeader } from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function BusinessSignupScreen({ navigation, route }) {
 	const { email } = route.params;
@@ -60,16 +61,21 @@ export default function BusinessSignupScreen({ navigation, route }) {
 				description: description.trim() || null,
 			};
 
-			const checkoutResponse = await apiClient.post('/api/v1/business-subscriptions/stripe/checkout-session', {
-				email,
-				taxId: normalizedTaxId,
-				companyName: companyName.trim(),
-				address: address.trim() || null,
-				website: website.trim() || null,
-				description: description.trim() || null,
-			});
+			const checkoutResponse = await apiClient.post(
+				'/api/v1/business-subscriptions/stripe/checkout-session',
+				{
+					email,
+					taxId: normalizedTaxId,
+					companyName: companyName.trim(),
+					address: address.trim() || null,
+					website: website.trim() || null,
+					description: description.trim() || null,
+				},
+				withCheckoutReturnHeader()
+			);
 
 			const checkoutUrl = checkoutResponse?.data?.checkoutUrl;
+			const checkoutSessionId = checkoutResponse?.data?.sessionId;
 			if (!checkoutUrl) {
 				setError('Stripe checkout session could not be initialized.');
 				return;
@@ -78,7 +84,10 @@ export default function BusinessSignupScreen({ navigation, route }) {
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
 				window.localStorage.setItem(
 					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
-					JSON.stringify(pendingBusinessSignup)
+					JSON.stringify({
+						...pendingBusinessSignup,
+						sessionId: checkoutSessionId || null,
+					})
 				);
 				window.location.assign(checkoutUrl);
 				return;
