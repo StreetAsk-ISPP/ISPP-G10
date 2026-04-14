@@ -314,7 +314,7 @@ export default function EditProfileScreen({ navigation }) {
                     <TextInput style={styles.input} value={form.userName} onChangeText={text => updateField('userName', text)} placeholder="Your username" autoCapitalize="none" placeholderTextColor="#9ca3af" />
 
                     <Text style={styles.label}>Email</Text>
-                    <TextInput style={styles.input} value={form.email} onChangeText={text => updateField('email', text)} placeholder="tu@email.com" autoCapitalize="none" keyboardType="email-address" placeholderTextColor="#9ca3af" />
+                    <TextInput style={styles.input} value={form.email} onChangeText={text => updateField('email', text)} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" placeholderTextColor="#9ca3af" />
                 </View>
 
                 {/* CARD 3: SEGURIDAD */}

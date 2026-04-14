@@ -160,18 +160,18 @@ export default function AdminUsersScreen() {
             setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
             setConfirmDeleteVisible(false);
             setUserToDelete(null);
-            Alert.alert('Éxito', 'Usuario eliminado correctamente');
+            Alert.alert('Success', 'User deleted successfully');
         } catch (error) {
-            let msg = 'No se pudo eliminar el usuario';
+            let msg = 'The user could not be deleted';
 
             if (error?.response?.status === 403) {
-                msg = 'No tienes permiso para eliminar este usuario (debes ser admin)';
+                msg = 'You are not allowed to delete this user (admin role required)';
             } else if (error?.response?.status === 400) {
-                msg = error?.response?.data?.message || 'Solicitud inválida';
+                msg = error?.response?.data?.message || 'Invalid request';
             } else if (error?.response?.status === 404) {
-                msg = 'Usuario no encontrado';
+                msg = 'User not found';
             } else if (error?.response?.status === 401) {
-                msg = 'No autenticado. Por favor inicia sesión de nuevo';
+                msg = 'Not authenticated. Please sign in again';
             } else if (error?.response?.data?.message) {
                 msg = error.response.data.message;
             } else if (error?.message) {
@@ -190,7 +190,7 @@ export default function AdminUsersScreen() {
 
     const handleSendStrike = async () => {
         if (!strikeForm.reason.trim()) {
-            Alert.alert('Error', 'El motivo del strike es obligatorio');
+            Alert.alert('Error', 'Strike reason is required');
             return;
         }
 
@@ -212,14 +212,14 @@ export default function AdminUsersScreen() {
             setConfirmStrikeVisible(false);
             setSelectedUserForStrike(null);
             setStrikeForm({ reason: '', description: '' });
-            Alert.alert('Éxito', 'Strike enviado correctamente al usuario');
+            Alert.alert('Success', 'Strike sent successfully');
         } catch (error) {
             const msg =
                 error?.response?.data?.message ||
                 error?.response?.data?.error ||
                 (error?.response?.status === 403
-                    ? 'You cannot delete this user'
-                    : 'The user could not be deleted');
+                    ? 'You are not allowed to send a strike to this user'
+                    : 'The strike could not be sent');
             Alert.alert('Error', msg);
         }
     };
@@ -393,16 +393,16 @@ export default function AdminUsersScreen() {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Enviar Strike</Text>
+                        <Text style={styles.modalTitle}>Send Strike</Text>
                         <Text style={styles.modalSubtitle}>
-                            {selectedUserForStrike && `Usuario: ${selectedUserForStrike.username || selectedUserForStrike.userName}`}
+                            {selectedUserForStrike && `User: ${selectedUserForStrike.username || selectedUserForStrike.userName}`}
                         </Text>
 
                         <View style={styles.modalField}>
-                            <Text style={styles.inputLabel}>Motivo *</Text>
+                            <Text style={styles.inputLabel}>Reason *</Text>
                             <TextInput
                                 style={styles.modalInput}
-                                placeholder="Ej: Contenido inapropiado, spam, violación de normas..."
+                                placeholder="Example: Inappropriate content, spam, community guideline violation..."
                                 value={strikeForm.reason}
                                 onChangeText={(text) => setStrikeForm(prev => ({ ...prev, reason: text }))}
                                 multiline={true}
@@ -412,10 +412,10 @@ export default function AdminUsersScreen() {
                         </View>
 
                         <View style={styles.modalField}>
-                            <Text style={styles.inputLabel}>Descripción (opcional)</Text>
+                            <Text style={styles.inputLabel}>Description (optional)</Text>
                             <TextInput
                                 style={styles.modalInput}
-                                placeholder="Detalles adicionales sobre el strike..."
+                                placeholder="Additional details about the strike..."
                                 value={strikeForm.description}
                                 onChangeText={(text) => setStrikeForm(prev => ({ ...prev, description: text }))}
                                 multiline={true}
@@ -429,13 +429,13 @@ export default function AdminUsersScreen() {
                                 style={[styles.modalButton, styles.cancelButton]}
                                 onPress={() => setStrikeModalVisible(false)}
                             >
-                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.modalButton, styles.strikeButton]}
                                 onPress={handleSendStrike}
                             >
-                                <Text style={styles.strikeButtonText}>Enviar Strike</Text>
+                                <Text style={styles.strikeButtonText}>Send Strike</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -451,12 +451,12 @@ export default function AdminUsersScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmDialogContent}>
                         <Ionicons name="trash-outline" size={48} color="#d90429" style={{ marginBottom: 16 }} />
-                        <Text style={styles.confirmDialogTitle}>Confirmar eliminación</Text>
+                        <Text style={styles.confirmDialogTitle}>Confirm deletion</Text>
                         <Text style={styles.confirmDialogMessage}>
-                            ¿Estás seguro de que deseas eliminar la cuenta de {userToDelete?.username || userToDelete?.userName}?
+                            Are you sure you want to delete the account of {userToDelete?.username || userToDelete?.userName}?
                         </Text>
                         <Text style={styles.confirmDialogWarning}>
-                            Esta acción no se puede deshacer.
+                            This action cannot be undone.
                         </Text>
 
                         <View style={styles.confirmDialogActions}>
@@ -464,13 +464,13 @@ export default function AdminUsersScreen() {
                                 style={[styles.dialogButton, styles.dialogCancelButton]}
                                 onPress={() => setConfirmDeleteVisible(false)}
                             >
-                                <Text style={styles.dialogCancelButtonText}>Cancelar</Text>
+                                <Text style={styles.dialogCancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.dialogButton, styles.dialogDeleteButton]}
                                 onPress={confirmDeleteUserAction}
                             >
-                                <Text style={styles.dialogDeleteButtonText}>Eliminar usuario</Text>
+                                <Text style={styles.dialogDeleteButtonText}>Delete user</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -486,12 +486,12 @@ export default function AdminUsersScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmDialogContent}>
                         <Ionicons name="warning" size={48} color="#ff9800" style={{ marginBottom: 16 }} />
-                        <Text style={styles.confirmDialogTitle}>Confirmar strike</Text>
+                        <Text style={styles.confirmDialogTitle}>Confirm strike</Text>
                         <Text style={styles.confirmDialogMessage}>
-                            ¿Estás seguro de que deseas enviar un strike a {selectedUserForStrike?.username || selectedUserForStrike?.userName}?
+                            Are you sure you want to send a strike to {selectedUserForStrike?.username || selectedUserForStrike?.userName}?
                         </Text>
                         <Text style={styles.confirmDialogWarning}>
-                            Motivo: {strikeForm.reason}
+                            Reason: {strikeForm.reason}
                         </Text>
 
                         <View style={styles.confirmDialogActions}>
@@ -499,13 +499,13 @@ export default function AdminUsersScreen() {
                                 style={[styles.dialogButton, styles.dialogCancelButton]}
                                 onPress={() => setConfirmStrikeVisible(false)}
                             >
-                                <Text style={styles.dialogCancelButtonText}>Cancelar</Text>
+                                <Text style={styles.dialogCancelButtonText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.dialogButton, styles.dialogStrikeButton]}
                                 onPress={confirmStrikeAction}
                             >
-                                <Text style={styles.dialogStrikeButtonText}>Enviar strike</Text>
+                                <Text style={styles.dialogStrikeButtonText}>Send strike</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

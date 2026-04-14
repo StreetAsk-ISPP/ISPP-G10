@@ -138,6 +138,13 @@ class UserRestController {
             throw new AccessDeniedException("You can't delete yourself!");
     }
 
+    @DeleteMapping(value = "/me")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<MessageResponse> deleteCurrentUserAccount() {
+        userService.deleteCurrentUserAccount();
+        return new ResponseEntity<>(new MessageResponse("Your account has been deleted."), HttpStatus.OK);
+    }
+
     @GetMapping(value = "/{id}/stats")
     public ResponseEntity<Map<String, Object>> getUserStats(@PathVariable("id") UUID id) {
         RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);

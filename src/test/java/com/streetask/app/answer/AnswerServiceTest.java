@@ -31,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -256,6 +257,44 @@ class AnswerServiceTest {
         assertEquals(1, savedAnswer.getCoinsEarned());
         assertEquals(1, authenticatedUser.getCoinBalance());
         verify(coinTransactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testSaveAnswerUsesUsernameFallbackWhenEmailLookupFails() {
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.getName()).thenReturn("testuser");
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(userRepository.findByEmailIgnoreCase("testuser")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("testuser")).thenReturn(Optional.of(authenticatedUser));
+        when(answerRepository.save(answer)).thenReturn(answer);
+
+        Answer savedAnswer = answerService.saveAnswer(answer, question);
+
+        assertNotNull(savedAnswer);
+        assertSame(authenticatedUser, savedAnswer.getUser());
+        verify(userRepository, times(1)).findByEmailIgnoreCase("testuser");
+        verify(userRepository, times(1)).findByUserNameIgnoreCase("testuser");
+    }
+
+    @Test
+    void testSaveAnswerThrowsWhenAuthenticatedUserCannotBeResolved() {
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.getName()).thenReturn("unknown-user");
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        when(userRepository.findByEmailIgnoreCase("unknown-user")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("unknown-user")).thenReturn(Optional.empty());
+
+        assertThrows(AccessDeniedException.class, () -> answerService.saveAnswer(answer, question));
+
+        verify(userRepository, times(1)).findByEmailIgnoreCase("unknown-user");
+        verify(userRepository, times(1)).findByUserNameIgnoreCase("unknown-user");
+        verify(answerRepository, never()).save(any());
     }
 
     @Test
@@ -698,6 +737,18 @@ class AnswerServiceTest {
                 () -> answerService.updateVotes(answerId, userId, VoteType.LIKE));
 
         verify(answerRepository, times(1)).findById(answerId);
+        verify(answerRepository, never()).save(any(Answer.class));
+    }
+
+    @Test
+    void testUpdateVotesThrowsWhenVoterDoesNotExist() {
+        when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
+        when(regularUserRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> answerService.updateVotes(answerId, userId, VoteType.LIKE));
+
+        verify(answerVoteRepository, never()).findByUserIdAndAnswerId(userId, answerId);
         verify(answerRepository, never()).save(any(Answer.class));
     }
 

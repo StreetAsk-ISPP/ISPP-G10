@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,42 @@ const isPremiumHoursValid = (value) => {
   );
 };
 
+const REQUIRED_LOCATION_MESSAGE = 'Please select a location on the map before submitting your question.';
+
+const extractErrorMessage = (error) => {
+  const message = error?.response?.data?.message;
+  if (typeof message === 'string' && message.trim()) {
+    return message.trim();
+  }
+
+  if (message && typeof message === 'object') {
+    const merged = Object.values(message)
+      .filter((value) => typeof value === 'string' && value.trim())
+      .join(' ');
+    if (merged) {
+      return merged;
+    }
+  }
+
+  if (typeof error?.response?.data === 'string' && error.response.data.trim()) {
+    return error.response.data.trim();
+  }
+
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return 'We could not create your question right now. Please try again.';
+};
+
+const isLocationValidationError = (message) => {
+  const normalized = String(message || '').toLowerCase();
+  return normalized.includes('location')
+    || normalized.includes('latitude')
+    || normalized.includes('longitude')
+    || normalized.includes('geopoint');
+};
+
 export default function CreateQuestionScreen({ navigation, route }) {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
@@ -104,6 +140,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const [showStreetCoinConsentModal, setShowStreetCoinConsentModal] = useState(false);
   const [streetCoinConsentPayload, setStreetCoinConsentPayload] = useState(null);
   const [streetCoinBalance, setStreetCoinBalance] = useState(null);
+  const [locationError, setLocationError] = useState('');
+  const [locationSectionY, setLocationSectionY] = useState(0);
+  const formScrollRef = useRef(null);
 
   const getCurrentPositionWeb = useCallback(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -122,6 +161,21 @@ export default function CreateQuestionScreen({ navigation, route }) {
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
       );
     });
+  }, []);
+
+  const focusLocationSection = useCallback(() => {
+    if (!formScrollRef.current || typeof formScrollRef.current.scrollTo !== 'function') {
+      return;
+    }
+
+    formScrollRef.current.scrollTo({
+      y: Math.max(locationSectionY - 24, 0),
+      animated: true,
+    });
+  }, [locationSectionY]);
+
+  const clearLocationError = useCallback(() => {
+    setLocationError('');
   }, []);
 
   const submitQuestion = useCallback(
@@ -172,23 +226,38 @@ export default function CreateQuestionScreen({ navigation, route }) {
         }
         navigation.goBack();
       } catch (e) {
+        const errorMessage = extractErrorMessage(e);
+
+        if (!eventId && isLocationValidationError(errorMessage)) {
+          setLocationError(REQUIRED_LOCATION_MESSAGE);
+          focusLocationSection();
+          Toast.show({
+            type: 'error',
+            text1: 'Location required',
+            text2: REQUIRED_LOCATION_MESSAGE,
+            position: 'top',
+          });
+          return;
+        }
+
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: e.response?.data?.message || e.message,
+          text2: errorMessage,
           position: 'top',
         });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [navigation, eventId]
+    [navigation, eventId, focusLocationSection]
   );
 
   useEffect(() => {
     if (hasEventFixedLocation) {
       setLatitude(eventLat);
       setLongitude(eventLng);
+      clearLocationError();
       setPlace((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
       setPickedLabel((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
       return;
@@ -198,7 +267,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setPlace((prev) => (prev?.trim() ? prev : eventData.address));
       setPickedLabel((prev) => (prev?.trim() ? prev : eventData.address));
     }
-  }, [eventData, eventLat, eventLng, hasEventFixedLocation]);
+  }, [eventData, eventLat, eventLng, hasEventFixedLocation, clearLocationError]);
 
   useEffect(() => {
     const loadUserPlanSettings = async () => {
@@ -292,6 +361,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setUserLng(lng);
       setLatitude((prev) => (typeof prev === 'number' ? prev : lat));
       setLongitude((prev) => (typeof prev === 'number' ? prev : lng));
+      clearLocationError();
       setPlace((prev) => (prev?.trim() ? prev : `(${lat.toFixed(5)}, ${lng.toFixed(5)})`));
     };
 
@@ -300,7 +370,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
     return () => {
       isMounted = false;
     };
-  }, [eventId, getCurrentPositionWeb]);
+  }, [eventId, getCurrentPositionWeb, clearLocationError]);
 
   useEffect(() => {
     if (!showFakeAd) return;
@@ -402,8 +472,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
     if (!q) {
       Toast.show({
         type: 'info',
-        text1: 'Address missing',
-        text2: 'Enter a street or place to search.',
+        text1: 'Search field is empty',
+        text2: 'Enter an address or place before searching.',
         position: 'top',
       });
       return;
@@ -436,6 +506,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
         setLongitude(items[0].lon);
         setPickedLabel(items[0].label);
         setSearchResults([]);
+        clearLocationError();
       }
     } catch (e) {
       console.error('Nominatim search error:', e);
@@ -499,6 +570,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
     setPlace(`(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`);
     setPickedLabel('');
     setSearchResults([]);
+    clearLocationError();
     setPickMode(false);
   };
 
@@ -564,10 +636,12 @@ export default function CreateQuestionScreen({ navigation, route }) {
     const finalLongitude = hasEventFixedLocation ? eventLng : longitude;
 
     if (!Number.isFinite(finalLatitude) || !Number.isFinite(finalLongitude)) {
+      setLocationError(REQUIRED_LOCATION_MESSAGE);
+      focusLocationSection();
       Toast.show({
         type: 'error',
-        text1: 'Location missing',
-        text2: 'Question location is required.',
+        text1: 'Location required',
+        text2: REQUIRED_LOCATION_MESSAGE,
         position: 'top',
       });
       return;
@@ -741,6 +815,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
 
         {/* White card form */}
         <ScrollView
+          ref={formScrollRef}
           style={styles.formScroll}
           contentContainerStyle={[
             styles.formScrollContent,
@@ -771,92 +846,111 @@ export default function CreateQuestionScreen({ navigation, route }) {
             ) : null}
 
             {/* Location section */}
-            <Text style={styles.sectionLabel}>Location</Text>
-            {eventId ? (
-              <View style={styles.lockedLocationCard}>
-                <View style={styles.lockedLocationTitleRow}>
-                  <Ionicons name="lock-closed" size={15} color="#1d4ed8" />
-                  <Text style={styles.lockedLocationTitle}>Fixed event location</Text>
+            <View
+              onLayout={({ nativeEvent }) => setLocationSectionY(nativeEvent.layout.y)}
+              style={[
+                styles.locationSectionContainer,
+                !eventId && locationError ? styles.locationSectionContainerError : null,
+              ]}
+            >
+              <Text style={styles.sectionLabel}>{eventId ? 'Location' : 'Location *'}</Text>
+              {!eventId ? (
+                <Text style={styles.locationRequiredHint}>
+                  Select a point on the map before posting your question.
+                </Text>
+              ) : null}
+
+              {eventId ? (
+                <View style={styles.lockedLocationCard}>
+                  <View style={styles.lockedLocationTitleRow}>
+                    <Ionicons name="lock-closed" size={15} color="#1d4ed8" />
+                    <Text style={styles.lockedLocationTitle}>Fixed event location</Text>
+                  </View>
+                  <Text style={styles.lockedLocationText}>
+                    {place?.trim() || (hasEventFixedLocation ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})` : 'Location not available')}
+                  </Text>
                 </View>
-                <Text style={styles.lockedLocationText}>
-                  {place?.trim() || (hasEventFixedLocation ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})` : 'Location not available')}
+              ) : (
+                <>
+                  <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
+                    <Ionicons
+                      name="search-outline"
+                      size={18}
+                      color="#9ca3af"
+                      style={{ marginRight: 8 }}
+                    />
+                    <TextInput
+                      value={place}
+                      onChangeText={(t) => {
+                        setPlace(t);
+                        setSearchResults([]);
+                        setPickedLabel('');
+                      }}
+                      onSubmitEditing={searchAddress}
+                      returnKeyType="search"
+                      placeholder="Search address or place..."
+                      placeholderTextColor="#9ca3af"
+                      style={styles.input}
+                      onFocus={() => setFocusedField('place')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+
+                  <View style={styles.locationBtnRow}>
+                    <TouchableOpacity
+                      style={[styles.btnOutline, { flex: 1, opacity: searching ? 0.5 : 1 }]}
+                      onPress={searchAddress}
+                      disabled={searching}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="search" size={16} color="#a52019" />
+                      <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.btnOutline, { flex: 1 }]}
+                      onPress={openMapPick}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="location" size={16} color="#a52019" />
+                      <Text style={styles.btnOutlineText}>Pick on map</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {/* Search results */}
+              {!eventId && searchResults.length > 1 &&
+                searchResults.map((r, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.resultItem}
+                    onPress={() => {
+                      setLatitude(r.lat);
+                      setLongitude(r.lon);
+                      setPickedLabel(r.label);
+                      setSearchResults([]);
+                      clearLocationError();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="location-outline" size={16} color="#667eea" />
+                    <Text style={styles.resultText} numberOfLines={2}>
+                      {r.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+              <View style={styles.selectedRow}>
+                <Ionicons name="pin" size={14} color="#6b7280" />
+                <Text style={styles.selectedText} numberOfLines={1}>
+                  Selected: {selectedDisplay}
                 </Text>
               </View>
-            ) : (
-              <>
-                <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
-                  <Ionicons
-                    name="search-outline"
-                    size={18}
-                    color="#9ca3af"
-                    style={{ marginRight: 8 }}
-                  />
-                  <TextInput
-                    value={place}
-                    onChangeText={(t) => {
-                      setPlace(t);
-                      setSearchResults([]);
-                      setPickedLabel('');
-                    }}
-                    onSubmitEditing={searchAddress}
-                    returnKeyType="search"
-                    placeholder="Search address or place..."
-                    placeholderTextColor="#9ca3af"
-                    style={styles.input}
-                    onFocus={() => setFocusedField('place')}
-                    onBlur={() => setFocusedField(null)}
-                  />
-                </View>
 
-                <View style={styles.locationBtnRow}>
-                  <TouchableOpacity
-                    style={[styles.btnOutline, { flex: 1, opacity: searching ? 0.5 : 1 }]}
-                    onPress={searchAddress}
-                    disabled={searching}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="search" size={16} color="#a52019" />
-                    <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.btnOutline, { flex: 1 }]}
-                    onPress={openMapPick}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="location" size={16} color="#a52019" />
-                    <Text style={styles.btnOutlineText}>Pick on map</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-
-            {/* Search results */}
-            {!eventId && searchResults.length > 1 &&
-              searchResults.map((r, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.resultItem}
-                  onPress={() => {
-                    setLatitude(r.lat);
-                    setLongitude(r.lon);
-                    setPickedLabel(r.label);
-                    setSearchResults([]);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="location-outline" size={16} color="#667eea" />
-                  <Text style={styles.resultText} numberOfLines={2}>
-                    {r.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-
-            <View style={styles.selectedRow}>
-              <Ionicons name="pin" size={14} color="#6b7280" />
-              <Text style={styles.selectedText} numberOfLines={1}>
-                Selected: {selectedDisplay}
-              </Text>
+              {!eventId && locationError ? (
+                <Text style={styles.locationInlineError}>{locationError}</Text>
+              ) : null}
             </View>
             <Text style={styles.helperText}>
               {eventId
@@ -1030,7 +1124,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
             <Text style={styles.adBadge}>Sponsored</Text>
-            <Text style={styles.adTitle}>Universidad de Sevilla</Text>
+            <Text style={styles.adTitle}>University of Seville</Text>
             <Text style={styles.adText}>Simulated ad shown to free users before their question is published.</Text>
             <View style={styles.adVisual}>
               <Text style={styles.adVisualTitle}>Study, research, connect</Text>
@@ -1328,6 +1422,31 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  locationSectionContainer: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+  },
+  locationSectionContainerError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fff7f7',
+  },
+  locationRequiredHint: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: -2,
+    marginBottom: 8,
+  },
+  locationInlineError: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
   },
   inputWrapper: {
     flexDirection: 'row',

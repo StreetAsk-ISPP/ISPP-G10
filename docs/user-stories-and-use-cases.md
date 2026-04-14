@@ -255,6 +255,11 @@ The stories are organized into three priority levels based on the MoSCoW framewo
 - **I want** to mark or unmark my attendance to an event with a toggle button that changes based on my attendance status (going/not going),  
 - **So that** others can see the level of interest and the attendee count updates automatically when I confirm or remove my attendance.
 
+**US-42: Add Assistance**
+- **As** a registered user,
+- **I want** to register my assistance to one event,
+- **So that** I can indicate that I will attend and interact with the event.
+
 ### Business Account User Stories
 
 #### Critical Stories for MVP - Must Have

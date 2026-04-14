@@ -17,7 +17,7 @@ export const CountdownText = ({ expiresAt, onExpire }) => {
             const expiration = new Date(normalizedDate).getTime();
 
             if (isNaN(expiration)) {
-                console.warn('CountdownText: Formato de fecha inválido proporcionado en expiresAt:', expiresAt);
+                console.warn('CountdownText: Invalid date format provided in expiresAt:', expiresAt);
                 setTimeLeft('Error');
                 return;
             }
