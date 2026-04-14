@@ -199,9 +199,9 @@ public class UserService {
 
         // Then remove references for this user's answers.
         deleteByUserId("DELETE FROM answer_reports WHERE answer_id IN (SELECT id FROM answers WHERE user_id = :userId)",
-            userId);
+                userId);
         deleteByUserId("DELETE FROM answer_votes WHERE answer_id IN (SELECT id FROM answers WHERE user_id = :userId)",
-            userId);
+                userId);
         deleteByUserId("DELETE FROM answers WHERE user_id = :userId", userId);
 
         // Finally remove references for this user's questions.
