@@ -253,6 +253,22 @@ class UserRestControllerIntegrationTest {
         verify(userService, never()).deleteUser(currentUserId);
     }
 
+        @Test
+        @WithMockUser(username = "owner@example.com", authorities = { "USER" })
+        void deleteCurrentUserAccount_shouldDeleteAuthenticatedAccount() throws Exception {
+                UUID currentUserId = UUID.randomUUID();
+                User currentUser = createUser(currentUserId, "owner@example.com", "owner", "USER");
+
+                when(userService.findCurrentUser()).thenReturn(currentUser);
+
+                mockMvc.perform(delete("/api/v1/users/me"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().json(
+                                                objectMapper.writeValueAsString(new MessageResponse("Your account has been deleted."))));
+
+                verify(userService).deleteCurrentUserAccount();
+        }
+
     @Test
     @WithMockUser(authorities = { "USER" })
     void statsEndpoint_shouldReturnStatsForAuthenticatedUser() throws Exception {
@@ -323,6 +339,14 @@ class UserRestControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/users/{id}/stats", UUID.randomUUID()))
                 .andExpect(status().isUnauthorized());
     }
+
+        @Test
+        void deleteCurrentUserAccount_whenUnauthenticated_shouldReturnUnauthorized() throws Exception {
+                mockMvc.perform(delete("/api/v1/users/me"))
+                                .andExpect(status().isUnauthorized());
+
+                verify(userService, never()).deleteCurrentUserAccount();
+        }
 
     @Test
     @WithMockUser(authorities = { "USER" })

@@ -99,6 +99,7 @@ public class SecurityConfiguration {
 							.authenticated()
 							.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/stripe/confirm-session")
 							.authenticated()
+							.requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").authenticated()
 							.requestMatchers(HttpMethod.PUT, "/api/v1/users/*/role").authenticated()
 							.requestMatchers(HttpMethod.PUT, "/api/v1/users/*").authenticated()
 							.requestMatchers(HttpMethod.GET, "/api/v1/users/*").authenticated()
