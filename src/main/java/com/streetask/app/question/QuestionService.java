@@ -126,6 +126,13 @@ public class QuestionService {
 			question.setEvent(event);
 			logger.info("[QuestionService] Event set for question: {}", eventId);
 
+			if (authenticatedUser instanceof BusinessAccount) {
+				if (event.getCreator() == null || !event.getCreator().getId().equals(authenticatedUser.getId())) {
+					throw new com.streetask.app.exceptions.AccessDeniedException(
+							"Business accounts can only create questions in their own events");
+				}
+			}
+
 			long todayCountForEvent = questionsTodayCountByEvent(authenticatedUser.getId(), eventId);
 			if (todayCountForEvent >= 3) {
 				if (authenticatedUser instanceof RegularUser regularUser && !isPremium) {
