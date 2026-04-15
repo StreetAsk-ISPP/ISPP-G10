@@ -90,11 +90,16 @@ public class ModerationService {
             throw new AccessDeniedException("Admins cannot delete themselves");
         }
 
-        RegularUser targetUser = getModeratableUser(userId);
+        // Allow deletion of any user type (RegularUser, BusinessAccount, etc)
+        User targetUser = userService.findUser(userId);
         String userEmail = targetUser.getEmail();
 
-        List<Strike> userStrikes = strikeRepository.findByUserOrderByIssuedAtDesc(targetUser);
-        strikeRepository.deleteAll(userStrikes);
+        // Delete associated strikes if user is a RegularUser
+        if (targetUser instanceof RegularUser) {
+            RegularUser regularUser = (RegularUser) targetUser;
+            List<Strike> userStrikes = strikeRepository.findByUserOrderByIssuedAtDesc(regularUser);
+            strikeRepository.deleteAll(userStrikes);
+        }
 
         notificationRepository.deleteByUser(targetUser);
         userRepository.delete(targetUser);
@@ -109,8 +114,14 @@ public class ModerationService {
         if (currentUser.getAuthority() != null && !currentUser.hasAuthority("ADMIN")) {
             throw new AccessDeniedException("Only admins can view strike counts");
         }
-        RegularUser targetUser = getModeratableUser(userId);
-        return strikeRepository.countByUser(targetUser);
+        User targetUser = userService.findUser(userId);
+
+        // Strikes only apply to RegularUsers
+        if (!(targetUser instanceof RegularUser regularUser)) {
+            return 0; // Non-regular users have no strikes
+        }
+
+        return strikeRepository.countByUser(regularUser);
     }
 
     @Transactional(readOnly = true)
@@ -119,8 +130,14 @@ public class ModerationService {
         if (!currentUser.hasAuthority("ADMIN")) {
             throw new AccessDeniedException("Only admins can view strikes");
         }
-        RegularUser targetUser = getModeratableUser(userId);
-        return strikeRepository.findByUserOrderByIssuedAtDesc(targetUser);
+        User targetUser = userService.findUser(userId);
+
+        // Strikes only apply to RegularUsers
+        if (!(targetUser instanceof RegularUser regularUser)) {
+            return List.of(); // Non-regular users have no strikes
+        }
+
+        return strikeRepository.findByUserOrderByIssuedAtDesc(regularUser);
     }
 
     private RegularUser getModeratableUser(UUID userId) {
