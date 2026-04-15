@@ -187,6 +187,18 @@ export default function CreateQuestionScreen({ navigation, route }) {
         const response = await apiClient.post('/api/v1/questions', payload);
         console.log('[CreateQuestionScreen] Created question response:', response?.data);
 
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('streetask:question-created', {
+              detail: {
+                questionId: response?.data?.id ?? null,
+                eventId,
+                question: response?.data ?? null,
+              },
+            })
+          );
+        }
+
         if (eventId) {
           const eventQuestionsResponse = await apiClient.get(`/api/v1/events/${eventId}/questions`);
           const eventQuestionsPayload = eventQuestionsResponse?.data;
