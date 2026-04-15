@@ -307,6 +307,28 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("updateUser should keep existing password when incoming payload contains same encoded password")
+    void updateUser_shouldKeepPasswordWhenIncomingContainsSameEncodedPassword() {
+        User originalUser = createTestUser(UUID.randomUUID(), "old@example.com", "olduser");
+        originalUser.setPassword("$2a$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
+
+        User incomingUpdate = new User();
+        incomingUpdate.setFirstName("NewFirst");
+        incomingUpdate.setLastName("NewLast");
+        incomingUpdate.setUserName("newuser");
+        incomingUpdate.setEmail("new@example.com");
+        incomingUpdate.setPassword("$2a$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
+
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(originalUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        User updatedUser = userService.updateUser(incomingUpdate, testUserId);
+
+        assertEquals("$2a$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuu", updatedUser.getPassword());
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
     @DisplayName("updateUser should NOT modify protected fields (authorities, active, createdAt, id)")
     void updateUser_shouldNotModifyProtectedFields() {
         LocalDateTime oldDate = LocalDateTime.of(2020, 1, 1, 0, 0);

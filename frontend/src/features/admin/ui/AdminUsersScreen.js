@@ -130,9 +130,7 @@ export default function AdminUsersScreen() {
 
             if (editingUser) {
                 const payload = {
-                    ...editingUser,
                     email: form.email,
-                    username: form.userName,
                     userName: form.userName,
                     firstName: form.firstName,
                     lastName: form.lastName,
