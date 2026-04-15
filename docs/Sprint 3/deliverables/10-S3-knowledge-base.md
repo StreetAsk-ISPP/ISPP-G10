@@ -43,6 +43,7 @@ Our team contributed:
 ### 📅 09/04/2026 – General observations across groups
 
 **Positive patterns observed**
+
 - Present tense product messaging: Speaking about what the product currently is conveys maturity and credibility over using future tense.
 - Complete Storyboard: Having differentiated versions for clients and investors is a highly valued strength.
 - Real user verification: Confirming pilot user engagement through logs, screenshots, or direct contact instead of just listing names.
@@ -50,6 +51,7 @@ Our team contributed:
 - Custom QA strategies: Using well-explained, custom representations instead of generic AI-generated testing pyramids.
 
 **Areas for improvement observed**
+
 - Narrative disconnection: Inconsistencies between the killer opener, demo, and remaining sections; lack of solid narrative flow.
 - Insufficient visual support: Scenes with black screens or videos where actions aren't visible due to lack of zoom or context.
 - Linear cost graphs: Straight-line projections reduce realism in economic evolution modeling.
@@ -59,6 +61,7 @@ Our team contributed:
 - Illegible Gantt charts: Text too small or missing legends preventing understanding of actual project progress.
 
 **For the next sprint**
+
 - Ensure narrative coherence: Review transitions between sections to make the story flow smoothly from start to finish.
 - Optimize demo visual resources: Add titles, zoom into key areas, and ensure no segments lack visibility.
 - Refine performance metrics: Identify each team member by their initials and clearly explain data sources.
