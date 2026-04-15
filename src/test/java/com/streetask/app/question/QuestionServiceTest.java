@@ -3,6 +3,7 @@ package com.streetask.app.question;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -37,6 +38,7 @@ import com.streetask.app.event.EventRepository;
 import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.Event;
+import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
@@ -149,6 +151,47 @@ class QuestionServiceTest {
 
 		// Assert
 		assertThat(saved.getExpiresAt()).isEqualTo(saved.getCreatedAt().plus(6, ChronoUnit.HOURS));
+	}
+
+	@Test
+	void saveQuestion_shouldKeepLocationWhenNoNearbyQuestionExists() {
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Question with location");
+		newQuestion.setContent("No overlap expected");
+		GeoPoint point = new GeoPoint();
+		point.setLatitude(40.4168);
+		point.setLongitude(-3.7038);
+		newQuestion.setLocation(point);
+
+		when(questionRepository.existsByLocationLatitudeBetweenAndLocationLongitudeBetween(
+				anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(false);
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		assertThat(saved.getLocation().getLatitude()).isEqualTo(40.4168);
+		assertThat(saved.getLocation().getLongitude()).isEqualTo(-3.7038);
+	}
+
+	@Test
+	void saveQuestion_shouldShiftLocationWhenNearbyQuestionExists() {
+		Question newQuestion = new Question();
+		newQuestion.setTitle("Question with overlap");
+		newQuestion.setContent("Overlap should be avoided");
+		GeoPoint point = new GeoPoint();
+		point.setLatitude(40.4168);
+		point.setLongitude(-3.7038);
+		newQuestion.setLocation(point);
+
+		when(questionRepository.existsByLocationLatitudeBetweenAndLocationLongitudeBetween(
+				anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+				.thenReturn(true, true, false);
+		when(questionRepository.save(any(Question.class))).thenReturn(newQuestion);
+
+		Question saved = questionService.saveQuestion(newQuestion);
+
+		assertThat(saved.getLocation().getLatitude()).isNotEqualTo(40.4168);
+		assertThat(saved.getLocation().getLongitude()).isNotEqualTo(-3.7038);
 	}
 
 	@Test
