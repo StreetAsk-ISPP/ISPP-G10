@@ -6,11 +6,16 @@ on:
       - main
   push:
     branches:
+      - main
       - feature/migration-sprint3
+  workflow_dispatch:
  
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: streetask/backend
+      IMAGE_TAG: ${{ github.sha }}
  
     steps:
  
@@ -28,7 +33,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: streetask/backend:latest # Usamos 'latest' para el despliegue continuo
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
  
       - name: Azure Login
         uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d
@@ -43,4 +50,4 @@ jobs:
             az containerapp update \
               --name sprint3-backend \
               --resource-group sprint3-recursos \
-              --image streetask/backend:latest \
+              --image $IMAGE_NAME:$IMAGE_TAG \

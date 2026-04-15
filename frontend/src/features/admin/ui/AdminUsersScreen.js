@@ -5,6 +5,37 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import apiClient from '../../../shared/services/http/apiClient';
 
+const normalizeUsersPayload = (payload) => {
+    let data = payload;
+
+    if (typeof data === 'string') {
+        try {
+            data = JSON.parse(data);
+        } catch (error) {
+            console.warn('[AdminUsersScreen] Unable to parse users payload as JSON:', error);
+            return [];
+        }
+    }
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (Array.isArray(data?.content)) {
+        return data.content;
+    }
+
+    if (Array.isArray(data?.items)) {
+        return data.items;
+    }
+
+    if (Array.isArray(data?.results)) {
+        return data.results;
+    }
+
+    return [];
+};
+
 export default function AdminUsersScreen() {
     const navigation = useNavigation();
     const [users, setUsers] = useState([]);
@@ -57,18 +88,7 @@ export default function AdminUsersScreen() {
         try {
             const response = await apiClient.get('/api/v1/users');
 
-            let usersData = [];
-            let data = response.data;
-
-            if (typeof data === 'string') {
-                data = JSON.parse(data);
-            }
-
-            if (Array.isArray(data)) {
-                usersData = data;
-            } else if (data && typeof data === 'object') {
-                usersData = [];
-            }
+            const usersData = normalizeUsersPayload(response.data);
 
             setUsers(usersData);
             await loadStrikeCounts(usersData);
@@ -110,9 +130,7 @@ export default function AdminUsersScreen() {
 
             if (editingUser) {
                 const payload = {
-                    ...editingUser,
                     email: form.email,
-                    username: form.userName,
                     userName: form.userName,
                     firstName: form.firstName,
                     lastName: form.lastName,

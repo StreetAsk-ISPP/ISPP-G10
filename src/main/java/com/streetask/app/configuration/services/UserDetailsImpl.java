@@ -25,12 +25,20 @@ public class UserDetailsImpl implements UserDetails {
 
 	private Collection<? extends GrantedAuthority> authorities;
 
+	private Long tokenVersion;
+
 	public UserDetailsImpl(UUID id, String username, String password,
 			Collection<? extends GrantedAuthority> authorities) {
+		this(id, username, password, authorities, 0L);
+	}
+
+	public UserDetailsImpl(UUID id, String username, String password,
+			Collection<? extends GrantedAuthority> authorities, Long tokenVersion) {
 		this.id = id;
 		this.username = username;
 		this.password = password;
 		this.authorities = authorities;
+		this.tokenVersion = tokenVersion;
 	}
 
 	public static UserDetailsImpl build(User user) {
@@ -38,7 +46,8 @@ public class UserDetailsImpl implements UserDetails {
 
 		return new UserDetailsImpl(user.getId(), user.getEmail(),
 				user.getPassword(),
-				authorities);
+				authorities,
+				user.getTokenVersion() != null ? user.getTokenVersion() : 0L);
 	}
 
 	@Override
@@ -48,6 +57,10 @@ public class UserDetailsImpl implements UserDetails {
 
 	public UUID getId() {
 		return id;
+	}
+
+	public Long getTokenVersion() {
+		return tokenVersion;
 	}
 
 	@Override

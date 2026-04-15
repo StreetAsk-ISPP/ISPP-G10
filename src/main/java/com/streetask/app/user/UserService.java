@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 import org.springframework.beans.BeanUtils;
@@ -38,6 +39,8 @@ import jakarta.validation.Valid;
 
 @Service
 public class UserService {
+
+    private static final Pattern BCRYPT_HASH_PATTERN = Pattern.compile("^\\$2[aby]?\\$\\d{2}\\$[./A-Za-z0-9]{53}$");
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -154,7 +157,10 @@ public class UserService {
 
         BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
 
-        if (user.getPassword() == null || user.getPassword().isBlank()) {
+        if (user.getPassword() == null
+                || user.getPassword().isBlank()
+                || user.getPassword().equals(previousPassword)
+                || BCRYPT_HASH_PATTERN.matcher(user.getPassword()).matches()) {
             toUpdate.setPassword(previousPassword);
         } else {
             toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
@@ -167,7 +173,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID id) {
         User toDelete = findUser(id);
-        this.userRepository.delete(toDelete);
+        deleteUserAccount(toDelete);
     }
 
     @Transactional

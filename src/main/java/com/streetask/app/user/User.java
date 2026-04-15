@@ -56,6 +56,9 @@ public class User extends BaseEntity {
     @JoinColumn(name = "authority")
     Authorities authority;
 
+    @Column(columnDefinition = "BIGINT DEFAULT 0")
+    private Long tokenVersion = 0L;
+
     @Transient
     private Integer reputation;
 
@@ -63,14 +66,13 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private java.util.List<com.streetask.app.functionalities.feedback.FeedbackMessage> feedbackMessages;
 
-	  @com.fasterxml.jackson.annotation.JsonIgnore
-	  @OneToMany(mappedBy = "issuedBy", cascade = CascadeType.REMOVE)
-	  private List<com.streetask.app.model.Strike> issuedStrikes;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "issuedBy", cascade = CascadeType.REMOVE)
+    private List<com.streetask.app.model.Strike> issuedStrikes;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE)
     private java.util.List<com.streetask.app.model.UserLocation> locations;
-
 
     public Boolean hasAuthority(String auth) {
         return authority.getAuthority().equals(auth);

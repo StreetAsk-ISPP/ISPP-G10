@@ -50,15 +50,19 @@ public class RegularUser extends User {
     @OneToMany(mappedBy = "user")
     private List<Answer> answers;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "regularUser")
     private List<EventAttendance> eventAttendances;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<CoinTransaction> coinTransactions;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "reporter")
     private List<Report> reports;
 

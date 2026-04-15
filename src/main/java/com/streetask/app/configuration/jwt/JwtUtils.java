@@ -37,6 +37,7 @@ public class JwtUtils {
 		claims.put("authorities",
 				userPrincipal.getAuthorities().stream().map(auth -> auth.getAuthority()).collect(Collectors.toList()));
 		claims.put("username", userPrincipal.getUsername());
+		claims.put("tokenVersion", userPrincipal.getTokenVersion());
 		String subject = userPrincipal.getId() != null
 				? userPrincipal.getId().toString()
 				: userPrincipal.getUsername();
@@ -58,6 +59,20 @@ public class JwtUtils {
 		return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject();
 	}
 
+	public Long getTokenVersionFromJwtToken(String token) {
+		try {
+			Object tokenVersion = Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody()
+					.get("tokenVersion");
+			if (tokenVersion instanceof Number) {
+				return ((Number) tokenVersion).longValue();
+			}
+			return 0L;
+		} catch (Exception e) {
+			logger.warn("Could not extract tokenVersion from JWT: {}", e.getMessage());
+			return 0L;
+		}
+	}
+
 	public boolean validateJwtToken(String authToken) {
 		try {
 			Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken);
@@ -77,5 +92,3 @@ public class JwtUtils {
 		return false;
 	}
 }
-
-
