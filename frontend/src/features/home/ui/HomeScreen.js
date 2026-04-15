@@ -264,6 +264,35 @@ export default function HomeScreen({ navigation }) {
     }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
 
     useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') {
+            return undefined;
+        }
+
+        const handleQuestionCreated = (event) => {
+            const createdQuestion = event?.detail?.question;
+
+            if (createdQuestion?.id) {
+                setQuestions((currentQuestions) => {
+                    const nextQuestions = [
+                        createdQuestion,
+                        ...currentQuestions.filter((question) => question?.id !== createdQuestion.id),
+                    ];
+                    writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, nextQuestions);
+                    return nextQuestions;
+                });
+            }
+
+            loadQuestions();
+            loadEvents();
+        };
+
+        window.addEventListener('streetask:question-created', handleQuestionCreated);
+        return () => {
+            window.removeEventListener('streetask:question-created', handleQuestionCreated);
+        };
+    }, [loadEvents, loadQuestions]);
+
+    useEffect(() => {
         if (!isFocused || Platform.OS !== 'web' || typeof window === 'undefined') {
             return;
         }
