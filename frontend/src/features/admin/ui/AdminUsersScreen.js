@@ -265,7 +265,7 @@ export default function AdminUsersScreen() {
                     </View>
                 </View>
                 <View style={styles.actions}>
-                    {!isAdmin && item.authorities?.[0]?.authority === 'USER' && (
+                    {item.authorities?.[0]?.authority === 'USER' && (
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: '#fff3cd' }]}
                             onPress={() => openStrikeModal(item)}
