@@ -175,6 +175,10 @@ public class UserTypeChangeService {
         Authorities userAuthority = authoritiesService.findByAuthority("USER");
         user.setAuthority(userAuthority);
 
+        // Increment tokenVersion to invalidate previous tokens
+        Long currentVersion = user.getTokenVersion() != null ? user.getTokenVersion() : 0L;
+        user.setTokenVersion(currentVersion + 1L);
+
         // For BusinessAccount specific fields, set them to null/defaults
         if (user instanceof BusinessAccount) {
             BusinessAccount ba = (BusinessAccount) user;
@@ -216,6 +220,10 @@ public class UserTypeChangeService {
         // Set authority to BUSINESS
         Authorities businessAuthority = authoritiesService.findByAuthority("BUSINESS");
         user.setAuthority(businessAuthority);
+
+        // Increment tokenVersion to invalidate previous tokens
+        Long currentVersion = user.getTokenVersion() != null ? user.getTokenVersion() : 0L;
+        user.setTokenVersion(currentVersion + 1L);
 
         // For RegularUser specific fields, clear them
         if (user instanceof RegularUser) {
