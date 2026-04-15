@@ -4,35 +4,37 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.streetask.app.auth.payload.request.BusinessSignupRequest;
+import com.streetask.app.auth.payload.request.CompleteSignupRequest;
+import com.streetask.app.auth.payload.request.SignupRequest;
+import com.streetask.app.auth.payload.response.JwtResponse;
+import com.streetask.app.business.BusinessAccount;
+import com.streetask.app.business.BusinessAccountRepository;
+import com.streetask.app.business.RequestStatus;
+import com.streetask.app.configuration.jwt.JwtUtils;
+import com.streetask.app.user.AccountType;
+import com.streetask.app.user.Authorities;
+import com.streetask.app.user.AuthoritiesService;
+import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.RegularUserRepository;
+import com.streetask.app.user.User;
+import com.streetask.app.user.UserRepository;
+import com.streetask.app.user.UserService;
+import com.streetask.app.user.UserTypeChangeService;
+
+import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import com.streetask.app.auth.payload.request.BusinessSignupRequest;
-import com.streetask.app.auth.payload.request.CompleteSignupRequest;
-import com.streetask.app.auth.payload.request.SignupRequest;
-import com.streetask.app.user.Authorities;
-import com.streetask.app.user.AuthoritiesService;
-import com.streetask.app.user.AccountType;
-import com.streetask.app.user.BusinessAccount;
-import com.streetask.app.user.BusinessAccountRepository;
-import com.streetask.app.user.RequestStatus;
-import com.streetask.app.user.User;
-import com.streetask.app.user.UserRepository;
-import com.streetask.app.user.UserService;
-import com.streetask.app.user.RegularUser;
-import com.streetask.app.user.RegularUserRepository;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class AuthService {
@@ -51,6 +53,8 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final PasswordResetTokenRepository passwordResetTokenRepository;
 	private final JavaMailSender mailSender;
+	private final UserTypeChangeService userTypeChangeService;
+	private final JwtUtils jwtUtils;
 
 	@Value("${streetask.mail.from}")
 	private String mailFrom;
@@ -59,7 +63,7 @@ public class AuthService {
 	public AuthService(PasswordEncoder encoder, AuthoritiesService authoritiesService, UserService userService,
 			RegularUserRepository regularUserRepository, BusinessAccountRepository businessAccountRepository,
 			UserRepository userRepository, PasswordResetTokenRepository passwordResetTokenRepository,
-			JavaMailSender mailSender) {
+			JavaMailSender mailSender, UserTypeChangeService userTypeChangeService, JwtUtils jwtUtils) {
 		this.encoder = encoder;
 		this.authoritiesService = authoritiesService;
 		this.userService = userService;
@@ -68,6 +72,8 @@ public class AuthService {
 		this.userRepository = userRepository;
 		this.passwordResetTokenRepository = passwordResetTokenRepository;
 		this.mailSender = mailSender;
+		this.userTypeChangeService = userTypeChangeService;
+		this.jwtUtils = jwtUtils;
 	}
 
 	@Transactional
@@ -121,28 +127,28 @@ public class AuthService {
 	}
 
 	private void sendPasswordResetEmail(String to, String token) {
-		String subject = "StreetAsk - Recuperar contraseña";
-		String plainText = "Hola,\n\nHemos recibido una solicitud para restablecer tu contraseña.\n"
-				+ "Copia y pega este token en la app para continuar:\n" + token + "\n\n"
-				+ "Si no solicitaste este cambio, ignora este mensaje.\n\n"
-				+ "Este token caduca en " + PASSWORD_RESET_TOKEN_MINUTES + " minutos.";
+		String subject = "StreetAsk - Password reset";
+		String plainText = "Hello,\n\nWe received a request to reset your password.\n"
+				+ "Copy and paste this token in the app to continue:\n" + token + "\n\n"
+				+ "If you did not request this change, ignore this message.\n\n"
+				+ "This token expires in " + PASSWORD_RESET_TOKEN_MINUTES + " minutes.";
 
 		String html = """
 				<html>
 				  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937;">
 				    <div style="max-width:560px;margin:24px auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
 				      <div style="background:#dc2626;color:#ffffff;padding:16px 20px;font-size:18px;font-weight:700;">
-				        StreetAsk · Recuperar contraseña
+				        StreetAsk · Password reset
 				      </div>
 				      <div style="padding:20px;line-height:1.5;font-size:14px;">
-				        <p style="margin:0 0 12px;">Hola,</p>
-				        <p style="margin:0 0 14px;">Hemos recibido una solicitud para restablecer tu contraseña.</p>
-				        <p style="margin:0 0 8px;"><strong>Copia y pega este token en la app:</strong></p>
+				        <p style="margin:0 0 12px;">Hello,</p>
+				        <p style="margin:0 0 14px;">We received a request to reset your password.</p>
+				        <p style="margin:0 0 8px;"><strong>Copy and paste this token in the app:</strong></p>
 				        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center;">
 				          <span style="font-family:Consolas,Monaco,monospace;font-size:18px;letter-spacing:1px;font-weight:700;color:#111827;">%s</span>
 				        </div>
-				        <p style="margin:14px 0 0;">Este token caduca en <strong>%d minutos</strong>.</p>
-				        <p style="margin:10px 0 0;color:#6b7280;">Si no solicitaste este cambio, ignora este mensaje.</p>
+				        <p style="margin:14px 0 0;">This token expires in <strong>%d minutes</strong>.</p>
+				        <p style="margin:10px 0 0;color:#6b7280;">If you did not request this change, ignore this message.</p>
 				      </div>
 				    </div>
 				  </body>
@@ -228,6 +234,10 @@ public class AuthService {
 	public void convertToBusinessUser(@Valid BusinessSignupRequest request) {
 		// Find the basic user created in the first step
 		User basicUser = userService.findUser(request.getEmail());
+		if (basicUser instanceof BusinessAccount) {
+			throw new IllegalStateException("User is already a business account.");
+		}
+		validatePendingBasicSignup(basicUser);
 
 		BusinessAccount businessAccount = new BusinessAccount();
 
@@ -247,6 +257,8 @@ public class AuthService {
 		businessAccount.setDescription(request.getDescription());
 
 		businessAccount.setVerified(false);
+		businessAccount.setVerifiedAt(null);
+		businessAccount.setVerifiedBy(null);
 		businessAccount.setRating(0.0f);
 		businessAccount.setRequestStatus(RequestStatus.PENDING);
 		businessAccount.setSubscriptionActive(false);
@@ -260,6 +272,91 @@ public class AuthService {
 		entityManager.flush();
 
 		businessAccountRepository.save(businessAccount);
+	}
+
+	public boolean isPendingBasicSignup(String identifier) {
+		if (identifier == null || identifier.isBlank()) {
+			return false;
+		}
+
+		try {
+			String normalized = identifier.trim();
+			User user = userRepository.findByEmailIgnoreCase(normalized)
+					.or(() -> userRepository.findByUserNameIgnoreCase(normalized))
+					.orElse(null);
+			if (user == null) {
+				return false;
+			}
+			return isPendingBasicSignup(user);
+		} catch (Exception exception) {
+			return false;
+		}
+	}
+
+	public String getPendingBasicSignupEmail(String identifier) {
+		if (identifier == null || identifier.isBlank()) {
+			return null;
+		}
+		try {
+			String normalized = identifier.trim();
+			User user = userRepository.findByEmailIgnoreCase(normalized)
+					.or(() -> userRepository.findByUserNameIgnoreCase(normalized))
+					.orElse(null);
+			return user != null ? user.getEmail() : null;
+		} catch (Exception exception) {
+			return null;
+		}
+	}
+
+	private void validatePendingBasicSignup(User user) {
+		if (!isPendingBasicSignup(user)) {
+			throw new IllegalStateException("User is not eligible for business signup.");
+		}
+	}
+
+	private boolean isPendingBasicSignup(User user) {
+		return user != null && user.getAccountType() == null && Boolean.FALSE.equals(user.getActive())
+				&& user.hasAuthority("USER");
+	}
+
+	/**
+	 * Changes user's account type and authority.
+	 * Generates a new JWT token with updated roles.
+	 *
+	 * @param userId          User to change
+	 * @param newAccountType  Target account type
+	 * @param changedByUserId Admin performing the change (null if user is changing
+	 *                        themselves)
+	 * @param reason          Optional reason for audit log
+	 * @param ipAddress       Optional IP address for audit log
+	 * @return JwtResponse with new token and updated roles
+	 */
+	@Transactional
+	public JwtResponse changeUserAccountType(java.util.UUID userId, com.streetask.app.user.AccountType newAccountType,
+			java.util.UUID changedByUserId, String reason, String ipAddress) {
+		// Fetch the user to change
+		User user = userService.findUser(userId);
+
+		// Perform the type change (this includes validation and data migration)
+		userTypeChangeService.changeAccountType(user, newAccountType, changedByUserId, reason, ipAddress);
+
+		// Refresh user from DB to get updated authority
+		User updatedUser = userService.findUser(userId);
+
+		// Generate new JWT token with updated authority
+		com.streetask.app.configuration.services.UserDetailsImpl userDetails = com.streetask.app.configuration.services.UserDetailsImpl
+				.build(updatedUser);
+
+		String jwt = jwtUtils.generateJwtToken(
+				new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+						userDetails, null, userDetails.getAuthorities()));
+
+		// Return JWT response with updated roles
+		java.util.List<String> roles = userDetails.getAuthorities().stream()
+				.map(auth -> auth.getAuthority())
+				.collect(java.util.stream.Collectors.toList());
+
+		return new JwtResponse(jwt, updatedUser.getId(), updatedUser.getEmail(), roles);
 	}
 
 }

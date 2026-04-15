@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -15,6 +15,8 @@ import { CountdownText } from './CountdownText';
 import { calculateDistanceInKm } from '../../../../shared/utils/helpers';
 import Toast from 'react-native-toast-message';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import apiClient from '../../../../shared/services/http/apiClient';
+import ConfirmationModal from '../../../../shared/components/ConfirmationModal';
 
 // Para web: importar Leaflet y CSS
 let MapContainer, TileLayer, Marker, Popup;
@@ -32,6 +34,64 @@ if (Platform.OS === 'web') {
         console.error('Error loading Leaflet:', e);
     }
 }
+
+// Componente que detecta cambios en los bounds del mapa
+const MapBoundsTrackerComponent = ({ questions = [], onBoundsChange, onVisibleQuestionsChange, mapRef }) => {
+    useEffect(() => {
+        if (!mapRef?.current) return;
+
+        const map = mapRef.current;
+
+        const updateBounds = () => {
+            try {
+                const bounds = map.getBounds();
+                const center = map.getCenter();
+
+                onBoundsChange?.({
+                    lat: center.lat,
+                    lng: center.lng,
+                    north: bounds.getNorthEast().lat,
+                    south: bounds.getSouthWest().lat,
+                    east: bounds.getNorthEast().lng,
+                    west: bounds.getSouthWest().lng,
+                });
+
+                // Filtrar preguntas dentro de los bounds
+                const visibleIds = questions
+                    .filter((q) => {
+                        const coords = getQuestionCoords(q);
+                        if (!coords) return false;
+                        return coords.lat >= bounds.getSouthWest().lat &&
+                            coords.lat <= bounds.getNorthEast().lat &&
+                            coords.lng >= bounds.getSouthWest().lng &&
+                            coords.lng <= bounds.getNorthEast().lng;
+                    })
+                    .map((q) => q.id);
+
+                onVisibleQuestionsChange?.(visibleIds);
+            } catch (error) {
+                console.warn('Error updating bounds:', error);
+            }
+        };
+
+        // Agregar event listeners
+        map.on('moveend', updateBounds);
+        map.on('zoomend', updateBounds);
+        map.on('load', updateBounds);
+
+        // Actualizar al cargar por primera vez
+        const timeout = setTimeout(updateBounds, 100);
+
+        return () => {
+            clearTimeout(timeout);
+            map.off('moveend', updateBounds);
+            map.off('zoomend', updateBounds);
+            map.off('load', updateBounds);
+        };
+    }, [mapRef, questions, onBoundsChange, onVisibleQuestionsChange]);
+
+    return null;
+};
 
 // Función para crear iconos SVG personalizados
 const createCustomIcon = (color) => {
@@ -79,6 +139,26 @@ const createFeaturedIcon = () => {
     });
 };
 
+const createEventIcon = () => {
+    if (!L) return undefined;
+
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+        <path fill="#0F766E" d="M17 0C9.82 0 4 5.82 4 13c0 8.7 13 31 13 31s13-22.3 13-31C30 5.82 24.18 0 17 0z"/>
+        <rect x="10" y="9" width="14" height="11" rx="2" fill="#FFFFFF"/>
+        <rect x="10" y="9" width="14" height="3" rx="1" fill="#14B8A6"/>
+        <circle cx="13" cy="15" r="1" fill="#0F766E"/>
+        <circle cx="17" cy="15" r="1" fill="#0F766E"/>
+        <circle cx="21" cy="15" r="1" fill="#0F766E"/>
+    </svg>`;
+
+    return L.icon({
+        iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
+        iconSize: [34, 44],
+        iconAnchor: [17, 44],
+        popupAnchor: [0, -44],
+    });
+};
+
 const toNum = (v) => {
     if (typeof v === 'number') return v;
     if (typeof v === 'string') {
@@ -105,14 +185,100 @@ const getQuestionCoords = (q) => {
     return { lat, lng };
 };
 
-export default function MapComponent({ questions = [], onQuestionPress, onLocationChange, onPermissionChange }) {
+const getEventCoords = (event) => {
+    const loc = event?.location ?? {};
+    const lat =
+        toNum(loc.latitude) ?? toNum(loc.lat) ?? toNum(loc.y) ?? toNum(event?.latitude) ?? toNum(event?.lat);
+    const lng =
+        toNum(loc.longitude) ??
+        toNum(loc.lng) ??
+        toNum(loc.lon) ??
+        toNum(loc.x) ??
+        toNum(event?.longitude) ??
+        toNum(event?.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+};
+
+const formatDateTime = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString();
+};
+
+const isEventStillVisible = (event, nowTs) => {
+    if (!event || event.active === false) {
+        return false;
+    }
+
+    if (!event.endsAt) {
+        return true;
+    }
+
+    const endsAtTs = new Date(event.endsAt).getTime();
+    if (!Number.isFinite(endsAtTs)) {
+        return true;
+    }
+
+    return endsAtTs > nowTs;
+};
+
+export default function MapComponent({
+    questions = [],
+    events = [],
+    canAttendEvents = false,
+    onEventAttendanceUpdate,
+    eventNavigationTarget = null,
+    onQuestionPress,
+    onLocationChange,
+    onPermissionChange,
+    onMapBoundsChange,
+    onVisibleQuestionsChange,
+    showQuestions = true,
+    onOpenEventDetails,
+}) {
     const [location, setLocation] = useState(null);
     const [publicLocations, setPublicLocations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [publishing, setPublishing] = useState(false);
+    const [togglingEventId, setTogglingEventId] = useState(null);
+    const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+    const [pendingLeaveEvent, setPendingLeaveEvent] = useState(null);
+    const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
     const mapRef = useRef(null);
     const [visibleQuestions, setVisibleQuestions] = useState([]);
+
+    const visibleEvents = useMemo(() => {
+        const source = Array.isArray(events) ? events : [];
+        return source.filter((event) => isEventStillVisible(event, eventsNowTs));
+    }, [events, eventsNowTs]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setEventsNowTs(Date.now());
+        }, 30000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') {
+            return;
+        }
+
+        const map = mapRef.current;
+        if (!map || !eventNavigationTarget || !Number.isFinite(eventNavigationTarget.lat) || !Number.isFinite(eventNavigationTarget.lng)) {
+            return;
+        }
+
+        if (typeof map.setView === 'function') {
+            map.setView([eventNavigationTarget.lat, eventNavigationTarget.lng], 16, { animate: true });
+        }
+    }, [eventNavigationTarget]);
+
     const userLocationIcon = useMemo(() => {
         if (!L) return undefined;
         return L.divIcon({
@@ -139,15 +305,15 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
                 const { status } = await Location.requestForegroundPermissionsAsync();
 
                 if (status !== 'granted') {
-                    setError('Permiso de ubicación denegado');
+                    setError('Location permission denied');
                     setLoading(false);
                     if (typeof onPermissionChange === 'function') {
                         onPermissionChange(false);
                     }
                     Toast.show({
                         type: 'error',
-                        text1: 'Ubicación desactivada',
-                        text2: 'Por favor, activa la ubicación para poder hacer preguntas.',
+                        text1: 'Location disabled',
+                        text2: 'Please enable location to ask questions.',
                         position: 'top',
                         visibilityTime: 10000,
                     });
@@ -187,7 +353,7 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
                     );
                 }
             } catch (err) {
-                setError('Error al obtener ubicación: ' + err.message);
+                setError('Error getting location: ' + err.message);
                 setLoading(false);
                 if (typeof onPermissionChange === 'function') {
                     onPermissionChange(false);
@@ -223,14 +389,37 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
     useEffect(() => {
         const ahora = new Date().getTime();
 
+        // Si showQuestions es false, retornar array vacío
+        if (!showQuestions) {
+            setVisibleQuestions([]);
+            return;
+        }
+
         // Filtramos las preguntas que ya vencieron antes de guardarlas en el estado
+        // También excluimos las preguntas asociadas a eventos (se muestran dentro del evento)
         const preguntasActivas = questions.filter((q) => {
+            if (q?.event) {
+                return false;
+            }
+
+            if (q?.active === false) {
+                return false;
+            }
+
+            if (!q?.expiresAt) {
+                return true;
+            }
+
             const fechaExpiracion = new Date(q.expiresAt).getTime();
+            if (!Number.isFinite(fechaExpiracion)) {
+                return true;
+            }
+
             return fechaExpiracion > ahora; // Solo dejamos las que expiran en el futuro
         });
 
-        setVisibleQuestions(preguntasActivas);
-    }, [questions]);
+        setVisibleQuestions(preguntasActivas.length > 0 ? preguntasActivas : questions.filter((q) => !q?.event && q?.active !== false));
+    }, [questions, showQuestions]);
 
     const handleQuestionExpire = (questionId) => {
         setVisibleQuestions((prev) => prev.filter((q) => q.id !== questionId));
@@ -238,7 +427,7 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
 
     const handlePublishLocation = async () => {
         if (!location) {
-            Alert.alert('Error', 'Ubicación no disponible aún');
+            Alert.alert('Error', 'Location is not available yet');
             return;
         }
 
@@ -250,24 +439,75 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
                 location.accuracy,
                 true
             );
-            Alert.alert('Éxito', '¡Ubicación publicada!');
+            Alert.alert('Success', 'Location published!');
             await loadPublicLocations();
         } catch (err) {
             console.error('Error publishing location:', err);
             Alert.alert(
                 'Error',
-                'Error al publicar ubicación: ' + (err.response?.data?.message || err.message)
+                'Error publishing location: ' + (err.response?.data?.message || err.message)
             );
         } finally {
             setPublishing(false);
         }
     };
 
+    const performToggleAttendance = useCallback(async (eventItem) => {
+        if (!eventItem?.id) {
+            return;
+        }
+
+        setTogglingEventId(eventItem.id);
+        try {
+            const response = await apiClient.post(`/api/v1/events/${eventItem.id}/attendance`);
+            const updatedEvent = response?.data;
+            if (updatedEvent?.id) {
+                onEventAttendanceUpdate?.(updatedEvent);
+            }
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                error?.response?.data?.message || 'Could not update your attendance.'
+            );
+        } finally {
+            setTogglingEventId(null);
+        }
+    }, [onEventAttendanceUpdate]);
+
+    const handleToggleAttendance = useCallback((eventItem) => {
+        if (!eventItem?.id) {
+            return;
+        }
+
+        if (eventItem?.myAttendance === true) {
+            setPendingLeaveEvent(eventItem);
+            setLeaveConfirmVisible(true);
+            return;
+        }
+
+        performToggleAttendance(eventItem);
+    }, [performToggleAttendance]);
+
+    const handleCancelLeave = useCallback(() => {
+        setLeaveConfirmVisible(false);
+        setPendingLeaveEvent(null);
+    }, []);
+
+    const handleConfirmLeave = useCallback(() => {
+        const eventToLeave = pendingLeaveEvent;
+        setLeaveConfirmVisible(false);
+        setPendingLeaveEvent(null);
+
+        if (eventToLeave) {
+            performToggleAttendance(eventToLeave);
+        }
+    }, [pendingLeaveEvent, performToggleAttendance]);
+
     if (loading) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.loadingText}>Obteniendo ubicación...</Text>
+                <Text style={styles.loadingText}>Getting location...</Text>
             </View>
         );
     }
@@ -285,7 +525,7 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
     if (!location) {
         return (
             <View style={styles.container}>
-                <Text style={styles.errorText}>No se pudo obtener la ubicación</Text>
+                <Text style={styles.errorText}>Location could not be retrieved</Text>
             </View>
         );
     }
@@ -296,165 +536,313 @@ export default function MapComponent({ questions = [], onQuestionPress, onLocati
             // Fallback si Leaflet no se cargó
             return (
                 <div style={{ padding: '20px', textAlign: 'center' }}>
-                    <h2>Error al cargar el mapa</h2>
-                    <p>Leaflet no está disponible. Por favor recarga la página.</p>
+                    <h2>Error loading the map</h2>
+                    <p>Leaflet is not available. Please refresh the page.</p>
                 </div>
             );
         }
 
         return (
-            <div style={webStyles.container}>
-                {/* Mapa */}
-                <MapContainer
-                    center={[location.latitude, location.longitude]}
-                    zoom={15}
-                    ref={mapRef}
-                    style={webStyles.map}
-                >
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+            <>
+                <div style={webStyles.container}>
+                    {/* Mapa */}
+                    <MapContainer
+                        center={[location.latitude, location.longitude]}
+                        zoom={15}
+                        ref={mapRef}
+                        style={webStyles.map}
+                    >
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
 
-                    {/* Marcador de tu ubicación */}
-                    <Marker position={[location.latitude, location.longitude]} icon={userLocationIcon}>
-                        <Popup>
-                            <div style={{ fontSize: '12px' }}>
-                                <strong>Your location</strong>
-                                <br />
-                                {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                                <br />
-                                Precisión: {location.accuracy?.toFixed(2) || 'N/A'} m
-                            </div>
-                        </Popup>
-                    </Marker>
+                        {/* Rastreador de bounds del mapa */}
+                        <MapBoundsTrackerComponent
+                            questions={visibleQuestions}
+                            onBoundsChange={onMapBoundsChange}
+                            onVisibleQuestionsChange={onVisibleQuestionsChange}
+                            mapRef={mapRef}
+                        />
 
-                    {/* Question Markers */}
-                    {(Array.isArray(visibleQuestions) ? visibleQuestions : []).map((q) => {
-                        const coords = getQuestionCoords(q);
-                        if (!coords) return null;
-                        const radiusKm = toNum(q?.radiusKm);
-                        const { lat, lng } = coords;
-                        const distanceKm = calculateDistanceInKm(
-                            { latitude: location.latitude, longitude: location.longitude },
-                            { latitude: lat, longitude: lng }
-                        );
-                        const canAnswer = !Number.isFinite(radiusKm) || radiusKm <= 0 || distanceKm <= radiusKm;
-                        const questionColor = canAnswer ? '#f59e0b' : '#9ca3af';
+                        {/* Marcador de tu ubicación */}
+                        <Marker position={[location.latitude, location.longitude]} icon={userLocationIcon}>
+                            <Popup>
+                                <div style={{ fontSize: '12px' }}>
+                                    <strong>Your location</strong>
+                                    <br />
+                                    {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                    <br />
+                                    Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
+                                </div>
+                            </Popup>
+                        </Marker>
 
-                        return (
-                            <Marker
-                                key={q.id}
-                                position={[lat, lng]}
-                                icon={q.featured ? createFeaturedIcon() : createCustomIcon(questionColor)}
-                                eventHandlers={{
-                                    click: () => onQuestionPress?.(q.id),
-                                }}
-                            >
-                                <Popup>
-                                    <div style={{ fontSize: '12px' }}>
-                                        <strong>{q.featured ? '⭐ ' : ''}{q.title || 'Question'}</strong>
-                                        <br />
-                                        <div style={{ marginBottom: '8px' }}>
-                                            <CountdownText
-                                                expiresAt={q.expiresAt}
-                                                onExpire={() => handleQuestionExpire(q.id)}
-                                            />
+                        {/* Question Markers */}
+                        {(Array.isArray(visibleQuestions) ? visibleQuestions : []).map((q) => {
+                            const coords = getQuestionCoords(q);
+                            if (!coords) return null;
+                            const radiusKm = toNum(q?.radiusKm);
+                            const { lat, lng } = coords;
+                            const distanceKm = calculateDistanceInKm(
+                                { latitude: location.latitude, longitude: location.longitude },
+                                { latitude: lat, longitude: lng }
+                            );
+                            const canAnswer = !Number.isFinite(radiusKm) || radiusKm <= 0 || distanceKm <= radiusKm;
+                            const questionColor = canAnswer ? '#f59e0b' : '#9ca3af';
+
+                            return (
+                                <Marker
+                                    key={q.id}
+                                    position={[lat, lng]}
+                                    icon={q.featured ? createFeaturedIcon() : createCustomIcon(questionColor)}
+                                    eventHandlers={{
+                                        click: () => onQuestionPress?.(q.id),
+                                    }}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>{q.featured ? '⭐ ' : ''}{q.title || 'Question'}</strong>
+                                            <br />
+                                            <div style={{ marginBottom: '8px' }}>
+                                                <CountdownText
+                                                    expiresAt={q.expiresAt}
+                                                    onExpire={() => handleQuestionExpire(q.id)}
+                                                />
+                                            </div>
+                                            <span style={{ color: canAnswer ? '#ea580c' : '#6b7280', fontWeight: 700 }}>
+                                                {canAnswer ? 'You can answer' : 'Out of your range'}
+                                            </span>
+                                            <br />
+                                            {Number.isFinite(radiusKm) && radiusKm > 0 && (
+                                                <>
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        Answer radius: {radiusKm.toFixed(2)} km
+                                                    </span>
+                                                    <br />
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        Your distance: {distanceKm.toFixed(2)} km
+                                                    </span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            <span style={{ opacity: 0.8 }}>
+                                                {lat.toFixed(5)}, {lng.toFixed(5)}
+                                            </span>
+                                            <br />
+                                            <span style={{ color: '#007AFF', fontWeight: 600 }}>Click to open</span>
                                         </div>
-                                        <span style={{ color: canAnswer ? '#ea580c' : '#6b7280', fontWeight: 700 }}>
-                                            {canAnswer ? 'You can answer' : 'Out of your range'}
-                                        </span>
-                                        <br />
-                                        {Number.isFinite(radiusKm) && radiusKm > 0 && (
-                                            <>
-                                                <span style={{ opacity: 0.85 }}>
-                                                    Answer radius: {radiusKm.toFixed(2)} km
-                                                </span>
-                                                <br />
-                                                <span style={{ opacity: 0.85 }}>
-                                                    Your distance: {distanceKm.toFixed(2)} km
-                                                </span>
-                                                <br />
-                                            </>
-                                        )}
-                                        <span style={{ opacity: 0.8 }}>
-                                            {lat.toFixed(5)}, {lng.toFixed(5)}
-                                        </span>
-                                        <br />
-                                        <span style={{ color: '#007AFF', fontWeight: 600 }}>Click to open</span>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
 
-                    {/* Marcadores de ubicaciones públicas */}
-                    {publicLocations &&
-                        publicLocations.map((pubLocation) => (
-                            <Marker
-                                key={pubLocation.id}
-                                position={[pubLocation.latitude, pubLocation.longitude]}
-                                icon={createCustomIcon('#FF3B30')}
-                            >
-                                <Popup>
-                                    <div style={{ fontSize: '12px' }}>
-                                        <strong>Usuario {pubLocation.user?.id || 'Desconocido'}</strong>
-                                        <br />
-                                        {pubLocation.latitude.toFixed(6)}, {pubLocation.longitude.toFixed(6)}
-                                        <br />
-                                        {getTimeAgo(pubLocation.timestamp)}
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        ))}
-                </MapContainer>
-            </div>
+                        {/* Event markers */}
+                        {visibleEvents.map((event) => {
+                            const coords = getEventCoords(event);
+                            if (!coords) return null;
+
+                            const startsAt = formatDateTime(event.startsAt);
+                            const endsAt = formatDateTime(event.endsAt);
+                            const attendeeCount = Number.isFinite(Number(event?.attendeeCount))
+                                ? Number(event.attendeeCount)
+                                : 0;
+                            const isAttending = event?.myAttendance === true;
+                            const isToggling = togglingEventId === event.id;
+
+                            return (
+                                <Marker
+                                    key={event.id}
+                                    position={[coords.lat, coords.lng]}
+                                    icon={createEventIcon()}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>Event: {event.title || 'Untitled event'}</strong>
+                                            <br />
+                                            {event.category && (
+                                                <>
+                                                    <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                                                        {event.category}
+                                                    </span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {startsAt && (
+                                                <>
+                                                    <span>Starts: {startsAt}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {endsAt && (
+                                                <>
+                                                    <span>Ends: {endsAt}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            {event.address && (
+                                                <>
+                                                    <span>{event.address}</span>
+                                                    <br />
+                                                </>
+                                            )}
+                                            <span style={{ fontWeight: 700, color: '#111827' }}>
+                                                Attendees: {attendeeCount}
+                                            </span>
+                                            <br />
+                                            {canAttendEvents && (
+                                                <>
+                                                    <span style={{ opacity: 0.85 }}>
+                                                        {isAttending ? 'You are going' : 'Not attending yet'}
+                                                    </span>
+                                                    <br />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleToggleAttendance(event)}
+                                                        disabled={isToggling}
+                                                        style={{
+                                                            marginTop: '8px',
+                                                            width: '100%',
+                                                            border: 'none',
+                                                            borderRadius: '10px',
+                                                            padding: '10px 12px',
+                                                            backgroundColor: isAttending ? '#b91c1c' : '#0f766e',
+                                                            color: '#ffffff',
+                                                            fontWeight: 700,
+                                                            cursor: isToggling ? 'wait' : 'pointer',
+                                                            opacity: isToggling ? 0.75 : 1,
+                                                        }}
+                                                    >
+                                                        {isToggling ? 'Updating...' : (isAttending ? 'Leave event' : 'Join event')}
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => onOpenEventDetails?.(event)}
+                                                style={{
+                                                    marginTop: '8px',
+                                                    width: '100%',
+                                                    border: '1px solid rgba(29, 78, 216, 0.18)',
+                                                    borderRadius: '999px',
+                                                    padding: '6px 10px',
+                                                    backgroundColor: 'rgba(29, 78, 216, 0.06)',
+                                                    color: '#1d4ed8',
+                                                    fontWeight: 600,
+                                                    fontSize: '12px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    lineHeight: 1,
+                                                    opacity: 0.95,
+                                                }}
+                                            >
+                                                <span aria-hidden="true" style={{ fontSize: '13px', lineHeight: 1 }}>👁</span>
+                                                <span>View event info</span>
+                                            </button>
+                                            <span style={{ opacity: 0.8 }}>
+                                                {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                                            </span>
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
+
+                        {/* Marcadores de ubicaciones públicas */}
+                        {publicLocations &&
+                            publicLocations.map((pubLocation) => (
+                                <Marker
+                                    key={pubLocation.id}
+                                    position={[pubLocation.latitude, pubLocation.longitude]}
+                                    icon={createCustomIcon('#FF3B30')}
+                                >
+                                    <Popup>
+                                        <div style={{ fontSize: '12px' }}>
+                                            <strong>User {pubLocation.user?.id || 'Unknown'}</strong>
+                                            <br />
+                                            {pubLocation.latitude.toFixed(6)}, {pubLocation.longitude.toFixed(6)}
+                                            <br />
+                                            {getTimeAgo(pubLocation.timestamp)}
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            ))}
+                    </MapContainer>
+                </div>
+
+                <ConfirmationModal
+                    visible={leaveConfirmVisible}
+                    title="Leave event"
+                    message="Are you sure you want to stop attending this event?"
+                    confirmText="Yes, leave"
+                    cancelText="Cancel"
+                    onConfirm={handleConfirmLeave}
+                    onCancel={handleCancelLeave}
+                    confirmButtonColor="danger"
+                />
+            </>
         );
     }
 
     // Fallback: Versión simple para móvil o si Leaflet no está disponible
     return (
-        <ScrollView style={styles.webContainer}>
-            <View style={styles.webContent}>
-                <Text style={styles.webTitle}>📍 Tu ubicación</Text>
-                <View style={styles.locationCard}>
-                    <Text style={styles.locationText}>Latitud: {location.latitude.toFixed(6)}</Text>
-                    <Text style={styles.locationText}>Longitud: {location.longitude.toFixed(6)}</Text>
-                    <Text style={styles.locationText}>
-                        Precisión: {location.accuracy?.toFixed(2) || 'N/A'} m
+        <>
+            <ScrollView style={styles.webContainer}>
+                <View style={styles.webContent}>
+                    <Text style={styles.webTitle}>📍 Your location</Text>
+                    <View style={styles.locationCard}>
+                        <Text style={styles.locationText}>Latitude: {location.latitude.toFixed(6)}</Text>
+                        <Text style={styles.locationText}>Longitude: {location.longitude.toFixed(6)}</Text>
+                        <Text style={styles.locationText}>
+                            Accuracy: {location.accuracy?.toFixed(2) || 'N/A'} m
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.publishButton, publishing && styles.publishButtonDisabled]}
+                        onPress={handlePublishLocation}
+                        disabled={publishing}
+                    >
+                        <Text style={styles.publishButtonText}>
+                            {publishing ? 'Publishing...' : 'Publish location'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <Text style={[styles.webTitle, { marginTop: 20 }]}>
+                        🔴 Public locations ({publicLocations.length})
                     </Text>
+                    {publicLocations.length === 0 ? (
+                        <Text style={styles.noLocationsText}>No public locations visible</Text>
+                    ) : (
+                        publicLocations.map((pubLocation) => (
+                            <View key={pubLocation.id} style={styles.locationCard}>
+                                <Text style={styles.locationText}>
+                                    User ID: {pubLocation.user?.id || 'Unknown'}
+                                </Text>
+                                <Text style={styles.locationText}>
+                                    Lat: {pubLocation.latitude.toFixed(6)}, Lon: {pubLocation.longitude.toFixed(6)}
+                                </Text>
+                                <Text style={styles.timeText}>{getTimeAgo(pubLocation.timestamp)}</Text>
+                            </View>
+                        ))
+                    )}
                 </View>
+            </ScrollView>
 
-                <TouchableOpacity
-                    style={[styles.publishButton, publishing && styles.publishButtonDisabled]}
-                    onPress={handlePublishLocation}
-                    disabled={publishing}
-                >
-                    <Text style={styles.publishButtonText}>
-                        {publishing ? 'Publicando...' : 'Publicar ubicación'}
-                    </Text>
-                </TouchableOpacity>
-
-                <Text style={[styles.webTitle, { marginTop: 20 }]}>
-                    🔴 Ubicaciones públicas ({publicLocations.length})
-                </Text>
-                {publicLocations.length === 0 ? (
-                    <Text style={styles.noLocationsText}>No hay ubicaciones públicas visibles</Text>
-                ) : (
-                    publicLocations.map((pubLocation) => (
-                        <View key={pubLocation.id} style={styles.locationCard}>
-                            <Text style={styles.locationText}>
-                                Usuario ID: {pubLocation.user?.id || 'Desconocido'}
-                            </Text>
-                            <Text style={styles.locationText}>
-                                Lat: {pubLocation.latitude.toFixed(6)}, Lon: {pubLocation.longitude.toFixed(6)}
-                            </Text>
-                            <Text style={styles.timeText}>{getTimeAgo(pubLocation.timestamp)}</Text>
-                        </View>
-                    ))
-                )}
-            </View>
-        </ScrollView>
+            <ConfirmationModal
+                visible={leaveConfirmVisible}
+                title="Leave event"
+                message="Are you sure you want to stop attending this event?"
+                confirmText="Yes, leave"
+                cancelText="Cancel"
+                onConfirm={handleConfirmLeave}
+                onCancel={handleCancelLeave}
+                confirmButtonColor="danger"
+            />
+        </>
     );
 }
 

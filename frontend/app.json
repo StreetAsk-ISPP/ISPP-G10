@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "sprint2-streetask",
-    "slug": "sprint2-streetask",
-    "version": "2.0.0",
+    "name": "sprint3-streetask",
+    "slug": "sprint3-streetask",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -35,7 +35,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "163c3fcf-8e60-493c-a252-b28e66ab35d2"
+        "projectId": "3efd31e2-5c03-44cd-ad95-79b2bcfb5c8c"
       }
     },
     "owner": "streetasks-organization"

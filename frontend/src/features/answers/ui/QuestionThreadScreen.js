@@ -162,8 +162,9 @@ export default function QuestionThreadScreen({ route, navigation }) {
         return { latitude: qLat, longitude: qLng };
     }, [question?.location?.latitude, question?.location?.longitude]);
     const hasGeoRestriction = useMemo(
-        () => questionCoords !== null && questionRadiusKm != null,
-        [questionCoords, questionRadiusKm]
+        // Event questions are scoped to the event itself — no geographic radius restriction.
+        () => !question?.event && questionCoords !== null && questionRadiusKm != null,
+        [question?.event, questionCoords, questionRadiusKm]
     );
 
     const isWithinRadius = useMemo(() => {
@@ -312,8 +313,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
                     setDraft(content);
                     Toast.show({
                         type: 'error',
-                        text1: 'Ubicación requerida',
-                        text2: 'Debes activar tu ubicación para responder esta pregunta.',
+                        text1: 'Location required',
+                        text2: 'You must enable location to answer this question.',
                         position: 'top'
                     });
                     return;
@@ -327,8 +328,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
                     setDraft(content);
                     Toast.show({
                         type: 'error',
-                        text1: 'Fuera de radio',
-                        text2: 'No puedes responder esta pregunta porque estás fuera del radio.',
+                        text1: 'Out of range',
+                        text2: 'You cannot answer this question because you are outside the allowed radius.',
                         position: 'top'
                     });
                     return;
@@ -382,7 +383,7 @@ export default function QuestionThreadScreen({ route, navigation }) {
         const cur = myVotes[answerId];
 
         if (cur === type) {
-            // Deseleccionar: quitar el voto
+            // Deselect: remove vote
             setAnswers((pa) => sortAnswersInMemory(pa.map((a) => {
                 if (a.id !== answerId) return a;
                 return {
@@ -395,12 +396,12 @@ export default function QuestionThreadScreen({ route, navigation }) {
             try {
                 await apiClient.delete(`/api/v1/answers/${answerId}/votes?userId=${user.id}`);
             } catch (error) {
-                console.error('Error al quitar voto:', error);
+                console.error('Error removing vote:', error);
             }
             return;
         }
 
-        // Actualización optimista (voto nuevo o cambio)
+        // Optimistic update (new vote or vote change)
         setAnswers((pa) => sortAnswersInMemory(pa.map((a) => {
             if (a.id !== answerId) return a;
             const newLikes = type === 'LIKE'
@@ -418,7 +419,7 @@ export default function QuestionThreadScreen({ route, navigation }) {
                 `/api/v1/answers/${answerId}/votes?userId=${user.id}&voteType=${type}`
             );
         } catch (error) {
-            console.error('Error al votar:', error);
+            console.error('Error voting:', error);
         }
     };
 
@@ -505,8 +506,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
         if (!questionReportReason) {
             Toast.show({
                 type: 'error',
-                text1: 'Motivo requerido',
-                text2: 'Selecciona un motivo para reportar la pregunta.',
+                text1: 'Reason required',
+                text2: 'Select a reason to report the question.',
                 position: 'top',
             });
             return;
@@ -515,8 +516,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
         if (questionReportDescription?.length > 500) {
             Toast.show({
                 type: 'error',
-                text1: 'Descripcion demasiado larga',
-                text2: 'La descripcion no puede superar 500 caracteres.',
+                text1: 'Description too long',
+                text2: 'Description cannot exceed 500 characters.',
                 position: 'top',
             });
             return;
@@ -535,8 +536,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
             setQuestionReportDescription('');
             Toast.show({
                 type: 'success',
-                text1: 'Reporte enviado correctamente',
-                text2: 'Gracias por ayudar a mantener la comunidad segura.',
+                text1: 'Report sent successfully',
+                text2: 'Thanks for helping keep the community safe.',
                 position: 'top',
             });
         } catch (e) {
@@ -547,10 +548,10 @@ export default function QuestionThreadScreen({ route, navigation }) {
 
             Toast.show({
                 type: 'error',
-                text1: status === 409 ? 'Ya has reportado esta pregunta' : 'No se pudo enviar el reporte',
+                text1: status === 409 ? 'You already reported this question' : 'Could not send report',
                 text2: status === 409
-                    ? 'Ya habias reportado esta pregunta antes.'
-                    : e?.response?.data?.message || e?.message || 'Intentalo de nuevo en unos segundos.',
+                    ? 'You already reported this question before.'
+                    : e?.response?.data?.message || e?.message || 'Try again in a few seconds.',
                 position: 'top',
             });
         } finally {
@@ -558,18 +559,13 @@ export default function QuestionThreadScreen({ route, navigation }) {
         }
     };
 
-    const openMapPick = () => {
-        setTempLat(userLocation?.latitude || null);
-        setTempLng(userLocation?.longitude || null);
-        setPickMode(true);
-    };
     const cancelMapPick = () => { setPickMode(false); setTempLat(null); setTempLng(null); };
     const confirmMapPick = () => {
         if (typeof tempLat !== 'number' || typeof tempLng !== 'number') {
             Toast.show({
                 type: 'info',
-                text1: 'Selecciona un punto',
-                text2: 'Toca en el mapa para elegir tu ubicación.',
+                text1: 'Select a point',
+                text2: 'Tap on the map to choose your location.',
                 position: 'top'
             });
             return;
@@ -594,16 +590,22 @@ export default function QuestionThreadScreen({ route, navigation }) {
                 <View style={styles.threadContent}>
                     <View style={styles.threadHeader}>
                         <Text style={styles.threadAuthor}>@{item.author}</Text>
+                        {item.isVerified ? (
+                            <View style={styles.threadVerifiedBadge}>
+                                <Ionicons name="checkmark-circle" size={12} color="#047857" />
+                                <Text style={styles.threadVerifiedText}>Verified</Text>
+                            </View>
+                        ) : null}
                         <Text style={styles.threadTime}>{item.minutesAgo < 60 ? `${item.minutesAgo}m ago` : `${Math.floor(item.minutesAgo / 60)}h ago`}</Text>
                         <Text style={styles.threadIndex}>#{index + 1}</Text>
                     </View>
                     <Text style={styles.threadBody}>{item.text}</Text>
                     <View style={styles.threadActions}>
-                        <Pressable onPress={() => vote(item.id, 'LIKE')} style={[styles.threadVoteBtn, v === 'DISLIKE' && { opacity: 0.3 }]}>
+                        <Pressable disabled={item.userId === user?.id} onPress={() => vote(item.id, 'LIKE')} style={[styles.threadVoteBtn, v === 'DISLIKE' && { opacity: 0.3 }]}>
                             <Ionicons name={v === 'LIKE' ? 'thumbs-up' : 'thumbs-up-outline'} size={18} color={v === 'LIKE' ? '#22c55e' : '#9ca3af'} />
                             <Text style={[styles.threadVoteCount, v === 'LIKE' && { color: '#22c55e' }]}>{item.likes || 0}</Text>
                         </Pressable>
-                        <Pressable onPress={() => vote(item.id, 'DISLIKE')} style={[styles.threadVoteBtn, v === 'LIKE' && { opacity: 0.3 }]}>
+                        <Pressable disabled={item.userId === user?.id} onPress={() => vote(item.id, 'DISLIKE')} style={[styles.threadVoteBtn, v === 'LIKE' && { opacity: 0.3 }]}>
                             <Ionicons name={v === 'DISLIKE' ? 'thumbs-down' : 'thumbs-down-outline'} size={18} color={v === 'DISLIKE' ? '#ef4444' : '#9ca3af'} />
                             <Text style={[styles.threadVoteCount, v === 'DISLIKE' && { color: '#ef4444' }]}>{item.dislikes || 0}</Text>
                         </Pressable>
@@ -773,7 +775,7 @@ export default function QuestionThreadScreen({ route, navigation }) {
                                     )}
                                     {!loadingMore && hasMoreAnswers && answers.length > 0 && (
                                         <Pressable style={styles.loadMoreBtn} onPress={loadMoreAnswers}>
-                                            <Text style={styles.loadMoreText}>Cargar mas</Text>
+                                            <Text style={styles.loadMoreText}>Load more</Text>
                                         </Pressable>
                                     )}
                                 </View>
@@ -794,8 +796,8 @@ export default function QuestionThreadScreen({ route, navigation }) {
                             <Ionicons name="location-outline" size={18} color="#ef4444" />
                             <Text style={styles.outOfRangeText}>
                                 {isWithinRadius === false
-                                    ? 'No estás en la zona de la pregunta, acércate para poder responder.'
-                                    : 'No se pudo validar tu ubicación para responder esta pregunta.'}
+                                    ? 'You are not in the question area. Move closer to answer.'
+                                    : 'Your location could not be validated to answer this question.'}
                             </Text>
                         </View>
                     ) : (
@@ -1188,6 +1190,22 @@ const styles = StyleSheet.create({
     threadTime: {
         fontSize: 11,
         color: '#9ca3af',
+    },
+    threadVerifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 999,
+        backgroundColor: '#ecfdf5',
+        borderWidth: 1,
+        borderColor: '#a7f3d0',
+    },
+    threadVerifiedText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#047857',
     },
     threadIndex: {
         fontSize: 11,

@@ -22,7 +22,7 @@ export default function AdminFeedbackScreen() {
             setFeedback(response.data || []);
         } catch (error) {
             console.error("Error fetching feedback:", error);
-            Alert.alert("Error", "No se pudo cargar el feedback");
+            Alert.alert("Error", "Feedback could not be loaded");
         } finally {
             setLoading(false);
         }
@@ -40,7 +40,7 @@ export default function AdminFeedbackScreen() {
                 )}
             </View>
             <Text style={styles.content}>{item.message || item.content}</Text>
-            <Text style={styles.date}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Sin fecha'}</Text>
+            <Text style={styles.date}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'No date'}</Text>
         </View>
     );
 
@@ -50,7 +50,7 @@ export default function AdminFeedbackScreen() {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Feedback de Usuarios</Text>
+                <Text style={styles.headerTitle}>User Feedback</Text>
                 <View style={{ width: 30 }} />
             </View>
 
@@ -63,7 +63,7 @@ export default function AdminFeedbackScreen() {
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
-                        <Text style={styles.emptyText}>No hay feedback registrado</Text>
+                        <Text style={styles.emptyText}>No feedback registered</Text>
                     }
                 />
             )}

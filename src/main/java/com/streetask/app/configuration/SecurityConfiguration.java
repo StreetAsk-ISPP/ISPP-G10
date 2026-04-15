@@ -46,7 +46,7 @@ public class SecurityConfiguration {
 	@Value("${streetask.websocket.endpoint:/ws}")
 	private String websocketEndpoint;
 
-	@Value("${streetask.http.allowed-origin-patterns:http://localhost:8080,http://localhost:8081,http://localhost:19006,https://streetask.expo.app,https://sprint2-streetask.expo.app,https://streetask-preprod-frontend.onrender.com}")
+	@Value("${streetask.http.allowed-origin-patterns:http://localhost:8080,http://localhost:8081,http://localhost:19006,https://streetask.expo.app,https://sprint2-streetask.expo.app,https://streetask-preprod-frontend.onrender.com, https://sprint3-streetask.expo.app}")
 	private String[] allowedHttpOriginPatterns;
 
 	private static final String ADMIN = "ADMIN";
@@ -73,11 +73,18 @@ public class SecurityConfiguration {
 						.requestMatchers(webSocketHandshakePattern()).permitAll()
 
 						.requestMatchers("/api/v1/auth/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/mock/activate").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/stripe/checkout-session")
+						.permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/business-subscriptions/stripe/confirm-session")
+						.permitAll()
+						.requestMatchers("/api/v1/business-subscriptions/**").authenticated()
 						.requestMatchers("/api/v1/developers").permitAll()
 						.requestMatchers("/api/v1/plan").permitAll()
 
 						.requestMatchers("/api/v1/locations/public/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/locations/user/**").permitAll()
+						.requestMatchers("/api/v1/streetcoins/**").authenticated()
 
 						.requestMatchers("/api/v1/plan").hasAuthority("OWNER")
 
@@ -86,6 +93,14 @@ public class SecurityConfiguration {
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/stats").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/questions").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*/answers").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/activate").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/deactivate").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/stripe/checkout-session")
+						.authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/v1/users/me/premium/stripe/confirm-session")
+						.authenticated()
+						.requestMatchers(HttpMethod.DELETE, "/api/v1/users/me").authenticated()
+						.requestMatchers(HttpMethod.PUT, "/api/v1/users/*/role").authenticated()
 						.requestMatchers(HttpMethod.PUT, "/api/v1/users/*").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/v1/users/*").authenticated()
 
@@ -100,6 +115,7 @@ public class SecurityConfiguration {
 
 						// Questions & Answers require auth
 						.requestMatchers("/api/v1/questions/**").authenticated()
+						.requestMatchers("/api/v1/events/**").authenticated()
 						.requestMatchers("/api/v1/answers", "/api/v1/answers/**").authenticated()
 						.requestMatchers("/api/v1/reports/**").authenticated()
 
@@ -108,6 +124,15 @@ public class SecurityConfiguration {
 
 						// Push devices require auth
 						.requestMatchers("/api/push-devices/**").authenticated()
+
+						// Moderation endpoints require ADMIN authority
+						.requestMatchers("/api/v1/moderation/**").hasAuthority(ADMIN)
+
+						// Business verification status - accessible to authenticated business users
+						.requestMatchers("/api/v1/businesses/me/verification").authenticated()
+
+						// Events - publicly accessible
+						.requestMatchers(HttpMethod.GET, "/api/v1/events", "/api/v1/events/**").permitAll()
 
 						.anyRequest().denyAll())
 

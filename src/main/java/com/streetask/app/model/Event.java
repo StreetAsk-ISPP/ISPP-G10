@@ -3,14 +3,16 @@ package com.streetask.app.model;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.enums.EventCategory;
-import com.streetask.app.user.BusinessAccount;
+import com.streetask.app.business.BusinessAccount;
 
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -51,15 +53,20 @@ public class Event extends BaseEntity {
     @PositiveOrZero(message = "Attendee count must be zero or positive")
     private Integer attendeeCount;
 
+    @Transient
+    private Boolean myAttendance;
+
     private Boolean active;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "event")
     private List<Question> questions;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "event")
     private List<EventAttendance> attendances;
 }

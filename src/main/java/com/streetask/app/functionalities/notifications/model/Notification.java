@@ -3,6 +3,7 @@ package com.streetask.app.functionalities.notifications.model;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.BaseEntity;
 import com.streetask.app.user.RegularUser;
 
@@ -21,6 +22,7 @@ import lombok.Setter;
 @Setter
 public class Notification extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")
     private RegularUser user;

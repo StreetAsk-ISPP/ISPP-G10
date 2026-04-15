@@ -8,6 +8,7 @@ import apiClient from '../../shared/services/http/apiClient';
 export default function ProfileStats() {
     const navigation = useNavigation();
     const { user } = useAuth();
+    const isBusinessUser = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const [activeTab, setActiveTab] = useState('questions');
 
     const [serverStats, setServerStats] = useState({
@@ -15,6 +16,7 @@ export default function ProfileStats() {
         answers: 0,
         username: '',
         role: '',
+        coinBalance: 0,
         likes: 0,
         dislikes: 0,
         reputation: 0,
@@ -22,6 +24,8 @@ export default function ProfileStats() {
     });
     const [userQuestions, setUserQuestions] = useState([]);
     const [userAnswers, setUserAnswers] = useState([]);
+    const [businessEvents, setBusinessEvents] = useState([]);
+    const [totalAttendance, setTotalAttendance] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,19 +36,15 @@ export default function ProfileStats() {
             }
 
             try {
-                const [resStats, resQuestions, resAnswers] = await Promise.all([
-                    apiClient.get(`/api/v1/users/${user.id}/stats`),
-                    apiClient.get(`/api/v1/users/${user.id}/questions`),
-                    apiClient.get(`/api/v1/users/${user.id}/answers`)
-                ]);
-
+                const resStats = await apiClient.get(`/api/v1/users/${user.id}/stats`);
                 if (resStats.data) {
                     const data = resStats.data;
                     setServerStats({
                         questions: data.questionsCount || 0,
                         answers: data.answersCount || 0,
                         username: data.username || user.username,
-                        role: data.role === 'ADMIN' ? 'Moderator' : 'Local Expert',
+                        role: isBusinessUser ? 'Business' : (data.role === 'ADMIN' ? 'Moderator' : 'Local Expert'),
+                        coinBalance: data.coinBalance || 0,
                         likes: data.likesCount || 0,
                         dislikes: data.dislikesCount || 0,
                         reputation: data.reputation || 0,
@@ -52,8 +52,21 @@ export default function ProfileStats() {
                     });
                 }
 
-                if (resQuestions.data) setUserQuestions(resQuestions.data);
-                if (resAnswers.data) setUserAnswers(resAnswers.data);
+                if (isBusinessUser) {
+                    const resEvents = await apiClient.get('/api/v1/events');
+                    const allEvents = Array.isArray(resEvents?.data) ? resEvents.data : [];
+                    const myEvents = allEvents.filter(event => event?.creator?.id === user?.id);
+                    setBusinessEvents(myEvents);
+                    const total = myEvents.reduce((sum, e) => sum + (e.attendeeCount || 0), 0);
+                    setTotalAttendance(total);
+                } else {
+                    const [resQuestions, resAnswers] = await Promise.all([
+                        apiClient.get(`/api/v1/users/${user.id}/questions`),
+                        apiClient.get(`/api/v1/users/${user.id}/answers`)
+                    ]);
+                    if (resQuestions.data) setUserQuestions(resQuestions.data);
+                    if (resAnswers.data) setUserAnswers(resAnswers.data);
+                }
 
             } catch (error) {
                 console.error("Error loading profile data:", error);
@@ -63,7 +76,7 @@ export default function ProfileStats() {
         };
 
         fetchAllData();
-    }, [user]);
+    }, [user, isBusinessUser]);
 
     const renderHistoryItem = (item, type, index) => (
         <View key={item.id ? `${type}-${item.id}` : `${type}-${index}`} style={styles.historyItem}>
@@ -120,76 +133,115 @@ export default function ProfileStats() {
                 <View style={styles.headerCard}>
                     <Text style={styles.rangoText}>{serverStats.role}</Text>
                     <Text style={styles.userEmailText}>{user?.email || serverStats.username}</Text>
-                    <View style={styles.coinsRow}>
-                        <View style={styles.coinBadge}>
-                            <Ionicons name="star" size={16} color="#FFD700" />
-                            <Text style={styles.coinsText}>{serverStats.likes * 10} StreetCoins</Text>
+                </View>
+
+                {isBusinessUser ? (
+                    <>
+                        <View style={styles.statsGrid}>
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{businessEvents.length}</Text>
+                                <Text style={styles.statLabel}>Events Created</Text>
+                            </View>
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{totalAttendance}</Text>
+                                <Text style={styles.statLabel}>Total Attendance</Text>
+                            </View>
                         </View>
-                    </View>
-                </View>
 
-                <View style={styles.statsGrid}>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{serverStats.questions}</Text>
-                        <Text style={styles.statLabel}>Asked questions</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>{serverStats.answers}</Text>
-                        <Text style={styles.statLabel}>Answered questions</Text>
-                    </View>
-                    <View style={[styles.statBox, styles.borderGreen]}>
-                        <Text style={[styles.statValue, { color: '#2e7d32' }]}>{serverStats.likes} 👍</Text>
-                        <Text style={styles.statLabel}>Likes received</Text>
-                    </View>
-                    <View style={[styles.statBox, styles.borderRed]}>
-                        <Text style={[styles.statValue, { color: '#c62828' }]}>{serverStats.dislikes} 👎</Text>
-                        <Text style={styles.statLabel}>Dislikes received</Text>
-                    </View>
-                </View>
-
-                <View style={styles.reputationCard}>
-                    <View style={styles.reputationLeft}>
-                        <View style={styles.trophyCircle}>
-                            <Ionicons name="trophy" size={28} color="#F5A623" />
+                        <Text style={styles.sectionTitle}>Events History</Text>
+                        <View style={styles.historyList}>
+                            {businessEvents.length > 0
+                                ? businessEvents.map((event, index) => (
+                                    <View key={event.id || `event-${index}`} style={styles.historyItem}>
+                                        <View style={styles.iconCircle}>
+                                            <Ionicons name="calendar-outline" size={24} color="#d90429" />
+                                        </View>
+                                        <View style={styles.historyText}>
+                                            <Text style={styles.itemTitle} numberOfLines={2}>
+                                                <Text style={{ color: '#d90429', fontWeight: '800' }}>Event: </Text>
+                                                {event.title || 'No title'}
+                                            </Text>
+                                            <View style={styles.itemFooter}>
+                                                <Ionicons name="people-outline" size={12} color="#999" />
+                                                <Text style={styles.itemDate}>{event.attendeeCount || 0} attendees</Text>
+                                                <Ionicons name="calendar-outline" size={12} color="#999" style={{ marginLeft: 8 }} />
+                                                <Text style={styles.itemDate}>
+                                                    {event.createdAt ? new Date(event.createdAt).toLocaleDateString() : 'Unknown date'}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                ))
+                                : <Text style={styles.emptyText}>No events created yet.</Text>
+                            }
                         </View>
-                    </View>
-                    <View style={styles.reputationCenter}>
-                        <Text style={styles.reputationTitle}>Reputation Score</Text>
-                        <Text style={styles.reputationSub}>Based on community trust</Text>
-                    </View>
-                    <View style={styles.reputationRight}>
-                        <Text style={styles.reputationValue}>{parseFloat(serverStats.rating).toFixed(1)}</Text>
-                        <Text style={styles.reputationPts}>/5</Text>
-                    </View>
-                </View>
+                    </>
+                ) : (
+                    <>
+                        <View style={styles.statsGrid}>
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{serverStats.questions}</Text>
+                                <Text style={styles.statLabel}>Asked questions</Text>
+                            </View>
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{serverStats.answers}</Text>
+                                <Text style={styles.statLabel}>Answered questions</Text>
+                            </View>
+                            <View style={[styles.statBox, styles.borderGreen]}>
+                                <Text style={[styles.statValue, { color: '#2e7d32' }]}>{serverStats.likes} 👍</Text>
+                                <Text style={styles.statLabel}>Likes received</Text>
+                            </View>
+                            <View style={[styles.statBox, styles.borderRed]}>
+                                <Text style={[styles.statValue, { color: '#c62828' }]}>{serverStats.dislikes} 👎</Text>
+                                <Text style={styles.statLabel}>Dislikes received</Text>
+                            </View>
+                        </View>
 
-                <Text style={styles.sectionTitle}>Activity History</Text>
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'questions' && styles.activeTab]}
-                        onPress={() => setActiveTab('questions')}
-                    >
-                        <Text style={activeTab === 'questions' ? styles.activeTabText : styles.tabText}>Questions</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, activeTab === 'answers' && styles.activeTab]}
-                        onPress={() => setActiveTab('answers')}
-                    >
-                        <Text style={activeTab === 'answers' ? styles.activeTabText : styles.tabText}>Answers</Text>
-                    </TouchableOpacity>
-                </View>
+                        <View style={styles.reputationCard}>
+                            <View style={styles.reputationLeft}>
+                                <View style={styles.trophyCircle}>
+                                    <Ionicons name="trophy" size={28} color="#F5A623" />
+                                </View>
+                            </View>
+                            <View style={styles.reputationCenter}>
+                                <Text style={styles.reputationTitle}>Reputation Score</Text>
+                                <Text style={styles.reputationSub}>Based on community trust</Text>
+                            </View>
+                            <View style={styles.reputationRight}>
+                                <Text style={styles.reputationValue}>{parseFloat(serverStats.rating).toFixed(1)}</Text>
+                                <Text style={styles.reputationPts}>/5</Text>
+                            </View>
+                        </View>
 
-                <View style={styles.historyList}>
-                    {activeTab === 'questions' ? (
-                        userQuestions.length > 0
-                            ? userQuestions.map((q, index) => renderHistoryItem(q, 'questions', index))
-                            : <Text style={styles.emptyText}>{"You haven't asked any questions yet."}</Text>
-                    ) : (
-                        userAnswers.length > 0
-                            ? userAnswers.map((a, index) => renderHistoryItem(a, 'answers', index))
-                            : <Text style={styles.emptyText}>{"You haven't answered any questions yet."}</Text>
-                    )}
-                </View>
+                        <Text style={styles.sectionTitle}>Activity History</Text>
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity
+                                style={[styles.tab, activeTab === 'questions' && styles.activeTab]}
+                                onPress={() => setActiveTab('questions')}
+                            >
+                                <Text style={activeTab === 'questions' ? styles.activeTabText : styles.tabText}>Questions</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tab, activeTab === 'answers' && styles.activeTab]}
+                                onPress={() => setActiveTab('answers')}
+                            >
+                                <Text style={activeTab === 'answers' ? styles.activeTabText : styles.tabText}>Answers</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.historyList}>
+                            {activeTab === 'questions' ? (
+                                userQuestions.length > 0
+                                    ? userQuestions.map((q, index) => renderHistoryItem(q, 'questions', index))
+                                    : <Text style={styles.emptyText}>{"You haven't asked any questions yet."}</Text>
+                            ) : (
+                                userAnswers.length > 0
+                                    ? userAnswers.map((a, index) => renderHistoryItem(a, 'answers', index))
+                                    : <Text style={styles.emptyText}>{"You haven't answered any questions yet."}</Text>
+                            )}
+                        </View>
+                    </>
+                )}
                 <View style={{ height: 40 }} />
             </ScrollView>
         </SafeAreaView>
@@ -226,9 +278,6 @@ const styles = StyleSheet.create({
     },
     rangoText: { color: '#d90429', fontSize: 24, fontWeight: '900' },
     userEmailText: { color: '#666', fontSize: 14, marginTop: 4, fontWeight: '500' },
-    coinsRow: { marginTop: 15 },
-    coinBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff9db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#ffec99' },
-    coinsText: { color: '#856404', marginLeft: 6, fontSize: 15, fontWeight: '700' },
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 },
     statBox: {
         backgroundColor: '#fff',
@@ -281,5 +330,5 @@ const styles = StyleSheet.create({
     itemTitle: { fontSize: 14, fontWeight: '700', color: '#2d3436', lineHeight: 20 },
     itemFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
     itemDate: { fontSize: 11, color: '#999', marginLeft: 4, fontWeight: '500' },
-    emptyText: { textAlign: 'center', color: '#adb5bd', marginTop: 30, fontStyle: 'italic', fontSize: 14 }
+    emptyText: { textAlign: 'center', color: '#adb5bd', marginTop: 30, fontStyle: 'italic', fontSize: 14 },
 });

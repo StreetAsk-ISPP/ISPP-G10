@@ -18,7 +18,7 @@ import com.streetask.app.auth.payload.response.JwtResponse;
 import com.streetask.app.auth.payload.response.MessageResponse;
 import com.streetask.app.configuration.jwt.JwtUtils;
 import com.streetask.app.configuration.services.UserDetailsImpl;
-import com.streetask.app.user.BusinessAccountRepository;
+import com.streetask.app.business.BusinessAccountRepository;
 import com.streetask.app.user.UserService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -65,6 +65,12 @@ public class AuthController {
 					.body(new MessageResponse("Error: Email/username and password are required."));
 		}
 
+		// Block login for pending basic users (business signup not yet paid)
+		if (authService.isPendingBasicSignup(normalizedIdentifier)) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN)
+					.body(new MessageResponse("Error: Your business registration is pending payment."));
+		}
+
 		try {
 			Authentication authentication = authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(normalizedIdentifier, rawPassword));
@@ -94,6 +100,9 @@ public class AuthController {
 	public ResponseEntity<MessageResponse> registerBasicUser(@Valid @RequestBody SignupRequest signUpRequest) {
 		// Check whether email already exists
 		if (userService.existsUser(signUpRequest.getEmail()).equals(true)) {
+			if (authService.isPendingBasicSignup(signUpRequest.getEmail())) {
+				return ResponseEntity.ok(new MessageResponse("Basic user data saved! Complete your registration."));
+			}
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already registered!"));
 		}
 		// Check whether username already exists
@@ -119,11 +128,18 @@ public class AuthController {
 	@PostMapping("/signup/business")
 	public ResponseEntity<MessageResponse> completeBusinessUser(
 			@Valid @RequestBody BusinessSignupRequest signUpRequest) {
+		// Validate email exists and is a basic user
+		if (!authService.isPendingBasicSignup(signUpRequest.getEmail())) {
+			return ResponseEntity.badRequest()
+					.body(new MessageResponse(
+							"Error: Basic user registration not found. Please complete the basic signup first."));
+		}
+
 		String normalizedTaxId = signUpRequest.getTaxId().trim().toUpperCase().replace(" ", "").replace("-", "");
 		signUpRequest.setTaxId(normalizedTaxId);
 
 		// Check whether tax ID already exists
-		if (businessAccountRepository.existsByTaxId(signUpRequest.getTaxId()).equals(true)) {
+		if (businessAccountRepository.existsByTaxId(signUpRequest.getTaxId())) {
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: Tax ID is already registered!"));
 		}
 		// Complete business account data
@@ -131,9 +147,20 @@ public class AuthController {
 			authService.convertToBusinessUser(signUpRequest);
 			return ResponseEntity.ok(new MessageResponse(
 					"Business account registered successfully! Your account is pending admin verification."));
+		} catch (IllegalStateException exception) {
+			return ResponseEntity.badRequest().body(new MessageResponse("Error: User is already a business account."));
 		} catch (Exception e) {
 			return ResponseEntity.badRequest().body(new MessageResponse("Error: User not found or already completed!"));
 		}
+	}
+
+	@GetMapping("/signup/basic/pending")
+	public ResponseEntity<?> isPendingBasicSignup(@RequestParam String identifier) {
+		if (!authService.isPendingBasicSignup(identifier)) {
+			return ResponseEntity.ok(false);
+		}
+		String email = authService.getPendingBasicSignupEmail(identifier);
+		return ResponseEntity.ok(java.util.Map.of("pending", true, "email", email != null ? email : ""));
 	}
 
 	@PostMapping("/password/forgot")

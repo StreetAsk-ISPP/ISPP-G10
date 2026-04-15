@@ -10,7 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
@@ -24,13 +23,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.functionalities.notifications.events.AnswerCreatedEvent;
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.AnswerVote;
+import com.streetask.app.model.CoinTransaction;
+import com.streetask.app.model.CoinTransactionRepository;
 import com.streetask.app.model.GeoPoint;
 import com.streetask.app.model.Question;
+import com.streetask.app.model.enums.CoinTransactionStatus;
+import com.streetask.app.model.enums.CoinTransactionType;
 import com.streetask.app.model.enums.VoteType;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.RegularUserRepository;
+import com.streetask.app.user.User;
+import com.streetask.app.user.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -43,26 +49,41 @@ public class AnswerService {
 	private final AnswerRepository answerRepository;
 	private final AnswerVoteRepository answerVoteRepository;
 	private final RegularUserRepository regularUserRepository;
+	private final UserRepository userRepository;
 	private final ApplicationEventPublisher eventPublisher;
+	private final CoinTransactionRepository coinTransactionRepository;
+
+	private static final int ANSWER_BASE_REWARD = 1;
+	private static final int ANSWER_POSITIVE_VOTE_BONUS = 1;
+	private static final int ANSWER_NEGATIVE_VOTE_PENALTY = -1;
+	private static final int MIN_ANSWER_LENGTH = 10;
+	private static final int MAX_ANSWERS_IN_WINDOW = 5;
+	private static final int RATE_LIMIT_WINDOW_MINUTES = 5;
 
 	@Autowired
 	public AnswerService(AnswerRepository answerRepository, AnswerVoteRepository answerVoteRepository,
-			RegularUserRepository regularUserRepository, ApplicationEventPublisher eventPublisher) {
+			RegularUserRepository regularUserRepository, UserRepository userRepository,
+			ApplicationEventPublisher eventPublisher,
+			CoinTransactionRepository coinTransactionRepository) {
 		this.answerRepository = answerRepository;
 		this.answerVoteRepository = answerVoteRepository;
 		this.regularUserRepository = regularUserRepository;
+		this.userRepository = userRepository;
 		this.eventPublisher = eventPublisher;
+		this.coinTransactionRepository = coinTransactionRepository;
 	}
 
 	@Transactional
 	public Answer saveAnswer(@Valid Answer answer, Question question) throws DataAccessException {
 		attachAuthenticatedUser(answer);
-		// Validate location before saving
 		validateAnswerLocation(answer, question);
+		validateAnswerRateLimit(answer);
 		applyDefaults(answer);
-		answerRepository.save(answer);
+		applyVerificationStatus(answer);
+		Answer savedAnswer = answerRepository.save(answer);
+		savedAnswer = reconcileAnswerCoins(savedAnswer);
 		eventPublisher.publishEvent(new AnswerCreatedEvent(answer.getId()));
-		return answer;
+		return savedAnswer;
 	}
 
 	@Transactional(readOnly = true)
@@ -152,10 +173,15 @@ public class AnswerService {
 	@Transactional
 	public Answer updateVotes(UUID answerId, UUID userId, VoteType voteType) {
 		Answer answer = findAnswer(answerId);
-		RegularUser answerOwner = answer.getUser();
+		RegularUser answerOwner = asRegularUser(answer.getUser());
+		if (answerOwner != null && answerOwner.getId() != null && answerOwner.getId().equals(userId)) {
+			throw new IllegalArgumentException("Users cannot like or dislike their own answers");
+		}
+
+		RegularUser voter = regularUserRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
 		Optional<AnswerVote> existingOpt = answerVoteRepository.findByUserIdAndAnswerId(userId, answerId);
-
 		if (existingOpt.isPresent()) {
 			AnswerVote existing = existingOpt.get();
 			if (existing.getVoteType() == voteType) {
@@ -178,11 +204,9 @@ public class AnswerService {
 			existing.setVotedAt(LocalDateTime.now());
 			answerVoteRepository.save(existing);
 		} else {
-			RegularUser user = regularUserRepository.findById(userId)
-					.orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 			AnswerVote vote = new AnswerVote();
 			vote.setAnswer(answer);
-			vote.setUser(user);
+			vote.setUser(voter);
 			vote.setVoteType(voteType);
 			vote.setVotedAt(LocalDateTime.now());
 			answerVoteRepository.save(vote);
@@ -195,13 +219,14 @@ public class AnswerService {
 			}
 		}
 
-		return answerRepository.save(answer);
+		Answer savedAnswer = answerRepository.save(answer);
+		return reconcileAnswerCoins(savedAnswer);
 	}
 
 	@Transactional
 	public Answer removeVote(UUID answerId, UUID userId) {
 		Answer answer = findAnswer(answerId);
-		RegularUser answerOwner = answer.getUser();
+		RegularUser answerOwner = asRegularUser(answer.getUser());
 		AnswerVote existing = answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)
 				.orElseThrow(() -> new IllegalArgumentException("No vote found for this user on this answer"));
 		if (existing.getVoteType() == VoteType.LIKE) {
@@ -212,7 +237,8 @@ public class AnswerService {
 			decrementDislikes(answerOwner);
 		}
 		answerVoteRepository.delete(existing);
-		return answerRepository.save(answer);
+		Answer savedAnswer = answerRepository.save(answer);
+		return reconcileAnswerCoins(savedAnswer);
 	}
 
 	@Transactional(readOnly = true)
@@ -240,6 +266,10 @@ public class AnswerService {
 	 *                                  allowed radius
 	 */
 	private void validateAnswerLocation(Answer answer, Question question) {
+		// Event questions are scoped to the event, not a geographic radius.
+		if (question.getEvent() != null) {
+			return;
+		}
 		// Only validate location if question has a location and a positive radius
 		if (question.getLocation() == null || question.getRadiusKm() == null || question.getRadiusKm() <= 0) {
 			// No location validation required
@@ -300,6 +330,135 @@ public class AnswerService {
 		if (answer.getDownvotes() == null) {
 			answer.setDownvotes(0);
 		}
+		if (answer.getCoinsEarned() == null) {
+			answer.setCoinsEarned(0);
+		}
+		if (answer.getRewardClaimed() == null) {
+			answer.setRewardClaimed(false);
+		}
+	}
+
+	private Answer reconcileAnswerCoins(Answer answer) {
+		if (answer.getUser() == null) {
+			return answer;
+		}
+
+		int targetCoins = calculateTargetCoinsEarned(answer);
+		int currentCoins = answer.getCoinsEarned() == null ? 0 : answer.getCoinsEarned();
+		int delta = targetCoins - currentCoins;
+
+		if (delta == 0) {
+			return answer;
+		}
+
+		RegularUser owner = asRegularUser(answer.getUser());
+		if (owner == null) {
+			// Business answers are allowed but they don't participate in coin rewards.
+			return answer;
+		}
+		int balanceBefore = owner.getCoinBalance() == null ? 0 : owner.getCoinBalance();
+		int balanceAfter = balanceBefore + delta;
+		owner.setCoinBalance(balanceAfter);
+		regularUserRepository.save(owner);
+
+		answer.setCoinsEarned(targetCoins);
+		answer.setRewardClaimed(answer.getUpvotes() != null && answer.getDownvotes() != null
+				&& !answer.getUpvotes().equals(answer.getDownvotes()));
+
+		CoinTransaction coinTransaction = new CoinTransaction();
+		coinTransaction.setUser(owner);
+		coinTransaction.setType(delta >= 0 ? CoinTransactionType.EARN : CoinTransactionType.SPEND);
+		coinTransaction.setAmount(delta);
+		coinTransaction.setCurrency("StreetCoins");
+		coinTransaction.setStatus(CoinTransactionStatus.SUCCESS);
+		coinTransaction.setBalanceBefore(balanceBefore);
+		coinTransaction.setBalanceAfter(balanceAfter);
+		coinTransaction.setReferenceId(answer.getId());
+		coinTransaction
+				.setDescription(delta >= 0 ? "Answer reward" : "Answer reward adjustment");
+		coinTransaction.setCreatedAt(LocalDateTime.now());
+		coinTransactionRepository.save(coinTransaction);
+
+		return answerRepository.save(answer);
+	}
+
+	private int calculateTargetCoinsEarned(Answer answer) {
+		if (isSelfAnswer(answer)) {
+			return 0;
+		}
+		if (hasAlreadyAnsweredQuestion(answer)) {
+			return 0;
+		}
+		if (isTooShort(answer)) {
+			return 0;
+		}
+
+		int likes = answer.getUpvotes() == null ? 0 : answer.getUpvotes();
+		int dislikes = answer.getDownvotes() == null ? 0 : answer.getDownvotes();
+
+		if (likes > dislikes) {
+			return ANSWER_BASE_REWARD + ANSWER_POSITIVE_VOTE_BONUS;
+		}
+		if (dislikes > likes) {
+			return ANSWER_BASE_REWARD + ANSWER_NEGATIVE_VOTE_PENALTY;
+		}
+		return ANSWER_BASE_REWARD;
+	}
+
+	private boolean isSelfAnswer(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return false;
+		}
+		if (answer.getQuestion() == null || answer.getQuestion().getCreator() == null
+				|| answer.getQuestion().getCreator().getId() == null) {
+			return false;
+		}
+		return answer.getUser().getId().equals(answer.getQuestion().getCreator().getId());
+	}
+
+	private void applyVerificationStatus(Answer answer) {
+		boolean isVerified = isAnswerByEventCreator(answer);
+
+		answer.setIsVerified(isVerified);
+		answer.setVerifiedAt(isVerified ? OffsetDateTime.now(ZoneOffset.UTC) : null);
+	}
+
+	private boolean isAnswerByEventCreator(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return false;
+		}
+		if (answer.getQuestion() == null || answer.getQuestion().getEvent() == null
+				|| answer.getQuestion().getEvent().getCreator() == null
+				|| answer.getQuestion().getEvent().getCreator().getId() == null) {
+			return false;
+		}
+		return answer.getUser().getId().equals(answer.getQuestion().getEvent().getCreator().getId());
+	}
+
+	private boolean hasAlreadyAnsweredQuestion(Answer answer) {
+		if (answer.getId() == null || answer.getUser() == null || answer.getUser().getId() == null
+				|| answer.getQuestion() == null || answer.getQuestion().getId() == null) {
+			return false;
+		}
+		return answerRepository.countByQuestionIdAndUserIdAndIdNot(
+				answer.getQuestion().getId(), answer.getUser().getId(), answer.getId()) > 0;
+	}
+
+	private boolean isTooShort(Answer answer) {
+		String content = answer.getContent();
+		return content == null || content.trim().length() < MIN_ANSWER_LENGTH;
+	}
+
+	private void validateAnswerRateLimit(Answer answer) {
+		if (answer.getUser() == null || answer.getUser().getId() == null) {
+			return;
+		}
+		OffsetDateTime windowStart = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(RATE_LIMIT_WINDOW_MINUTES);
+		long recentCount = answerRepository.countByUserIdAndCreatedAtAfter(answer.getUser().getId(), windowStart);
+		if (recentCount >= MAX_ANSWERS_IN_WINDOW) {
+			throw new IllegalArgumentException(
+					"You are posting too quickly. Please wait before submitting another answer");
+		}
 	}
 
 	private void attachAuthenticatedUser(Answer answer) {
@@ -308,15 +467,23 @@ public class AnswerService {
 			if (answer.getUser() != null) {
 				return;
 			}
-			throw new AccessDeniedException("Only authenticated regular users can create answers");
+			throw new AccessDeniedException("Only authenticated users can create answers");
 		}
 
 		String identifier = auth.getName().trim();
-		RegularUser regularUser = regularUserRepository.findByEmail(identifier)
-				.or(() -> regularUserRepository.findByUserNameIgnoreCase(identifier))
-				.orElseThrow(() -> new AccessDeniedException("Only regular users can create answers"));
+		User authenticatedUser = userRepository.findByEmailIgnoreCase(identifier)
+				.or(() -> userRepository.findByUserNameIgnoreCase(identifier))
+				.orElseThrow(() -> new AccessDeniedException("Only regular or business users can create answers"));
 
-		answer.setUser(regularUser);
+		if (!(authenticatedUser instanceof RegularUser) && !(authenticatedUser instanceof BusinessAccount)) {
+			throw new AccessDeniedException("Only regular or business users can create answers");
+		}
+
+		answer.setUser(authenticatedUser);
+	}
+
+	private RegularUser asRegularUser(User user) {
+		return user instanceof RegularUser regularUser ? regularUser : null;
 	}
 
 	private String normalizeSort(String sort) {

@@ -14,6 +14,36 @@ export default function AdminScreen() {
     const [loading, setLoading] = useState(true);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+    const getCollectionCount = (payload) => {
+        let data = payload;
+
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch {
+                return 0;
+            }
+        }
+
+        if (Array.isArray(data)) {
+            return data.length;
+        }
+
+        if (data && typeof data === 'object') {
+            if (Array.isArray(data.content)) return data.content.length;
+            if (Array.isArray(data.items)) return data.items.length;
+            if (Array.isArray(data.results)) return data.results.length;
+
+            const totalElements = Number(data.totalElements);
+            if (Number.isFinite(totalElements)) return totalElements;
+
+            const count = Number(data.count);
+            if (Number.isFinite(count)) return count;
+        }
+
+        return 0;
+    };
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
@@ -21,21 +51,24 @@ export default function AdminScreen() {
     const fetchDashboardData = () => {
         setLoading(true);
 
-        Promise.all([
+        Promise.allSettled([
             apiClient.get('/api/v1/users'),
-            apiClient.get('/api/v1/questions'),
+            apiClient.get('/api/v1/questions', { params: { active: true } }),
             apiClient.get('/api/v1/answers'),
         ])
-            .then(([usersRes, questionsRes, answersRes]) => {
+            .then(([usersResult, questionsResult, answersResult]) => {
+                const usersData = usersResult.status === 'fulfilled' ? usersResult.value.data : [];
+                const allUsers = Array.isArray(usersData) ? usersData : [];
+                const activeUsers = allUsers.filter(u => u.active !== false && u.accountType != null);
+
+                const questionsData = questionsResult.status === 'fulfilled' ? questionsResult.value.data : [];
+                const answersData = answersResult.status === 'fulfilled' ? answersResult.value.data : [];
+
                 setStats({
-                    users: usersRes.data?.length || 0,
-                    questions: questionsRes.data?.length || 0,
-                    answers: answersRes.data?.length || 0,
+                    users: activeUsers.length,
+                    questions: getCollectionCount(questionsData),
+                    answers: getCollectionCount(answersData),
                 });
-            })
-            .catch((error) => {
-                console.error('Error fetching admin data:', error);
-                Alert.alert('Error', 'No se pudieron cargar los datos del panel');
             })
             .finally(() => {
                 setLoading(false);
@@ -56,9 +89,10 @@ export default function AdminScreen() {
     };
 
     const menuItems = [
-        { id: 'users', title: 'Gestionar Usuarios', icon: 'people', route: 'AdminUsers' },
-        { id: 'feedback', title: 'Feedback Recibido', icon: 'chatbox-ellipses', route: 'AdminFeedback' },
-        { id: 'app', title: 'Ir a la App', icon: 'phone-portrait', route: 'Home' },
+        { id: 'users', title: 'Manage Users', icon: 'people', route: 'AdminUsers' },
+        { id: 'businesses', title: 'Business Verification', icon: 'business', route: 'AdminBusinessVerification' },
+        { id: 'feedback', title: 'Received Feedback', icon: 'chatbox-ellipses', route: 'AdminFeedback' },
+        { id: 'app', title: 'Go to App', icon: 'phone-portrait', route: 'Home' },
     ];
 
     const renderMenuItem = ({ item }) => (
@@ -86,8 +120,8 @@ export default function AdminScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.headerTitle}>Panel de Administración</Text>
-                    <Text style={styles.headerSubtitle}>Bienvenido, Administrador</Text>
+                    <Text style={styles.headerTitle}>Admin Dashboard</Text>
+                    <Text style={styles.headerSubtitle}>Welcome, Admin</Text>
                 </View>
                 <TouchableOpacity onPress={handleLogoutClick} style={styles.logoutButton}>
                     <Ionicons name="log-out-outline" size={24} color="#d90429" />
@@ -97,19 +131,19 @@ export default function AdminScreen() {
             <View style={styles.statsContainer}>
                 <View style={styles.statCard}>
                     <Text style={styles.statValue}>{stats.users}</Text>
-                    <Text style={styles.statLabel}>Usuarios</Text>
+                    <Text style={styles.statLabel}>Users</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={styles.statValue}>{stats.questions}</Text>
-                    <Text style={styles.statLabel}>Preguntas</Text>
+                    <Text style={styles.statLabel}>Questions</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={styles.statValue}>{stats.answers}</Text>
-                    <Text style={styles.statLabel}>Respuestas</Text>
+                    <Text style={styles.statLabel}>Answers</Text>
                 </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Acciones Rápidas</Text>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
 
             <FlatList
                 data={menuItems}
