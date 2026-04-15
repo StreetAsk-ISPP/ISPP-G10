@@ -167,7 +167,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID id) {
         User toDelete = findUser(id);
-        this.userRepository.delete(toDelete);
+        deleteUserAccount(toDelete);
     }
 
     @Transactional

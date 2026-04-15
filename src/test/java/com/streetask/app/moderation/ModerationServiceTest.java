@@ -32,6 +32,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.streetask.app.exceptions.AccessDeniedException;
+import com.streetask.app.business.BusinessAccount;
 import com.streetask.app.functionalities.email.EmailService;
 import com.streetask.app.functionalities.notifications.model.Notification;
 import com.streetask.app.functionalities.notifications.model.NotificationRepository;
@@ -42,7 +43,6 @@ import com.streetask.app.model.Strike;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.User;
-import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.UserService;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,9 +52,6 @@ class ModerationServiceTest {
 
     @Mock
     private UserService userService;
-
-    @Mock
-    private UserRepository userRepository;
 
     @Mock
     private StrikeRepository strikeRepository;
@@ -167,9 +164,8 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(nonAdminUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.issueStrike(regularUserId, "Spam", "Too many messages")
-        );
+        assertThrows(AccessDeniedException.class,
+                () -> moderationService.issueStrike(regularUserId, "Spam", "Too many messages"));
 
         verify(strikeRepository, never()).save(any());
     }
@@ -186,9 +182,8 @@ class ModerationServiceTest {
         when(userService.findUser(businessUser.getId())).thenReturn(businessUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.issueStrike(businessUser.getId(), "Spam", "")
-        );
+        assertThrows(AccessDeniedException.class,
+                () -> moderationService.issueStrike(businessUser.getId(), "Spam", ""));
 
         verify(strikeRepository, never()).save(any());
     }
@@ -201,27 +196,14 @@ class ModerationServiceTest {
         // Arrange
         when(userService.findCurrentUser()).thenReturn(adminUser);
         when(userService.findUser(regularUserId)).thenReturn(regularUser);
-
-        List<Strike> userStrikes = Arrays.asList(
-            createStrike(adminUser, regularUser, "Spam"),
-            createStrike(adminUser, regularUser, "Abuse")
-        );
-
-        when(strikeRepository.findByUserOrderByIssuedAtDesc(regularUser))
-            .thenReturn(userStrikes);
-        doNothing().when(strikeRepository).deleteAll(userStrikes);
-        doNothing().when(notificationRepository).deleteByUser(regularUser);
-        doNothing().when(userRepository).delete(regularUser);
+        doNothing().when(userService).deleteUser(regularUserId);
         doNothing().when(emailService).sendAccountDeletionEmail(REGULAR_USER_EMAIL);
 
         // Act
         moderationService.deleteRegularUser(regularUserId);
 
         // Assert
-        verify(strikeRepository).findByUserOrderByIssuedAtDesc(regularUser);
-        verify(strikeRepository).deleteAll(userStrikes);
-        verify(notificationRepository).deleteByUser(regularUser);
-        verify(userRepository).delete(regularUser);
+        verify(userService).deleteUser(regularUserId);
         verify(emailService).sendAccountDeletionEmail(REGULAR_USER_EMAIL);
     }
 
@@ -238,11 +220,9 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(nonAdminUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.deleteRegularUser(regularUserId)
-        );
+        assertThrows(AccessDeniedException.class, () -> moderationService.deleteRegularUser(regularUserId));
 
-        verify(userRepository, never()).delete(any());
+        verify(userService, never()).deleteUser(any());
     }
 
     @Test
@@ -252,29 +232,30 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(adminUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.deleteRegularUser(adminId)
-        );
+        assertThrows(AccessDeniedException.class, () -> moderationService.deleteRegularUser(adminId));
 
-        verify(userRepository, never()).delete(any());
+        verify(userService, never()).deleteUser(any());
     }
 
     @Test
-    @DisplayName("deleteRegularUser should throw exception when trying to delete non-regular user")
-    void deleteRegularUser_shouldThrowExceptionWhenDeletingNonRegularUser() {
+    @DisplayName("deleteRegularUser should allow deleting non-regular user types")
+    void deleteRegularUser_shouldAllowDeletingNonRegularUserTypes() {
         // Arrange
-        User businessUser = new User();
+        BusinessAccount businessUser = new BusinessAccount();
         businessUser.setId(UUID.randomUUID());
+        businessUser.setEmail("business@test.com");
 
         when(userService.findCurrentUser()).thenReturn(adminUser);
         when(userService.findUser(businessUser.getId())).thenReturn(businessUser);
+        doNothing().when(userService).deleteUser(businessUser.getId());
+        doNothing().when(emailService).sendAccountDeletionEmail("business@test.com");
 
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.deleteRegularUser(businessUser.getId())
-        );
+        // Act
+        moderationService.deleteRegularUser(businessUser.getId());
 
-        verify(userRepository, never()).delete(any());
+        // Assert
+        verify(userService).deleteUser(businessUser.getId());
+        verify(emailService).sendAccountDeletionEmail("business@test.com");
     }
 
     // ================= GET STRIKE COUNT TESTS =================
@@ -308,9 +289,7 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(nonAdminUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.getStrikeCount(regularUserId)
-        );
+        assertThrows(AccessDeniedException.class, () -> moderationService.getStrikeCount(regularUserId));
     }
 
     // ================= GET USER STRIKES TESTS =================
@@ -323,12 +302,11 @@ class ModerationServiceTest {
         when(userService.findUser(regularUserId)).thenReturn(regularUser);
 
         List<Strike> strikes = Arrays.asList(
-            createStrike(adminUser, regularUser, "Spam"),
-            createStrike(adminUser, regularUser, "Abuse")
-        );
+                createStrike(adminUser, regularUser, "Spam"),
+                createStrike(adminUser, regularUser, "Abuse"));
 
         when(strikeRepository.findByUserOrderByIssuedAtDesc(regularUser))
-            .thenReturn(strikes);
+                .thenReturn(strikes);
 
         // Act
         List<Strike> result = moderationService.getUserStrikes(regularUserId);
@@ -345,7 +323,7 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(adminUser);
         when(userService.findUser(regularUserId)).thenReturn(regularUser);
         when(strikeRepository.findByUserOrderByIssuedAtDesc(regularUser))
-            .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         // Act
         List<Strike> result = moderationService.getUserStrikes(regularUserId);
@@ -367,9 +345,7 @@ class ModerationServiceTest {
         when(userService.findCurrentUser()).thenReturn(nonAdminUser);
 
         // Act & Assert
-        assertThrows(AccessDeniedException.class, () ->
-            moderationService.getUserStrikes(regularUserId)
-        );
+        assertThrows(AccessDeniedException.class, () -> moderationService.getUserStrikes(regularUserId));
     }
 
     // ================= HELPER METHODS =================

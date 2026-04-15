@@ -66,7 +66,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
 	private boolean isTokenVersionValid(String username, Long tokenVersionFromJwt) {
 		try {
-			User user = userRepository.findByEmail(username).orElse(null);
+			User user = userRepository.findByEmailIgnoreCase(username)
+					.or(() -> userRepository.findByUserNameIgnoreCase(username))
+					.or(() -> findByUuid(username))
+					.orElse(null);
 			if (user == null) {
 				return false;
 			}
@@ -75,6 +78,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 		} catch (Exception e) {
 			logger.error("Error validating token version: {}", e.getMessage());
 			return false;
+		}
+	}
+
+	private java.util.Optional<User> findByUuid(String identifier) {
+		try {
+			return userRepository.findById(UUID.fromString(identifier));
+		} catch (IllegalArgumentException ex) {
+			return java.util.Optional.empty();
 		}
 	}
 

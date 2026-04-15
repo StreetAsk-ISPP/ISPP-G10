@@ -19,7 +19,6 @@ import com.streetask.app.functionalities.notifications.realtime.FrontendNotifica
 import com.streetask.app.model.Strike;
 import com.streetask.app.user.RegularUser;
 import com.streetask.app.user.User;
-import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,6 @@ public class ModerationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModerationService.class);
     private final UserService userService;
-    private final UserRepository userRepository;
     private final StrikeRepository strikeRepository;
     private final NotificationRepository notificationRepository;
     private final FrontendNotificationGateway frontendNotificationGateway;
@@ -94,15 +92,8 @@ public class ModerationService {
         User targetUser = userService.findUser(userId);
         String userEmail = targetUser.getEmail();
 
-        // Delete associated strikes if user is a RegularUser
-        if (targetUser instanceof RegularUser) {
-            RegularUser regularUser = (RegularUser) targetUser;
-            List<Strike> userStrikes = strikeRepository.findByUserOrderByIssuedAtDesc(regularUser);
-            strikeRepository.deleteAll(userStrikes);
-        }
-
-        notificationRepository.deleteByUser(targetUser);
-        userRepository.delete(targetUser);
+        // Delegate to the centralized deletion flow that cleans all dependent records.
+        userService.deleteUser(userId);
         logger.info("[ModerationService] User deleted successfully: {}", userId);
 
         emailService.sendAccountDeletionEmail(userEmail);
