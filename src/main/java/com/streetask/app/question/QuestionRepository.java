@@ -29,6 +29,10 @@ public interface QuestionRepository extends CrudRepository<Question, UUID> {
 
 	long countByCreatorId(UUID creatorId);
 
-	boolean existsByLocationLatitudeAndLocationLongitude(Double latitude, Double longitude);
+	boolean existsByLocationLatitudeBetweenAndLocationLongitudeBetween(
+			Double minLatitude,
+			Double maxLatitude,
+			Double minLongitude,
+			Double maxLongitude);
 
 }

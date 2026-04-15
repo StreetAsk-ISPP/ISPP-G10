@@ -53,6 +53,9 @@ public class QuestionService {
 	private static final int FREE_DAILY_LIMIT = 3;
 	private static final int FREE_LIMIT_ROLLING_WINDOW_HOURS = 24;
 	private static final int STREETCOIN_COST_PER_EXTRA_QUESTION = 1;
+	private static final double MAP_OVERLAP_THRESHOLD_DEGREES = 0.00010;
+	private static final int MAP_OVERLAP_RING_POSITIONS = 8;
+	private static final int MAP_OVERLAP_MAX_ATTEMPTS = 24;
 
 	private final QuestionRepository questionRepository;
 	private final RegularUserRepository regularUserRepository;
@@ -160,18 +163,7 @@ public class QuestionService {
 		question.setCreator(authenticatedUser);
 
 		if (question.getLocation() != null) {
-			double lat = question.getLocation().getLatitude();
-			double lng = question.getLocation().getLongitude();
-
-			int maxAttempts = 10;
-			for (int i = 0; i < maxAttempts
-					&& questionRepository.existsByLocationLatitudeAndLocationLongitude(lat, lng); i++) {
-				lat = question.getLocation().getLatitude() + (Math.random() - 0.5) * 0.00002;
-				lng = question.getLocation().getLongitude() + (Math.random() - 0.5) * 0.00002;
-			}
-
-			question.getLocation().setLatitude(lat);
-			question.getLocation().setLongitude(lng);
+			adjustLocationToAvoidMapOverlap(question);
 		}
 
 		// Event questions are scoped to the event itself, not a geographic radius.
@@ -385,5 +377,42 @@ public class QuestionService {
 		coinTransaction.setDescription(description);
 		coinTransaction.setCreatedAt(LocalDateTime.now());
 		coinTransactionRepository.save(coinTransaction);
+	}
+
+	private void adjustLocationToAvoidMapOverlap(Question question) {
+		double originalLat = question.getLocation().getLatitude();
+		double originalLng = question.getLocation().getLongitude();
+		double adjustedLat = originalLat;
+		double adjustedLng = originalLng;
+
+		for (int attempt = 0; attempt < MAP_OVERLAP_MAX_ATTEMPTS
+				&& hasQuestionNear(adjustedLat, adjustedLng); attempt++) {
+			int ring = (attempt / MAP_OVERLAP_RING_POSITIONS) + 1;
+			int position = attempt % MAP_OVERLAP_RING_POSITIONS;
+			double angle = (2 * Math.PI * position) / MAP_OVERLAP_RING_POSITIONS;
+			double offset = MAP_OVERLAP_THRESHOLD_DEGREES * ring;
+
+			adjustedLat = clampLatitude(originalLat + (Math.sin(angle) * offset));
+			adjustedLng = clampLongitude(originalLng + (Math.cos(angle) * offset));
+		}
+
+		question.getLocation().setLatitude(adjustedLat);
+		question.getLocation().setLongitude(adjustedLng);
+	}
+
+	private boolean hasQuestionNear(double latitude, double longitude) {
+		return questionRepository.existsByLocationLatitudeBetweenAndLocationLongitudeBetween(
+				latitude - MAP_OVERLAP_THRESHOLD_DEGREES,
+				latitude + MAP_OVERLAP_THRESHOLD_DEGREES,
+				longitude - MAP_OVERLAP_THRESHOLD_DEGREES,
+				longitude + MAP_OVERLAP_THRESHOLD_DEGREES);
+	}
+
+	private double clampLatitude(double latitude) {
+		return Math.max(-90.0, Math.min(90.0, latitude));
+	}
+
+	private double clampLongitude(double longitude) {
+		return Math.max(-180.0, Math.min(180.0, longitude));
 	}
 }
