@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -36,6 +37,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.streetask.app.answer.AnswerRepository;
 import com.streetask.app.business.BusinessAccount;
@@ -44,6 +46,9 @@ import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.Question;
 import com.streetask.app.question.QuestionRepository;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService Unit Tests")
@@ -61,6 +66,12 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EntityManager entityManager;
+
+    @Mock
+    private Query nativeQuery;
+
     @InjectMocks
     private UserService userService;
 
@@ -77,6 +88,11 @@ class UserServiceTest {
         testUserId = UUID.randomUUID();
         testUser = createTestUser(testUserId, TEST_EMAIL, TEST_USERNAME);
         SecurityContextHolder.clearContext();
+
+        ReflectionTestUtils.setField(userService, "entityManager", entityManager);
+        lenient().when(entityManager.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        lenient().when(nativeQuery.setParameter(eq("userId"), any())).thenReturn(nativeQuery);
+        lenient().when(nativeQuery.executeUpdate()).thenReturn(1);
     }
 
     @AfterEach
