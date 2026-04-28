@@ -10,11 +10,19 @@
 **Rates applied:**
 - **Developers:** €23.85/h (full TCE included) (Based on the "Programador/a J2EE / Web - Junior" profile ).
 - **Project Managers:** €39.48/h (full TCE included) (Based on the "Jefe/a de proyecto / Coordinador - Junior" profile ).
+- **Marketing specialist:** €19.90/h (full TCE included)
+- **SEO specialist:** €18.20/h (full TCE included) 
+- **Community Manager:** €19.00/h (full TCE included) 
+- **Design and Communication:** €21.50/h (full TCE included) 
+
 
 **Source & Justification:**
 These rates are based on the "Preliminary Market Consultation" for "Professional IT Profiles" published by the Junta de Andalucía (Consejería de Agricultura, Pesca y Desarrollo Rural). They include:
 - Official benchmark: The rates represent the "MEDIA ACOTADA TODOS" (Trimmed Mean), which is the specific reference value CAPDER uses to determine tender amounts for future software contracts.
 - Statistical reliability: This value is calculated like a traditional arithmetic mean but excludes extreme outliers from the data set to ensure market accuracy.
+
+For the non-IT profiles (Marketing Specialist, SEO Specialist, Design and Communication, and Community Manager), the hourly rates have been estimated based on research from multiple industry sources, including job market reports, freelance platform averages, and salary benchmarking platforms. These sources provide standard market ranges for similar roles in Spain and Europe, ensuring that the values used are realistic and aligned with current professional rates.
+
 
 **Market comparison:**
 - Junior Development (J2EE/Web): €23.85/h (Trimmed Mean).
@@ -33,8 +41,22 @@ These rates are based on the "Preliminary Market Consultation" for "Professional
 | **Sprint 0** (Completed) | €11,726.60 | €17.50 | €11,744.10 |
 | **Sprint 1** (Completed) | €10,910.04 | €17.50 | €10,927.54 |
 | **Sprint 2** (Completed) | €16,365.08 | €35.00 | €16,400.08 |
-| **Sprint 3** (Estimated) | €16,365.08 | €52.50 | €16,417.58 |
+| **Sprint 3** (Completed) | €16,365.08 | €52.50 | €16,417.58 |
 | **TOTAL** | **€55,366.80** | **€122.50** | **€55,489.30** |
+
+##  WPL PHASE 
+**Duration:** 4 weeks  
+**Effort:** 10h/week per person  
+
+| Profile | Hours | Rate €/h | Cost |
+|---|---:|---:|---:|
+| Project Manager | 160 | 39.48 | 6,316.80 € |
+| Developer | 200 | 23.85 | 4,770.00 € |
+| Marketing Specialist | 160 | 19.90 | 3,184.00 € |
+| SEO Specialist | 40 | 18.20 | 728.00 € |
+| Design & Communication | 120 | 21.50 | 2,580.00 € |
+| Community Manager | 120 | 19.00 | 2,280.00 € |
+|**TOTAL**|||**€19,858.80**|
 
 ---
 
@@ -63,10 +85,12 @@ These rates are based on the "Preliminary Market Consultation" for "Professional
 ### Amortization of hardware
 
 This represents the actual cost of equipment usage and depreciation during the 11 weeks of the project duration:
-| Concept  | Value |
-| Total Hardware Value (CAPEX) | €21,200.00 | 
-|Annual Amortization Rate (AEAT - 26%)|€5,512.00 / year|
-|Amortization for 11 weeks (Project charge)|€1,166.00|
+
+| Concept                                        | Value            |
+|------------------------------------------------|------------------|
+| Total Hardware Value (CAPEX)                   | €21,200.00       |
+| Annual Amortization Rate (AEAT - 26%)          | €5,512.00 / year |
+| Amortization for 11 weeks (Project charge)     | €1,166.00        |
 
 According to the updated AEAT 2026 tables, "Equipment for information processing, and computer systems and programs" (Group 5) is subject to a maximum linear coefficient of 26%. This is used to ensure the budget remains realistic for a professional 11-week project lifecycle
 
@@ -114,8 +138,9 @@ Calculated for 11 weeks(approx. 2.75 months):
 | Category | Cost |
 |---|---:|
 | Labor (Dev + PM) | €55,489.30 |
+| Labor (WPL) | €19,858.80 |
 | Infrastructure | €1,766.50 |
-| ** TOTAL PROJECT COST** | **€57,255.80** |
+| ** TOTAL PROJECT COST** | **€77,114.60** |
 
 ---
 
@@ -136,10 +161,11 @@ One-time investments in assets required to start the project:
 The actual cost required to operate the project during its 11-week lifecycle. This includes labor and the proportional depreciation of assets:
 
 - Team Labor (Dev + PM) → €55,366.80
+- Team Labor (WPL) → €19,858.80 
 - Hardware Amortization (Depreciation) → €1,166.00
-- Software & Cloud Usage (GitHub + Azure Fees) → €723.00
+- Software & Cloud Usage (GitHub + Azure Fees) → €478.00
 
- **Total OPEX (project phase): €57,255.80**
+ **Total OPEX (project phase): €77,114.60**
 
 ---
 
@@ -155,13 +181,15 @@ These rates are based on the Junta de Andalucía market benchmarks and represent
 
 ##  COST BREAKDOWN
 To ensure project viability against unforeseen risks, such as technical debt, API changes in Azure, or development delays, a 10% contingency reserve has been applied to the operational base.
+
 | Role | Hours | Cost | % |
 |---|---:|---:|---:|
-| Developers | 1,560 | €37,206.00 | 59.1% |
-| PMs | 460 | €18,160.80 | 28.8% |
-| Contingency reserve | - | €5,725.58 | 9.1% |
-| Infrastructure & Deployment (OPEX) | — | €1,889.00 | 3.0% |
-| **TOTAL** | — | **€62.981.38** | **100%** |
+| Developers | 1,560 | €37,206.00 | 44.9% |
+| PMs | 460 | €18,160.80 | 21.9% |
+| Contingency reserve | - | €5,725.58 | 6.9% |
+| WPL Team | 800 | €19,858.80 | 24.0% |
+| Infrastructure & Deployment (OPEX) | — | €1,766.50 | 2.1% |
+| **TOTAL** | — | **€82,717.68** | **100%** |
 
 ---
 
@@ -196,7 +224,7 @@ To ensure project viability against unforeseen risks, such as technical debt, AP
 
 ---
 
-### Sprint 3 — Events & Business [ESTIMATED]
+### Sprint 3 — Events & Business [COMPLETED ✅]
 **Dates:** Mar 27–Apr 16 (3 weeks) | **Est. Cost:** €16,417.58
 **Scope:** Events, business accounts, gamification, admin panel  
 **Key US:** US-15/16/17 (event map), US-28 (business reg), US-29-32 (event CRUD), US-35 (coins), US-37/39 (admin)
@@ -213,9 +241,24 @@ To ensure project viability against unforeseen risks, such as technical debt, AP
 
 ---
 
+### Sprint 4 — WPL Phase (World Project Launch) [IN PROGRESS ⏳]
+**Dates:** Apr 17–May 14 (4 weeks) | **Cost:** €19,858.80  
+**Status:** In progress  
+
+**Scope:**
+- Final system polishing and bug fixing  
+- Performance tuning and optimization  
+- Documentation finalization  
+- UX/UI refinements based on feedback  
+- Final integration and deployment validation  
+
+**Objective:** Deliver a production-ready final version of the system with validated stability, usability and documentation.
+
+---
+
 ## 💡 MONETIZATION & BREAK-EVEN
 
-**Revenue Model:** Ads + Freemium (€2.99/mo) + B2B events (€9.99/mo)
+**Revenue Model:** Ads + Freemium (€2.99/mo) + B2B events (€19.99/mo)
 
 **Assumptions (based on MVP data at 100 users):**
 - Ads: €0.60/user/month
@@ -224,16 +267,17 @@ To ensure project viability against unforeseen risks, such as technical debt, AP
 
 ---
 
+
 | Users | Monthly Revenue | Break-even |
 |---:|---:|---|
 | 500 | €541.95 | ~153 months |
 | 2,500 | €2,709.75 | ~30.7 months |
-| **10,000** | **€10,839** | **7.6 months** ✅ |
-| 50,000 | €54,195 | 1.5 month |
+| **10,000** | **€10,839** | **~10 months** |
+| 50,000 | €54,195 | ~1.5–2 months |
 
 ---
 
-**ROI target:** 100% recovery of the total operational investment (€62,981.38) within ~6 months at 10k+ MAU is achievable under 2026 market conditions.
+**ROI target:** 100% recovery of the total operational investment (€82,717.68) within approximately **9–10 months at 10,000 MAU** is achievable under 2026 market conditions, assuming stable user acquisition and maintained ARPU levels.
 
 ## ⚠️ RISKS & CONTINGENCY
 
@@ -251,12 +295,12 @@ To ensure project viability against unforeseen risks, such as technical debt, AP
 Two valid cost perspectives exist:
 
 ### Full Investment Scenario (Real Startup)
-- Total cost: **€84,181.38**
-- Includes: Total OPEX (Labor + Amortization + Contingency) + Full Hardware/Asset Acquisition (CAPEX).
+- Total cost: **€102,699.98**
+- Includes: Total OPEX (Dev + PM + WPL + amortization + contingency) + full CAPEX (hardware acquisition).
 
 ### Operational Scenario (Academic Context)
-- Total cost: **€62,981.38**
-- Includes:Labor, amortized infrastructure usage, software licenses, and risk buffer.
+- Total cost: **€82,717.68**
+- Includes: Operational expenditure (Dev + PM + WPL), amortized infrastructure usage, software licenses, and risk buffer.
 
 ---
 
@@ -264,7 +308,7 @@ Two valid cost perspectives exist:
 
 | Metric | Value |
 |---|---:|
-| Completed (Sprint 0–2) | €39,071.72 (70.4%) |
-| Remaining (Sprint 3) | €16,417.58 (29.6%) |
-| Timeline | ~7/11 weeks (~64%) |
-| Status | On track |
+| Completed (Sprint 0–3) | €55,489.30 (~73%) |
+| Remaining (Sprint 4 - WPL) | €19,858.80 (~27%) |
+| Timeline | ~11/11 weeks (100%) |
+| Status | Final development phase (WPL in progress) |
