@@ -4,6 +4,15 @@
 
 Este documento define los canales de promoción principales para StreetAsk y justifica su selección a partir de la naturaleza del producto, el estado actual del proyecto y el público objetivo identificado en la documentación.
 
+Tras revisarlo con el grupo, los canales elegidos son estos cuatro:
+
+- Instagram
+- TikTok
+- Threads
+- Correo electrónico
+
+La estrategia ya no se basa en una lista amplia de canales, sino en una combinación más concreta y coherente con el tipo de producto que es StreetAsk.
+
 StreetAsk no es una app de consumo masivo indiferenciada. Es una herramienta de utilidad inmediata, geolocalizada y basada en presencia real, pensada para resolver dudas concretas sobre eventos, colas, aforo, ambiente, accesos y preguntas situacionales en tiempo real. Por eso, la promoción debe centrarse en canales que generen:
 
 - Descubrimiento rápido del concepto.
@@ -22,14 +31,11 @@ A partir del plan de negocio, la hoja de ruta de adquisición y las historias de
 1. El valor crece cuando hay usuarios cerca y activos en la misma zona.
 2. El caso de uso más fuerte aparece en situaciones de incertidumbre: eventos, campus, ocio nocturno, colas, movilidad y turismo urbano.
 3. El producto necesita masa crítica local, no solamente notoriedad general.
-4. La propuesta es más fácil de entender cuando se demuestra con ejemplos visuales y situaciones reales.
+4. La propuesta se entiende mejor cuando se muestra con ejemplos simples y muy visuales.
 
-Esto implica que los canales más eficaces no serán los tradicionales de branding amplio, sino los canales que permiten:
+Por eso, la promoción tiene más sentido en canales que permitan repetir el mensaje muchas veces, mostrar la app en acción y hablarle al tipo de usuario que de verdad la necesita.
 
-- segmentación geográfica,
-- impacto visual rápido,
-- repetición en comunidades cerradas,
-- y distribución orgánica basada en utilidad.
+En esta fase, el objetivo principal no es ser famosos en todas partes. El objetivo es que la gente entienda la utilidad de StreetAsk, pruebe la app y vuelva a usarla cuando tenga una duda real.
 
 ---
 
@@ -43,6 +49,7 @@ Para seleccionar los canales se han usado los siguientes criterios:
 - **Velocidad de aprendizaje**: rapidez con la que el canal permite testar mensajes y propuestas.
 - **Escalabilidad**: capacidad para crecer una vez validada la propuesta.
 - **Sinergia con el MVP**: relación directa con las funciones ya implementadas o publicadas.
+- **Capacidad de retención**: posibilidad de volver a contactar al usuario sin depender de pagar anuncios cada vez.
 
 ---
 
@@ -75,258 +82,190 @@ Organizadores de eventos, negocios y cuentas verificadas que quieren:
 - canal de atención contextual,
 - y herramientas de promoción dentro de la app.
 
+Cada canal elegido cumple una función distinta frente a estos públicos: Instagram y TikTok explican la app a usuarios nuevos, Threads ayuda a conversación y comunidad, y el correo sirve para activar, retener y convertir.
+
 ---
 
 ## 5. Análisis de canales
 
-### 5.1 Instagram y TikTok orgánico
+### 5.1 Instagram
 
-**Tipo de canal:** social media orgánico / contenido audiovisual corto.
+**Tipo de canal:** red social visual, orgánica y muy orientada a imagen.
 
-**Papel recomendado:** canal principal de awareness y explicación del producto.
+**Papel recomendado:** canal principal para enseñar qué es StreetAsk y para dar una imagen clara y atractiva del proyecto.
 
 #### Por qué encaja
 
-StreetAsk se entiende mejor con demostraciones visuales que con texto largo. La app resuelve situaciones cotidianas y muy visuales: preguntas sobre eventos, mapas con actividad, respuestas en tiempo real, usuarios cercanos y casos de uso urbanos. TikTok e Instagram Reels permiten mostrar eso en pocos segundos.
-
-
+Instagram funciona muy bien cuando quieres enseñar algo de forma rápida y bonita. StreetAsk tiene muchas cosas visuales: mapas, preguntas, respuestas, eventos, usuarios cerca, avisos y pantallas de móvil. Eso hace que Instagram sea un canal muy natural para explicar la app sin tener que escribir textos largos.
 
 #### Ventajas
 
-- Alta capacidad de explicación rápida del concepto.
-- Formato ideal para mostrar problemas reales y la solución en pantalla.
-- Muy compatible con público joven, universitario y urbano.
-- Permite prueba rápida de mensajes, hooks y formatos.
-- Puede amplificarse con historias, reels y clips reutilizables.
+- La gente entiende la idea en pocos segundos.
+- Sirve para enseñar capturas, vídeos cortos, historias y carruseles.
+- Es muy útil para un público joven, universitario y urbano.
+- Permite repetir el mensaje de muchas formas sin aburrir tanto.
+- Ayuda a dar confianza porque la marca se ve más cuidada y más real.
 
 #### Limitaciones
 
-- No garantiza conversión directa si el contenido no muestra utilidad clara.
-- Requiere consistencia editorial.
-- El alcance orgánico es inestable si no hay constancia ni formato repetible.
+- Si solo subes imágenes bonitas pero no explicas bien la utilidad, la gente no lo entiende.
+- Requiere constancia: no vale publicar una vez y desaparecer.
+- El crecimiento orgánico puede ser lento si no se mantiene una frecuencia buena.
 
-#### Uso recomendado
+#### Qué publicar
 
-- Reels con casos reales: cola, evento, dudas en campus, ambiente en un local.
-- Carruseles explicativos: “qué resuelve StreetAsk”, “cómo funciona”, “por qué confiar”.
-- Stories con llamadas a prueba piloto.
-- Clips con comparativas antes/después: Google Maps vs StreetAsk.
+- Reels con situaciones reales: colas, eventos, ambiente en un local, dudas en campus.
+- Carruseles simples: qué hace StreetAsk, cómo funciona y por qué sirve.
+- Stories con llamadas a probar la app.
+- Publicaciones con comparativas tipo “antes y después” para mostrar la mejora.
 
 #### Veredicto
 
-Es el mejor canal para construir reconocimiento y comprensión del producto. Debe estar siempre activo.
+Instagram debe ser uno de los canales base del proyecto porque ayuda a enseñar StreetAsk de una forma clara, visual y fácil de recordar.
 
 ---
 
-### 5.2 WhatsApp, Telegram y comunidades cerradas
+### 5.2 TikTok
 
-**Tipo de canal:** distribución comunitaria / micro-redes.
+**Tipo de canal:** vídeo corto, directo y pensado para captar atención muy rápido.
 
-**Papel recomendado:** canal principal de activación y retención temprana.
+**Papel recomendado:** canal para dar alcance, explicar casos de uso y atraer gente nueva a la app.
 
 #### Por qué encaja
 
-StreetAsk tiene más valor cuanto más concentrada está la actividad en una zona. Las comunidades cerradas permiten precisamente eso: llegar a grupos donde el contexto es común y la necesidad es similar.
-
-Esto es especialmente fuerte en:
-
-- delegaciones de estudiantes,
-- grupos de clase,
-- Erasmus,
-- asociaciones universitarias,
-- grupos de asistentes a eventos,
-- comunidades de barrios o vida nocturna.
+TikTok es bueno cuando quieres mostrar un problema y una solución en pocos segundos. Eso encaja muy bien con StreetAsk, porque la app resuelve dudas concretas que pasan en la vida real: dónde hay cola, qué ambiente hay, si un evento está lleno o si merece la pena ir a un sitio.
 
 #### Ventajas
 
-- Conversión alta porque el mensaje llega en un contexto de confianza.
-- Coste muy bajo.
-- Muy útil para la fase inicial de “liquidez” por zonas.
-- Facilita el boca-oreja y la difusión de situaciones de uso reales.
-- Permite empujar campañas de activación puntual: campus, eventos, festivales, noches concretas.
+- Puede llegar a mucha gente joven.
+- Funciona muy bien con vídeos cortos y naturales.
+- Ayuda a que la app parezca actual, útil y cercana.
+- Tiene potencial para viralizar contenido si el vídeo es bueno.
 
 #### Limitaciones
 
-- Escala limitada si se usa sin estrategia de expansión.
-- Requiere acceso a administradores o embajadores.
-- Riesgo de saturación si se abusa de los mensajes promocionales.
+- Si el vídeo no engancha al principio, la gente sigue deslizando.
+- Los contenidos demasiado formales funcionan peor.
+- Puede traer muchas visualizaciones, pero no siempre instalaciones o uso real.
 
-#### Uso recomendado
+#### Qué publicar
 
-- Mensajes de valor, no publicidad genérica.
-- Difusión de “casos útiles” y preguntas resueltas.
-- Activación de embajadores por facultad, barrio o evento.
-- Plantillas de mensaje para administradores de grupos.
+- Vídeos de problema-solución.
+- Escenas rápidas de la calle, campus, ocio o eventos.
+- Pequeñas demostraciones de la app funcionando.
+- Mensajes cortos, naturales y muy fáciles de entender.
 
 #### Veredicto
 
-Es uno de los canales más rentables para el MVP, porque convierte una audiencia pequeña pero relevante en usuarios activos.
+TikTok es muy importante para dar a conocer StreetAsk, pero debe acompañarse de mensajes claros para que el interés se convierta en uso real.
 
 ---
 
-### 5.3 Meta Ads e Instagram Ads
+### 5.3 Threads
 
-**Tipo de canal:** publicidad de pago en Meta.
+**Tipo de canal:** red social de conversación, opinión y actualidad.
 
-**Papel recomendado:** canal de aceleración geolocalizada.
+**Papel recomendado:** canal para conversar, construir comunidad y dar personalidad al proyecto.
 
 #### Por qué encaja
 
-Meta Ads permite segmentar por ubicación, edad, intereses y comportamiento. Eso es especialmente útil para StreetAsk porque no interesa hablarle a todo el mundo, sino a personas que viven, estudian o salen en zonas donde la utilidad es inmediata.
+Threads es un canal interesante porque no depende tanto de la imagen bonita, sino de la conversación. StreetAsk puede aprovecharlo para hablar de dudas reales, situaciones cotidianas, experiencias de usuarios, eventos o temas que pasan en la ciudad.
+
+Este canal puede servir para algo muy importante: hacer que StreetAsk no parezca solo una app, sino una comunidad que entiende lo que pasa en cada zona.
 
 #### Ventajas
 
-- Segmentación muy precisa por ciudad, barrio, intereses y edad.
-- Formatos muy compatibles con contenido visual corto.
-- Bueno para campañas de lanzamiento y para reforzar zonas concretas.
-- Permite probar creatividades y comparar rendimientos.
+- Permite hablar de forma más cercana y natural.
+- Sirve para comentar temas de actualidad y situaciones de la vida diaria.
+- Es bueno para generar conversación alrededor de la marca.
+- No necesita tanta producción visual como Instagram o TikTok.
+- Puede servir para responder preguntas, contar casos reales y reforzar la cercanía con el usuario.
 
 #### Limitaciones
 
-- Si el mensaje es demasiado abstracto, el coste por conversión sube.
-- Puede atraer curiosos en lugar de usuarios realmente activables.
-- Necesita creatividades muy claras para evitar desperdicio presupuestario.
+- No siempre tiene el mismo alcance que otras redes más visuales.
+- Si los mensajes son muy largos o demasiado técnicos, pierden fuerza.
+- Necesita un tono muy humano y constante para funcionar.
 
-#### Uso recomendado
+#### Qué publicar
 
-- Campañas por radio reducido alrededor de campus, zonas de ocio y áreas de eventos.
-- Creatividades centradas en una sola situación concreta: “¿Hay cola?”, “¿qué ambiente hay?”, “¿está lleno?”.
-- Retargeting a usuarios que ya interactuaron con la web, redes o contenido.
-- Campañas de prueba con presupuestos pequeños para validar copy y audiencia.
-
-#### Estimación estratégica
-
-No debe ser el canal principal de construcción de comunidad, pero sí el mejor canal de pago para acelerar la fase de arranque local.
+- Preguntas abiertas sobre ciudad, eventos y situaciones reales.
+- Comentarios cortos sobre cómo la gente usa StreetAsk.
+- Pequeñas historias reales de usuarios o de contextos concretos.
+- Mensajes de conversación para que la gente responda o comparta su opinión.
 
 #### Veredicto
 
-Muy recomendable como soporte del lanzamiento y como canal de performance geolocalizado.
+Threads es útil para dar voz al proyecto y crear comunidad, especialmente si se mantiene un tono cercano, útil y muy natural.
 
 ---
 
-### 5.4 TikTok Ads
+### 5.4 Correo electrónico
 
-**Tipo de canal:** publicidad de pago en vídeo corto.
+**Tipo de canal:** comunicación directa y personalizada.
 
-**Papel recomendado:** canal de adquisición de alcance y explicación rápida del caso de uso.
-
-#### Por qué encaja
-
-TikTok favorece contenido nativo, directo y muy contextual. StreetAsk puede funcionar muy bien en este entorno si el vídeo muestra una situación cotidiana, concreta y fácil de entender.
-
-#### Ventajas
-
-- Gran potencial de alcance entre público joven.
-- Coste competitivo en comparación con otros formatos de vídeo.
-- Ideal para mostrar situaciones de calle, eventos y vida urbana.
-- Puede viralizarse si el mensaje se siente auténtico.
-
-#### Limitaciones
-
-- Menor intención de compra que en búsqueda o en comunidades cerradas.
-- Requiere creatividades nativas, no anuncios demasiado “corporativos”.
-- La conversión puede ser irregular si el vídeo no engancha en los primeros segundos.
-
-#### Uso recomendado
-
-- Vídeos tipo problema-solución.
-- Escenas urbanas con demostración real de la app.
-- Mensajes cortos orientados a estudiantes, eventos y ocio.
-
-#### Veredicto
-
-Es útil para awareness y para alimentar el embudo superior, pero debe apoyarse en canales con más intención o más confianza para convertir de verdad.
-
----
-
-### 5.5 Google Search Ads y búsqueda de intención
-
-**Tipo de canal:** publicidad de búsqueda.
-
-**Papel recomendado:** canal secundario para capturar intención alta.
+**Papel recomendado:** canal para activar usuarios, mantenerlos informados y hacer que vuelvan.
 
 #### Por qué encaja
 
-Cuando alguien busca información inmediata sobre un lugar o evento, ya está mostrando intención. StreetAsk puede capturar consultas como:
+El correo es un canal menos llamativo que Instagram o TikTok, pero tiene una ventaja enorme: llega directamente a la persona. Eso significa que sirve muy bien para mandar mensajes importantes, novedades, recordatorios, mejoras o invitaciones a usar la app otra vez.
 
-- qué hacer hoy en Sevilla,
-- eventos cerca de mí,
-- colas en un evento,
-- ambiente en una zona,
-- preguntas sobre un local concreto.
+En un proyecto como StreetAsk, el correo puede servir para que el usuario no se olvide de la app cuando tenga una nueva necesidad.
 
 #### Ventajas
 
-- Alto nivel de intención.
-- Muy buen encaje para búsquedas locales y urgentes.
-- Permite probar mensajes con términos reales de uso.
+- Llega de forma directa al usuario.
+- Sirve para retener y reactivar personas que ya conocen la app.
+- Permite mensajes más largos y mejor explicados.
+- Es muy útil para informar de novedades, pruebas piloto y cambios importantes.
+- Ayuda a cuidar a los primeros usuarios, que son los más importantes al principio.
 
 #### Limitaciones
 
-- El volumen inicial puede ser bajo.
-- Requiere una arquitectura de landing clara.
-- No sirve tan bien para generar comunidad como social o messaging.
+- Si se manda demasiado correo, la gente deja de leerlo.
+- Funciona peor para captar usuarios nuevos desde cero.
+- Necesita mensajes cortos, claros y con valor real.
+
+#### Qué mandar
+
+- Bienvenida al registrarse.
+- Avisos de nuevas funciones.
+- Recordatorios para volver a usar la app.
+- Correos con novedades para usuarios activos.
+- Mensajes especiales para usuarios que llevan tiempo sin entrar.
 
 #### Veredicto
 
-No debe ser el canal central del lanzamiento, pero sí un buen complemento para capturar tráfico con intención concreta.
-
----
-
-### 5.6 Marketing de campo, QR y alianzas locales
-
-**Tipo de canal:** promoción offline y partnerships.
-
-**Papel recomendado:** canal de activación territorial.
-
-#### Por qué encaja
-
-StreetAsk tiene sentido en puntos físicos donde existe fricción informativa: campus, bares, zonas de ocio, eventos, transportes y lugares con colas. Un QR en el entorno correcto reduce fricción y convierte mejor que una campaña generalista.
-
-#### Ventajas
-
-- Muy alineado con el uso geolocalizado.
-- Permite distribución en el momento y lugar donde nace la necesidad.
-- Refuerza el concepto de utilidad real, no solo de marca.
-
-#### Limitaciones
-
-- Requiere ejecución presencial.
-- Escala más despacio que el canal digital.
-- Necesita acuerdos o presencia física bien planificada.
-
-#### Veredicto
-
-No sustituye a lo digital, pero lo complementa muy bien cuando el objetivo es activar zonas concretas.
+El correo no será el canal más vistoso, pero sí uno de los más útiles para retener usuarios y reforzar la relación con la comunidad.
 
 ---
 
 ## 6. Canales descartados o no prioritarios
 
-### 6.1 TV, radio generalista y prensa amplia
+A partir de la decisión del grupo, el resto de canales quedan fuera de esta fase porque no aportan tanto valor como los cuatro elegidos.
 
-No son prioritarios en esta fase porque StreetAsk no necesita notoriedad masiva, sino concentración de uso en nodos concretos. Su coste por impacto sería ineficiente para el estado actual del proyecto.
+### 6.1 Canales amplios de publicidad tradicional
 
-### 6.2 Display programático generalista
+TV, radio generalista, prensa amplia o display programático no son prioritarios ahora mismo. StreetAsk no necesita hacerse famoso a gran escala, sino llegar a la gente que de verdad puede usar la app.
 
-No se considera una prioridad porque el mensaje necesita contexto. Un banner genérico difícilmente explica el valor diferencial del producto.
+### 6.2 Redes o canales sin encaje claro con el producto
 
-### 6.3 Influencers de gran alcance sin segmentación
+Otros canales pueden funcionar en el futuro, pero en esta fase no son necesarios si Instagram, TikTok, Threads y correo ya cubren la visibilidad, la conversación, la captación y la retención.
 
-Pueden ser útiles más adelante, pero en MVP existe un riesgo alto de coste elevado y conversión baja si el creador no encaja con vida urbana, universidades o eventos.
+### 6.3 Influencers grandes sin afinidad
+
+Pueden ser útiles más adelante, pero si no están relacionados con vida urbana, universidades o eventos, normalmente cuesta mucho justificar el gasto.
 
 ---
 
 ## 7. Matriz de decisión
 
-| Canal | Ajuste al producto | Activación local | Coste inicial | Escalabilidad | Prioridad |
+| Canal | Ajuste al producto | Coste inicial | Facilidad de entender la app | Retención | Prioridad |
 |---|---:|---:|---:|---:|---:|
-| Instagram / TikTok orgánico | Muy alto | Alto | Bajo | Alto | Muy alta |
-| WhatsApp / Telegram / comunidades | Muy alto | Muy alto | Muy bajo | Medio | Muy alta |
-| Meta Ads | Alto | Muy alto | Medio | Alto | Alta |
-| TikTok Ads | Alto | Alto | Medio | Alto | Alta |
-| Google Search Ads | Medio-alto | Medio | Medio | Medio | Media |
-| QR y alianzas locales | Alto | Muy alto | Bajo-medio | Medio | Alta |
+| Instagram | Muy alto | Bajo | Muy alta | Alta | Muy alta |
+| TikTok | Muy alto | Bajo | Alta | Media | Muy alta |
+| Threads | Alto | Muy bajo | Media | Alta | Alta |
+| Correo electrónico | Alto | Muy bajo | Media | Muy alta | Alta |
 
 ---
 
@@ -334,57 +273,45 @@ Pueden ser útiles más adelante, pero en MVP existe un riesgo alto de coste ele
 
 ### Canales principales
 
-1. **Instagram y TikTok orgánico**
-   - Canal base de comunicación.
-   - Ideal para explicar la propuesta y mostrar uso real.
-   - Debe mantenerse de forma constante.
+1. **Instagram**
+   - Canal visual principal.
+   - Sirve para enseñar la app, explicar el valor y dar imagen de marca.
 
-2. **WhatsApp, Telegram y comunidades cerradas**
-   - Canal de activación más eficiente en fase inicial.
-   - Mejor para llegar a usuarios con contexto compartido.
-   - Es el mejor canal para generar masa crítica local.
+2. **TikTok**
+   - Canal para alcance y descubrimiento.
+   - Muy útil para mostrar casos de uso reales de forma rápida.
 
-3. **Meta Ads geolocalizados**
-   - Principal canal de pago para acelerar la adopción.
-   - Muy útil para lanzar en campus, barrios y eventos.
-   - Recomendado con presupuestos pequeños y aprendizaje rápido.
+3. **Threads**
+   - Canal para conversación, cercanía y comunidad.
+   - Ayuda a que la marca tenga una voz más humana.
 
-### Canales de apoyo
-
-4. **TikTok Ads**
-   - Útil para alcance y awareness.
-   - Funciona mejor si las creatividades son nativas y muy concretas.
-
-5. **Google Search Ads**
-   - Canal secundario de intención alta.
-   - Recomendado para búsquedas locales y temporales.
-
-6. **QR y alianzas locales**
-   - Complemento físico para campus, eventos y zonas de ocio.
-   - Potencia la instalación territorial del producto.
+4. **Correo electrónico**
+   - Canal para retener, informar y recuperar usuarios.
+   - Es el mejor para mensajes importantes y comunicación directa.
 
 ---
 
 ## 9. Justificación estratégica final
 
-Los canales seleccionados no se eligen por popularidad general, sino por coherencia con el modelo de uso de StreetAsk.
+Los canales seleccionados no se eligen por moda, sino porque encajan con lo que StreetAsk necesita de verdad.
 
-StreetAsk necesita visibilidad en sitios donde la información tiene valor inmediato. Por eso, la combinación más sólida no es “hacer ruido”, sino crear un sistema de adquisición que una:
+StreetAsk necesita que la gente:
 
-- **descubrimiento visual** en Instagram y TikTok,
-- **validación y confianza** en comunidades cerradas,
-- **aceleración pagada** con anuncios geolocalizados,
-- **captura de intención** con búsqueda,
-- y **presencia física** en zonas clave mediante QR y alianzas.
+- entienda la idea rápido,
+- vea ejemplos reales,
+- confíe en el proyecto,
+- y vuelva a usar la app cuando tenga una duda.
 
-Esta combinación es especialmente adecuada para el contexto del proyecto porque:
+La combinación elegida cubre esas cuatro cosas:
 
-- encaja con la fase de MVP,
-- prioriza la ciudad y los entornos donde el producto aporta más valor,
-- reduce desperdicio publicitario,
-- y maximiza la probabilidad de conseguir usuarios activos, no solo visitas.
+- **Instagram** enseña y da imagen.
+- **TikTok** atrae y hace llegar a gente nueva.
+- **Threads** conversa y crea comunidad.
+- **Correo** retiene y recupera usuarios.
 
-En resumen, StreetAsk debe promocionarse como una herramienta local, útil y inmediata. Los mejores canales son los que permiten demostrar utilidad en el mismo lugar y momento en que aparece la necesidad.
+Esta mezcla es buena porque reparte el trabajo de marketing de forma lógica: unas redes sirven para atraer, otra para conversar y el correo para no perder a los usuarios.
+
+En resumen, StreetAsk debe presentarse como una app útil, cercana y muy fácil de entender. Por eso, el contenido tiene que ser claro, visual, directo y constante.
 
 ---
 
@@ -392,21 +319,21 @@ En resumen, StreetAsk debe promocionarse como una herramienta local, útil y inm
 
 ### Fase 1: Lanzamiento
 
-- Mantener publicaciones orgánicas en Instagram y TikTok.
-- Activar grupos de WhatsApp y Telegram de universidad, Erasmus y eventos.
-- Lanzar campañas pequeñas de Meta Ads por ubicación.
+- Publicar contenido frecuente en Instagram y TikTok.
+- Empezar Threads con mensajes cortos, reales y cercanos.
+- Crear una lista inicial de correos para primeros usuarios y pruebas piloto.
 
 ### Fase 2: Validación
 
-- Medir qué mensajes generan más instalaciones y primeras preguntas.
-- Reforzar las zonas con mejor densidad de uso.
-- Probar TikTok Ads y Google Search Ads en campañas limitadas.
+- Medir qué contenido trae más visitas, registros e interacciones.
+- Ver qué tipo de mensajes hacen que la gente entienda mejor la app.
+- Comprobar qué correos se abren más y cuáles ayudan a que el usuario vuelva.
 
-### Fase 3: Escalado
+### Fase 3: Crecimiento
 
-- Replicar las comunidades que mejor conviertan.
-- Formalizar alianzas con organizadores de eventos y negocios.
-- Ampliar el uso de QR físicos y campañas por zona.
+- Repetir los formatos que mejor funcionen.
+- Usar el correo para noticias, novedades y recuperación de usuarios.
+- Mantener una presencia constante en Instagram, TikTok y Threads.
 
 ---
 
@@ -414,28 +341,27 @@ En resumen, StreetAsk debe promocionarse como una herramienta local, útil y inm
 
 Para medir si los canales elegidos funcionan, se recomienda controlar:
 
-- coste por instalación,
-- coste por primer usuario activo,
-- ratio de preguntas creadas por usuario,
-- tiempo hasta primera respuesta,
-- porcentaje de usuarios activos por zona,
-- tasa de retorno en 7 días,
-- interacción por publicación en redes,
-- CTR y conversiones de campañas pagadas,
-- y número de usuarios reclutados por comunidad o alianza.
+- número de visitas a cada red social,
+- número de seguidores nuevos,
+- porcentaje de gente que hace clic en los enlaces,
+- número de registros o instalaciones,
+- número de usuarios activos por semana,
+- porcentaje de usuarios que vuelven,
+- tasa de apertura y clics en el correo,
+- número de respuestas o comentarios generados en Threads,
+- y número de usuarios que llegan desde cada canal.
 
 ---
 
 ## 12. Conclusión
 
-La estrategia de marketing más sólida para StreetAsk no depende de un único canal, sino de una combinación precisa de canales con roles diferentes.
+La estrategia de marketing más sólida para StreetAsk, después de hablarlo con el grupo, se centra en cuatro canales que se complementan muy bien:
 
-La selección recomendada es:
+- **Instagram** para mostrar la app.
+- **TikTok** para llegar a más gente.
+- **Threads** para conversar y crear comunidad.
+- **Correo electrónico** para retener y volver a contactar con los usuarios.
 
-- **Instagram y TikTok orgánico** como capa de visibilidad y explicación,
-- **WhatsApp y Telegram** como motor de activación local,
-- **Meta Ads** como principal canal de pago para acelerar la adopción,
-- **TikTok Ads** y **Google Search Ads** como soportes de alcance e intención,
-- y **QR / alianzas locales** como apoyo territorial.
+Esta combinación encaja con el tipo de producto que es StreetAsk porque permite enseñar la utilidad de la app, captar interés, mantener la relación con los usuarios y reforzar el proyecto de forma constante.
 
-Esta mezcla es la que mejor responde al modelo de negocio, al uso real del producto y a la necesidad de conseguir masa crítica en áreas concretas antes de expandirse.
+En resumen, no hace falta complicarlo más: estos cuatro canales cubren lo que el proyecto necesita en esta fase y son los que mejor se adaptan al producto y al público objetivo.
