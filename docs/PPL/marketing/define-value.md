@@ -11,20 +11,16 @@ enterarte de eventos y respuestas a tus preguntas
 
 
 **Compare:** información a tiempo real contrastada,
+-----------------------------------------------------------
 
-**Tono anuncio:**
 
-No te dejes guiar por reseñas desactualizadas, usa streetask y enterate de lo que pasa en todo momento.
+Streetask arregla el problema de la información desactualizada en internet, a no sentirnos tan perdidos al viajar y da respuesta a las preguntas que podamos tener en cualquier zona de la ciudad.
 
-La app del tiempo nunca acierta? Usa Streetask y pregunta a la gente de la zona para no tener que cargar con el abrigo toda la noche.
+Esto lo consigue mediante el sistema de Preguntas y respuestas en el que los usuarios preguntan y se responden en zonas concretas del mapa. No solo eso si no que también conecta negocios y usuarios gracias a los eventos.
 
-No hay manera de convencer al segurata? Solo con streetask puedes enterarte de la vestimenta para entrar al local que acudes
+Al contrario que Google, TripAdvisor y aplicaciones de turismo estático, la información que ofrece nuestra aplicación esta actualizada y es personalizada. Otras redes sociales como whatsapp, instagram... pueden dar información a tiempo real la cual no esta verificada.
 
-Ve siempre un paso por delante gracias a streetask, conoce las opiniones de la gente que se encuentra en los lugares a los que vas
+------------------------------------------------------
+respuesta de gemini(reformulada hasta cierto punto ya que hay cosas que no se como cambiar) 
 
-**Tono serio:**
-
-Streetask, una red social de preguntas y respuestas en tiempo real para no quedarte con ninguna duda
-
-Streetask, la mejor manera de estar al tanto de los eventos y opiniones de la gente de la zona
-
+StreetAsk resuelve la brecha entre la información estática de internet y los cambios espontaneos del mundo real, permitiendo a los usuarios obtener respuestas en tiempo real de personas que están en el lugar exacto. A diferencia de las guías de viaje o mapas tradicionales, StreetAsk transforma el mapa en una conversación viva, ofreciendo certezas locales y eventos actuales que las plataformas estáticas no pueden captar.
