@@ -66,7 +66,7 @@ export default function AdminUsersScreen() {
         const entries = await Promise.all(
             usersList
                 .filter(user => {
-                    const authority = user.authorities?.[0]?.authority;
+                    const authority = user.authority?.authority;
                     return authority !== 'ADMIN' && authority !== 'ROLE_ADMIN';
                 })
                 .map(async (user) => {
@@ -249,8 +249,8 @@ export default function AdminUsersScreen() {
 
     const renderUserItem = ({ item }) => {
         const displayName = item.username || item.userName || '';
-        const isAdmin = item.authorities?.[0]?.authority === 'ADMIN' ||
-            item.authorities?.[0]?.authority === 'ROLE_ADMIN';
+        const isAdmin = item.authority?.authority === 'ADMIN' ||
+            item.authority?.authority === 'ROLE_ADMIN';
         return (
             <View style={styles.userCard}>
                 <View style={styles.userInfo}>

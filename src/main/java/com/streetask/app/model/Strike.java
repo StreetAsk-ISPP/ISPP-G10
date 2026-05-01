@@ -35,6 +35,7 @@ public class Strike {
     @JoinColumn(name = "user_id", nullable = false)
     private RegularUser user;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "issued_by_id", nullable = false)
     private User issuedBy;
