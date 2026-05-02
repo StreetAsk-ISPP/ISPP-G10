@@ -114,7 +114,7 @@ class UserRestController {
 
     @PutMapping(value = "{userId}")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<User> update(@PathVariable("userId") UUID id, @RequestBody @Valid User user) {
+    public ResponseEntity<User> update(@PathVariable("userId") UUID id, @RequestBody @Valid UserUpdateRequest request) {
         RestPreconditions.checkNotNull(userService.findUser(id), "User", "ID", id);
 
         User currentUser = userService.findCurrentUser();
@@ -124,7 +124,7 @@ class UserRestController {
         if (!isAdmin && !isOwner) {
             throw new AccessDeniedException("You don't have permission to edit this profile.");
         }
-        return new ResponseEntity<>(this.userService.updateUser(user, id), HttpStatus.OK);
+        return new ResponseEntity<>(this.userService.updateUser(request, id), HttpStatus.OK);
     }
 
     @DeleteMapping(value = "{userId}")

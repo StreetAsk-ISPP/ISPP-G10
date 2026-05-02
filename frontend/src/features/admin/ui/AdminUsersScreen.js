@@ -55,6 +55,7 @@ export default function AdminUsersScreen() {
         lastName: '',
         authority: 'USER',
     });
+    const [formErrors, setFormErrors] = useState({ email: '', userName: '', firstName: '', lastName: '' });
     const [strikeForm, setStrikeForm] = useState({
         reason: '',
         description: '',
@@ -107,8 +108,55 @@ export default function AdminUsersScreen() {
         return () => clearTimeout(timer);
     }, [fetchUsers]);
 
+    const validateForm = (values) => {
+        const errors = { email: '', userName: '', firstName: '', lastName: '' };
+        let valid = true;
+
+        if (!values.email.trim()) {
+            errors.email = 'Email is required';
+            valid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+            errors.email = 'Must be a valid email address';
+            valid = false;
+        }
+        if (!values.userName.trim()) {
+            errors.userName = 'Username is required';
+            valid = false;
+        }
+        if (!values.firstName.trim()) {
+            errors.firstName = 'First name is required';
+            valid = false;
+        }
+        if (!values.lastName.trim()) {
+            errors.lastName = 'Last name is required';
+            valid = false;
+        }
+
+        setFormErrors(errors);
+        return valid;
+    };
+
+    const parseBackendFieldErrors = (message) => {
+        if (!message) return null;
+        const inner = message.replace(/^\{/, '').replace(/\}$/, '');
+        const errors = { email: '', userName: '', firstName: '', lastName: '' };
+        let hasFieldError = false;
+        inner.split(', ').forEach(part => {
+            const eqIdx = part.indexOf('=');
+            if (eqIdx === -1) return;
+            const field = part.slice(0, eqIdx);
+            const msg = part.slice(eqIdx + 1);
+            if (field in errors) {
+                errors[field] = msg;
+                hasFieldError = true;
+            }
+        });
+        return hasFieldError ? errors : null;
+    };
+
     const openEditModal = (user) => {
         setEditingUser(user);
+        setFormErrors({ email: '', userName: '', firstName: '', lastName: '' });
         setForm({
             email: user.email || '',
             userName: user.username || user.userName || '',
@@ -120,14 +168,9 @@ export default function AdminUsersScreen() {
     };
 
     const handleSaveUser = async () => {
+        if (!validateForm(form)) return;
+
         try {
-            if (!form.email || !form.userName) {
-                Alert.alert('Incomplete data', 'Email and username are required');
-                return;
-            }
-
-            let response;
-
             if (editingUser) {
                 const payload = {
                     email: form.email,
@@ -136,10 +179,8 @@ export default function AdminUsersScreen() {
                     lastName: form.lastName,
                 };
 
-                response = await apiClient.put(`/api/v1/users/${editingUser.id}`, payload);
-                const updated = response.data;
-
-                setUsers(prev => prev.map(u => (u.id === editingUser.id ? updated : u)));
+                const response = await apiClient.put(`/api/v1/users/${editingUser.id}`, payload);
+                setUsers(prev => prev.map(u => (u.id === editingUser.id ? response.data : u)));
             } else {
                 Alert.alert(
                     'Action not available',
@@ -151,11 +192,13 @@ export default function AdminUsersScreen() {
             setModalVisible(false);
             setEditingUser(null);
         } catch (error) {
-            const msg =
-                error?.response?.data?.message ||
-                error?.response?.data?.error ||
-                'The user could not be saved';
-            Alert.alert('Error', msg);
+            const backendMessage = error?.response?.data?.message;
+            const fieldErrors = parseBackendFieldErrors(backendMessage);
+            if (fieldErrors) {
+                setFormErrors(fieldErrors);
+            } else {
+                Alert.alert('Error', backendMessage || error?.response?.data?.error || 'The user could not be saved');
+            }
         }
     };
 
@@ -376,12 +419,18 @@ export default function AdminUsersScreen() {
                                                 : 'Email'}
                                 </Text>
                                 <TextInput
-                                    style={styles.modalInput}
+                                    style={[styles.modalInput, formErrors[field] ? styles.modalInputError : null]}
                                     autoCapitalize={field === 'email' || field === 'userName' ? 'none' : 'sentences'}
                                     keyboardType={field === 'email' ? 'email-address' : 'default'}
                                     value={form[field]}
-                                    onChangeText={(text) => setForm(prev => ({ ...prev, [field]: text }))}
+                                    onChangeText={(text) => {
+                                        setForm(prev => ({ ...prev, [field]: text }));
+                                        if (formErrors[field]) setFormErrors(prev => ({ ...prev, [field]: '' }));
+                                    }}
                                 />
+                                {formErrors[field] ? (
+                                    <Text style={styles.fieldError}>{formErrors[field]}</Text>
+                                ) : null}
                             </View>
                         ))}
 
@@ -643,6 +692,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 8,
         fontSize: 16,
+    },
+    modalInputError: {
+        borderColor: '#d90429',
+    },
+    fieldError: {
+        color: '#d90429',
+        fontSize: 12,
+        marginTop: 3,
     },
     modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 },
     modalButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },

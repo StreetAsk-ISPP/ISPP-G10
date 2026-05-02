@@ -263,8 +263,11 @@ class UserServiceTest {
 
     @Test
     void updateUser_shouldPreserveOriginalIdWhenUpdatingUser() {
-
-        User update = createTestUser(UUID.randomUUID(), "new@mail.com", "newuser");
+        UserUpdateRequest update = new UserUpdateRequest();
+        update.setEmail("new@mail.com");
+        update.setUserName("newuser");
+        update.setFirstName(TEST_FIRST_NAME);
+        update.setLastName(TEST_LAST_NAME);
 
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any())).thenReturn(testUser);
@@ -279,12 +282,11 @@ class UserServiceTest {
         User originalUser = createTestUser(UUID.randomUUID(), "old@example.com", "olduser");
         originalUser.setPassword("old_encoded_password");
 
-        User incomingUpdate = new User();
+        UserUpdateRequest incomingUpdate = new UserUpdateRequest();
         incomingUpdate.setFirstName("NewFirst");
         incomingUpdate.setLastName("NewLast");
         incomingUpdate.setUserName("newuser");
         incomingUpdate.setEmail("new@example.com");
-        incomingUpdate.setPassword("");
 
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(originalUser));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -301,39 +303,37 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("updateUser should encode password when a new one is provided")
-    void updateUser_shouldEncodePasswordWhenProvided() {
+    @DisplayName("updateUser should not modify password when updating profile fields")
+    void updateUser_shouldNotModifyPassword() {
         User originalUser = createTestUser(UUID.randomUUID(), "old@example.com", "olduser");
+        originalUser.setPassword("existing_encoded_password");
 
-        User incomingUpdate = new User();
+        UserUpdateRequest incomingUpdate = new UserUpdateRequest();
         incomingUpdate.setFirstName("NewFirst");
         incomingUpdate.setLastName("NewLast");
         incomingUpdate.setUserName("newuser");
         incomingUpdate.setEmail("new@example.com");
-        incomingUpdate.setPassword("new_raw_password");
 
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(originalUser));
-        when(passwordEncoder.encode("new_raw_password")).thenReturn("new_encoded_password");
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
 
         User updatedUser = userService.updateUser(incomingUpdate, testUserId);
 
-        assertEquals("new_encoded_password", updatedUser.getPassword());
-        verify(passwordEncoder).encode("new_raw_password");
+        assertEquals("existing_encoded_password", updatedUser.getPassword());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
-    @DisplayName("updateUser should keep existing password when incoming payload contains same encoded password")
-    void updateUser_shouldKeepPasswordWhenIncomingContainsSameEncodedPassword() {
+    @DisplayName("updateUser should preserve existing password regardless of what is in the request")
+    void updateUser_shouldAlwaysPreserveExistingPassword() {
         User originalUser = createTestUser(UUID.randomUUID(), "old@example.com", "olduser");
         originalUser.setPassword("$2a$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
-        User incomingUpdate = new User();
+        UserUpdateRequest incomingUpdate = new UserUpdateRequest();
         incomingUpdate.setFirstName("NewFirst");
         incomingUpdate.setLastName("NewLast");
         incomingUpdate.setUserName("newuser");
         incomingUpdate.setEmail("new@example.com");
-        incomingUpdate.setPassword("$2a$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
 
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(originalUser));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -356,23 +356,16 @@ class UserServiceTest {
         originalUser.setAuthority(oldAuth);
         originalUser.setActive(true);
 
-        User maliciousUpdate = new User();
-        maliciousUpdate.setFirstName("Hacker");
-        maliciousUpdate.setLastName("Man");
-        maliciousUpdate.setUserName("hacker");
-        maliciousUpdate.setEmail("hacker@mail.com");
-
-        maliciousUpdate.setId(UUID.randomUUID());
-        Authorities adminAuth = new Authorities();
-        adminAuth.setAuthority("ADMIN");
-        maliciousUpdate.setAuthority(adminAuth);
-        maliciousUpdate.setActive(false);
-        maliciousUpdate.setCreatedAt(LocalDateTime.now());
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setFirstName("Hacker");
+        request.setLastName("Man");
+        request.setUserName("hacker");
+        request.setEmail("hacker@mail.com");
 
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(originalUser));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        User updatedUser = userService.updateUser(maliciousUpdate, testUserId);
+        User updatedUser = userService.updateUser(request, testUserId);
 
         assertEquals("Hacker", updatedUser.getFirstName(), "Editable fields should update");
 
