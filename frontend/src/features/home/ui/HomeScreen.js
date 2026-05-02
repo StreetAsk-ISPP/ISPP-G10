@@ -74,6 +74,7 @@ export default function HomeScreen({ navigation }) {
 
     // null = revisando, true = concedido, false = denegado
     const [hasLocationPermission, setHasLocationPermission] = useState(null);
+    const [mapKey, setMapKey] = useState(0);
 
     const [feedbackVisible, setFeedbackVisible] = useState(false);
     const [feedbackType, setFeedbackType] = useState('SUGGESTION');
@@ -510,6 +511,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleRefresh = async () => {
         try {
+            setMapKey((k) => k + 1);
             await loadQuestions();
             await loadEvents();
         } catch (e) {
@@ -692,6 +694,7 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
+                            key={mapKey}
                             questions={showQuestions ? questions : []}
                             events={events}
                             eventNavigationTarget={selectedEventTarget}
