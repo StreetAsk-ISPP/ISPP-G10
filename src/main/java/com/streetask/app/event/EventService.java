@@ -246,7 +246,10 @@ public class EventService {
         if (event.getFeatured() == null) {
             event.setFeatured(false);
         }
-        if (event.getActive() == null) {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+        if (event.getEndsAt() != null && event.getEndsAt().isAfter(now)) {
+            event.setActive(true);
+        } else if (event.getActive() == null) {
             event.setActive(true);
         }
         if (event.getAttendeeCount() == null) {
