@@ -641,6 +641,10 @@ class AnswerServiceTest {
         answer.setDownvotes(3);
         answer.setCoinsEarned(1);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -659,6 +663,10 @@ class AnswerServiceTest {
         answer.setDownvotes(3);
         answer.setCoinsEarned(1);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -676,6 +684,10 @@ class AnswerServiceTest {
         AnswerVote existing = new AnswerVote();
         existing.setVoteType(VoteType.LIKE);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.of(existing));
 
@@ -694,6 +706,10 @@ class AnswerServiceTest {
         AnswerVote existing = new AnswerVote();
         existing.setVoteType(VoteType.LIKE);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.of(existing));
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -716,6 +732,10 @@ class AnswerServiceTest {
         AnswerVote existing = new AnswerVote();
         existing.setVoteType(VoteType.DISLIKE);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.of(existing));
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -771,6 +791,10 @@ class AnswerServiceTest {
         answer.setCoinsEarned(1);
         answerOwner.setCoinBalance(7);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
         when(answerRepository.save(answer)).thenReturn(answer);
@@ -793,6 +817,10 @@ class AnswerServiceTest {
         answer.setRewardClaimed(true);
         answerOwner.setCoinBalance(10);
 
+        RegularUser voter = new RegularUser();
+        voter.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(voter));
         when(answerRepository.findById(answerId)).thenReturn(Optional.of(answer));
         when(answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)).thenReturn(Optional.empty());
         when(answerRepository.save(answer)).thenReturn(answer);
