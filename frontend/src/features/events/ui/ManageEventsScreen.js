@@ -436,11 +436,13 @@ export default function ManageEventsScreen({ navigation }) {
             });
             return;
         }
+        const coordinateAddress = `(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`;
 
         setForm((prev) => ({
             ...prev,
             latitude: String(tempLat),
             longitude: String(tempLng),
+            address: prev.address?.trim() || coordinateAddress,
         }));
         setPlace(`(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`);
         setPickedLabel('');
@@ -509,8 +511,8 @@ export default function ManageEventsScreen({ navigation }) {
     const submitEditor = async () => {
         const payload = buildPayload(form);
 
-        if (!payload.title || !payload.description) {
-            Alert.alert('Required fields', 'Title and description are required.');
+        if (!payload.title || !payload.description || !payload.address) {
+            Alert.alert('Required fields', 'Title, description and address are required.');
             return;
         }
 
@@ -559,10 +561,16 @@ export default function ManageEventsScreen({ navigation }) {
             await loadMyEvents();
         } catch (error) {
             console.error('Error saving event:', error);
+
+            const errorMessage =
+                error?.response?.data?.message ||
+                error?.response?.data?.error ||
+                'Could not save the event. Please review the data.';
+
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: 'Could not save the event. Please review the data.',
+                text2: errorMessage,
                 position: 'top',
             });
         } finally {
@@ -938,7 +946,7 @@ export default function ManageEventsScreen({ navigation }) {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Address"
+                                placeholder="Address *"
                                 value={form.address}
                                 onChangeText={(value) => setForm((prev) => ({ ...prev, address: value }))}
                             />

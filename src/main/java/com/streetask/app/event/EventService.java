@@ -36,6 +36,24 @@ public class EventService {
     private final UserRepository userRepository;
     private final BusinessPremiumAccessGuard businessPremiumAccessGuard;
 
+    private void validateEvent(Event event, UUID eventIdToIgnore) {
+        if (event.getTitle() == null || event.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Event title is required");
+        }
+
+        if (event.getAddress() == null || event.getAddress().isBlank()) {
+            throw new IllegalArgumentException("Event address is required");
+        }
+
+        boolean duplicatedTitle = eventIdToIgnore == null
+                ? eventRepository.existsByTitleIgnoreCase(event.getTitle().trim())
+                : eventRepository.existsByTitleIgnoreCaseAndIdNot(event.getTitle().trim(), eventIdToIgnore);
+
+        if (duplicatedTitle) {
+            throw new IllegalArgumentException("An event with this title already exists");
+        }
+    }
+
     @Autowired
     public EventService(EventRepository eventRepository, EventAttendanceRepository eventAttendanceRepository,
             UserRepository userRepository, BusinessPremiumAccessGuard businessPremiumAccessGuard) {
@@ -83,6 +101,9 @@ public class EventService {
     public Event saveEvent(@Valid Event event) {
         BusinessAccount creator = getAuthenticatedBusinessUser();
         businessPremiumAccessGuard.requireVerified(creator);
+
+        validateEvent(event, null);
+
         event.setCreator(creator);
         applyDefaultsOnCreate(event);
         eventRepository.save(event);
@@ -99,6 +120,8 @@ public class EventService {
         if (!authenticatedBusiness.getId().equals(toUpdate.getCreator().getId())) {
             throw new ResourceNotOwnedException(toUpdate);
         }
+
+        validateEvent(event, idToUpdate);
 
         BeanUtils.copyProperties(event, toUpdate, "id", "creator", "createdAt", "updatedAt", "attendeeCount",
                 "questions", "attendances");
