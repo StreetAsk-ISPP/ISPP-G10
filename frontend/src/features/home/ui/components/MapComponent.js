@@ -3,7 +3,10 @@ import {
     View,
     Text,
     StyleSheet,
+    FlatList,
     ScrollView,
+    Modal,
+    Pressable,
     TouchableOpacity,
     ActivityIndicator,
     Alert,
@@ -97,16 +100,27 @@ const MapBoundsTrackerComponent = ({ questions = [], onBoundsChange, onVisibleQu
 const createCustomIcon = (color) => {
     if (!L) return undefined;
 
-    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
-        <path fill="${color}" d="M16 0C9.383 0 4 5.383 4 12c0 8 12 28 12 28s12-20 12-28c0-6.617-5.383-12-12-12z"/>
-        <circle fill="white" cx="16" cy="12" r="4"/>
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+        <defs>
+            <linearGradient id="questionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#f87171"/>
+                <stop offset="55%" stop-color="${color}"/>
+                <stop offset="100%" stop-color="#991b1b"/>
+            </linearGradient>
+            <filter id="questionShadow" x="-20%" y="-10%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000033"/>
+            </filter>
+        </defs>
+        <path filter="url(#questionShadow)" fill="url(#questionGrad)" d="M17 0C9.82 0 4 5.82 4 13c0 8.7 13 31 13 31s13-22.3 13-31C30 5.82 24.18 0 17 0z"/>
+        <circle cx="17" cy="14" r="7.2" fill="#ffffff"/>
+        <text x="17" y="17" text-anchor="middle" font-size="11" font-weight="800" fill="#b91c1c" font-family="Arial, Helvetica, sans-serif">?</text>
     </svg>`;
 
     return L.icon({
         iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
-        iconSize: [32, 40],
-        iconAnchor: [16, 40],
-        popupAnchor: [0, -40],
+        iconSize: [34, 44],
+        iconAnchor: [17, 44],
+        popupAnchor: [0, -44],
     });
 };
 
@@ -142,20 +156,83 @@ const createFeaturedIcon = () => {
 const createEventIcon = () => {
     if (!L) return undefined;
 
-    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
-        <path fill="#0F766E" d="M17 0C9.82 0 4 5.82 4 13c0 8.7 13 31 13 31s13-22.3 13-31C30 5.82 24.18 0 17 0z"/>
-        <rect x="10" y="9" width="14" height="11" rx="2" fill="#FFFFFF"/>
-        <rect x="10" y="9" width="14" height="3" rx="1" fill="#14B8A6"/>
-        <circle cx="13" cy="15" r="1" fill="#0F766E"/>
-        <circle cx="17" cy="15" r="1" fill="#0F766E"/>
-        <circle cx="21" cy="15" r="1" fill="#0F766E"/>
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
+        <defs>
+            <linearGradient id="eventGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#2dd4bf"/>
+                <stop offset="55%" stop-color="#0f766e"/>
+                <stop offset="100%" stop-color="#0f4c4a"/>
+            </linearGradient>
+            <filter id="eventShadow" x="-20%" y="-10%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000033"/>
+            </filter>
+        </defs>
+        <path filter="url(#eventShadow)" fill="url(#eventGrad)" d="M19 0C11.16 0 5 6.16 5 14c0 9.2 14 34 14 34s14-24.8 14-34C33 6.16 26.84 0 19 0z"/>
+        <rect x="11" y="9" width="16" height="13" rx="3" fill="#ffffff"/>
+        <rect x="11" y="9" width="16" height="4" rx="2" fill="#99f6e4"/>
+        <circle cx="15" cy="16" r="1.2" fill="#0f766e"/>
+        <circle cx="19" cy="16" r="1.2" fill="#0f766e"/>
+        <circle cx="23" cy="16" r="1.2" fill="#0f766e"/>
     </svg>`;
 
     return L.icon({
         iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
-        iconSize: [34, 44],
-        iconAnchor: [17, 44],
-        popupAnchor: [0, -44],
+        iconSize: [38, 48],
+        iconAnchor: [19, 48],
+        popupAnchor: [0, -48],
+    });
+};
+
+const createGroupedEventIcon = (count) => {
+    if (!L) return undefined;
+
+    const label = count > 99 ? '99+' : String(count);
+    return L.divIcon({
+        className: '',
+        html: `
+            <div style="position: relative; width: 52px; height: 58px; overflow: visible;">
+                <div style="position: absolute; left: 9px; top: 6px; width: 34px; height: 48px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.20));">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 38 48">
+                        <defs>
+                            <linearGradient id="eventGroupGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#2dd4bf"/>
+                                <stop offset="55%" stop-color="#0f766e"/>
+                                <stop offset="100%" stop-color="#0f4c4a"/>
+                            </linearGradient>
+                        </defs>
+                        <path fill="url(#eventGroupGrad)" d="M19 0C11.16 0 5 6.16 5 14c0 9.2 14 34 14 34s14-24.8 14-34C33 6.16 26.84 0 19 0z"/>
+                        <rect x="11" y="9" width="16" height="13" rx="3" fill="#ffffff"/>
+                        <rect x="11" y="9" width="16" height="4" rx="2" fill="#99f6e4"/>
+                        <circle cx="15" cy="16" r="1.2" fill="#0f766e"/>
+                        <circle cx="19" cy="16" r="1.2" fill="#0f766e"/>
+                        <circle cx="23" cy="16" r="1.2" fill="#0f766e"/>
+                    </svg>
+                </div>
+                <div style="
+                    position: absolute;
+                    right: -14px;
+                    top: -12px;
+                    min-width: 24px;
+                    height: 24px;
+                    padding: 0 6px;
+                    border-radius: 999px;
+                    background: #A52019;
+                    color: #ffffff;
+                    border: 2px solid #ffffff;
+                    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+                    font-size: ${label.length > 2 ? 10 : 11}px;
+                    font-weight: 800;
+                    line-height: 20px;
+                    text-align: center;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">${label}</div>
+            </div>
+        `,
+        iconSize: [52, 58],
+        iconAnchor: [26, 58],
+        popupAnchor: [0, -58],
     });
 };
 
@@ -225,6 +302,83 @@ const isEventStillVisible = (event, nowTs) => {
     return endsAtTs > nowTs;
 };
 
+const EVENT_GROUPING_DISTANCE_KM = 0.025;
+
+const areCoordsClose = (a, b, thresholdKm = EVENT_GROUPING_DISTANCE_KM) => {
+    if (!a || !b) return false;
+
+    return calculateDistanceInKm(
+        { latitude: a.lat, longitude: a.lng },
+        { latitude: b.lat, longitude: b.lng }
+    ) <= thresholdKm;
+};
+
+const getEventSortTime = (event) => {
+    if (!event?.startsAt) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    const startsAtTs = new Date(event.startsAt).getTime();
+    return Number.isFinite(startsAtTs) ? startsAtTs : Number.POSITIVE_INFINITY;
+};
+
+const groupEventsByLocation = (events = []) => {
+    const clusters = [];
+
+    events.forEach((event) => {
+        const coords = getEventCoords(event);
+        if (!coords) return;
+
+        const enrichedEvent = { ...event, coords };
+        const matchIndex = clusters.findIndex((cluster) =>
+            cluster.events.some((clusterEvent) => areCoordsClose(clusterEvent.coords, coords))
+        );
+
+        if (matchIndex >= 0) {
+            clusters[matchIndex].events.push(enrichedEvent);
+            return;
+        }
+
+        clusters.push({ events: [enrichedEvent] });
+    });
+
+    return clusters
+        .map((cluster, index) => {
+            const sortedEvents = [...cluster.events].sort((a, b) => {
+                const timeDiff = getEventSortTime(a) - getEventSortTime(b);
+                if (timeDiff !== 0) return timeDiff;
+
+                return (a.title || '').localeCompare(b.title || '');
+            });
+
+            const sumCoords = sortedEvents.reduce(
+                (acc, event) => {
+                    acc.lat += event.coords.lat;
+                    acc.lng += event.coords.lng;
+                    return acc;
+                },
+                { lat: 0, lng: 0 }
+            );
+
+            return {
+                id: `event-cluster-${index}-${sortedEvents.map((event) => event.id).join('-')}`,
+                events: sortedEvents,
+                coords: {
+                    lat: sumCoords.lat / sortedEvents.length,
+                    lng: sumCoords.lng / sortedEvents.length,
+                },
+            };
+        })
+        .sort((a, b) => {
+            const aFirst = a.events[0];
+            const bFirst = b.events[0];
+            const timeDiff = getEventSortTime(aFirst) - getEventSortTime(bFirst);
+            if (timeDiff !== 0) return timeDiff;
+
+            return (aFirst?.title || '').localeCompare(bFirst?.title || '');
+        });
+};
+
 export default function MapComponent({
     questions = [],
     events = [],
@@ -250,11 +404,85 @@ export default function MapComponent({
     const [eventsNowTs, setEventsNowTs] = useState(() => Date.now());
     const mapRef = useRef(null);
     const [visibleQuestions, setVisibleQuestions] = useState([]);
+    const [selectedGroupedEvents, setSelectedGroupedEvents] = useState(null);
 
     const visibleEvents = useMemo(() => {
         const source = Array.isArray(events) ? events : [];
         return source.filter((event) => isEventStillVisible(event, eventsNowTs));
     }, [events, eventsNowTs]);
+
+    const visibleEventClusters = useMemo(() => groupEventsByLocation(visibleEvents), [visibleEvents]);
+
+    const closeGroupedEventsModal = useCallback(() => {
+        setSelectedGroupedEvents(null);
+    }, []);
+
+    const openEventDetails = useCallback(
+        (eventItem) => {
+            if (!eventItem?.id) {
+                return;
+            }
+
+            closeGroupedEventsModal();
+            onOpenEventDetails?.(eventItem);
+        },
+        [closeGroupedEventsModal, onOpenEventDetails]
+    );
+
+    const renderGroupedEventItem = useCallback(
+        ({ item }) => {
+            const startsAt = formatDateTime(item.startsAt);
+            const endsAt = formatDateTime(item.endsAt);
+            const attendeeCount = Number.isFinite(Number(item?.attendeeCount))
+                ? Number(item.attendeeCount)
+                : 0;
+
+            return (
+                <TouchableOpacity
+                    style={styles.groupEventItem}
+                    onPress={() => openEventDetails(item)}
+                    activeOpacity={0.85}
+                >
+                    <View style={styles.groupEventHeader}>
+                        <View style={styles.groupEventTitleWrap}>
+                            <Text style={styles.groupEventTitle} numberOfLines={2}>
+                                {item.title || 'Untitled event'}
+                            </Text>
+                            <Text style={styles.groupEventSubtitle} numberOfLines={1}>
+                                {item.category || 'OTHER'}
+                            </Text>
+                        </View>
+                        <View style={styles.groupEventBadge}>
+                            <Text style={styles.groupEventBadgeText}>{attendeeCount}</Text>
+                            <Text style={styles.groupEventBadgeLabel}>going</Text>
+                        </View>
+                    </View>
+
+                    {item.description ? (
+                        <Text style={styles.groupEventDescription} numberOfLines={2}>
+                            {item.description}
+                        </Text>
+                    ) : null}
+
+                    <View style={styles.groupEventMeta}>
+                        {startsAt ? <Text style={styles.groupEventMetaText}>Starts: {startsAt}</Text> : null}
+                        {endsAt ? <Text style={styles.groupEventMetaText}>Ends: {endsAt}</Text> : null}
+                        {item.address ? (
+                            <Text style={styles.groupEventMetaText} numberOfLines={1}>
+                                {item.address}
+                            </Text>
+                        ) : null}
+                    </View>
+
+                    <View style={styles.groupEventActionRow}>
+                        <Text style={styles.groupEventActionText}>Open event details</Text>
+                        <MaterialIcons name="chevron-right" size={18} color="#1d4ed8" />
+                    </View>
+                </TouchableOpacity>
+            );
+        },
+        [openEventDetails]
+    );
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -589,7 +817,7 @@ export default function MapComponent({
                                 { latitude: lat, longitude: lng }
                             );
                             const canAnswer = !Number.isFinite(radiusKm) || radiusKm <= 0 || distanceKm <= radiusKm;
-                            const questionColor = canAnswer ? '#f59e0b' : '#9ca3af';
+                            const questionColor = canAnswer ? '#dc2626' : '#991b1b';
 
                             return (
                                 <Marker
@@ -638,115 +866,119 @@ export default function MapComponent({
                         })}
 
                         {/* Event markers */}
-                        {visibleEvents.map((event) => {
-                            const coords = getEventCoords(event);
-                            if (!coords) return null;
-
-                            const startsAt = formatDateTime(event.startsAt);
-                            const endsAt = formatDateTime(event.endsAt);
-                            const attendeeCount = Number.isFinite(Number(event?.attendeeCount))
-                                ? Number(event.attendeeCount)
-                                : 0;
-                            const isAttending = event?.myAttendance === true;
-                            const isToggling = togglingEventId === event.id;
+                        {visibleEventClusters.map((cluster) => {
+                            const isGrouped = cluster.events.length > 1;
+                            const eventItem = cluster.events[0];
+                            const markerIcon = isGrouped
+                                ? createGroupedEventIcon(cluster.events.length)
+                                : createEventIcon();
 
                             return (
                                 <Marker
-                                    key={event.id}
-                                    position={[coords.lat, coords.lng]}
-                                    icon={createEventIcon()}
+                                    key={cluster.id}
+                                    position={[cluster.coords.lat, cluster.coords.lng]}
+                                    icon={markerIcon}
+                                    eventHandlers={isGrouped ? {
+                                        click: () => setSelectedGroupedEvents(cluster),
+                                    } : undefined}
                                 >
-                                    <Popup>
-                                        <div style={{ fontSize: '12px' }}>
-                                            <strong>Event: {event.title || 'Untitled event'}</strong>
-                                            <br />
-                                            {event.category && (
-                                                <>
-                                                    <span style={{ color: '#0f766e', fontWeight: 700 }}>
-                                                        {event.category}
-                                                    </span>
-                                                    <br />
-                                                </>
-                                            )}
-                                            {startsAt && (
-                                                <>
-                                                    <span>Starts: {startsAt}</span>
-                                                    <br />
-                                                </>
-                                            )}
-                                            {endsAt && (
-                                                <>
-                                                    <span>Ends: {endsAt}</span>
-                                                    <br />
-                                                </>
-                                            )}
-                                            {event.address && (
-                                                <>
-                                                    <span>{event.address}</span>
-                                                    <br />
-                                                </>
-                                            )}
-                                            <span style={{ fontWeight: 700, color: '#111827' }}>
-                                                Attendees: {attendeeCount}
-                                            </span>
-                                            <br />
-                                            {canAttendEvents && (
-                                                <>
-                                                    <span style={{ opacity: 0.85 }}>
-                                                        {isAttending ? 'You are going' : 'Not attending yet'}
-                                                    </span>
-                                                    <br />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleToggleAttendance(event)}
-                                                        disabled={isToggling}
-                                                        style={{
-                                                            marginTop: '8px',
-                                                            width: '100%',
-                                                            border: 'none',
-                                                            borderRadius: '10px',
-                                                            padding: '10px 12px',
-                                                            backgroundColor: isAttending ? '#b91c1c' : '#0f766e',
-                                                            color: '#ffffff',
-                                                            fontWeight: 700,
-                                                            cursor: isToggling ? 'wait' : 'pointer',
-                                                            opacity: isToggling ? 0.75 : 1,
-                                                        }}
-                                                    >
-                                                        {isToggling ? 'Updating...' : (isAttending ? 'Leave event' : 'Join event')}
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => onOpenEventDetails?.(event)}
-                                                style={{
-                                                    marginTop: '8px',
-                                                    width: '100%',
-                                                    border: '1px solid rgba(29, 78, 216, 0.18)',
-                                                    borderRadius: '999px',
-                                                    padding: '6px 10px',
-                                                    backgroundColor: 'rgba(29, 78, 216, 0.06)',
-                                                    color: '#1d4ed8',
-                                                    fontWeight: 600,
-                                                    fontSize: '12px',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '6px',
-                                                    lineHeight: 1,
-                                                    opacity: 0.95,
-                                                }}
-                                            >
-                                                <span aria-hidden="true" style={{ fontSize: '13px', lineHeight: 1 }}>👁</span>
-                                                <span>View event info</span>
-                                            </button>
-                                            <span style={{ opacity: 0.8 }}>
-                                                {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                                            </span>
-                                        </div>
-                                    </Popup>
+                                    {!isGrouped && (
+                                        <Popup>
+                                            <div style={{ fontSize: '12px' }}>
+                                                <strong>Event: {eventItem.title || 'Untitled event'}</strong>
+                                                <br />
+                                                {eventItem.category && (
+                                                    <>
+                                                        <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                                                            {eventItem.category}
+                                                        </span>
+                                                        <br />
+                                                    </>
+                                                )}
+                                                {formatDateTime(eventItem.startsAt) && (
+                                                    <>
+                                                        <span>Starts: {formatDateTime(eventItem.startsAt)}</span>
+                                                        <br />
+                                                    </>
+                                                )}
+                                                {formatDateTime(eventItem.endsAt) && (
+                                                    <>
+                                                        <span>Ends: {formatDateTime(eventItem.endsAt)}</span>
+                                                        <br />
+                                                    </>
+                                                )}
+                                                {eventItem.address && (
+                                                    <>
+                                                        <span>{eventItem.address}</span>
+                                                        <br />
+                                                    </>
+                                                )}
+                                                <span style={{ fontWeight: 700, color: '#111827' }}>
+                                                    Attendees: {Number.isFinite(Number(eventItem?.attendeeCount))
+                                                        ? Number(eventItem.attendeeCount)
+                                                        : 0}
+                                                </span>
+                                                <br />
+                                                {canAttendEvents && (
+                                                    <>
+                                                        <span style={{ opacity: 0.85 }}>
+                                                            {eventItem?.myAttendance === true ? 'You are going' : 'Not attending yet'}
+                                                        </span>
+                                                        <br />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleAttendance(eventItem)}
+                                                            disabled={togglingEventId === eventItem.id}
+                                                            style={{
+                                                                marginTop: '8px',
+                                                                width: '100%',
+                                                                border: 'none',
+                                                                borderRadius: '10px',
+                                                                padding: '10px 12px',
+                                                                backgroundColor: eventItem?.myAttendance === true ? '#b91c1c' : '#0f766e',
+                                                                color: '#ffffff',
+                                                                fontWeight: 700,
+                                                                cursor: togglingEventId === eventItem.id ? 'wait' : 'pointer',
+                                                                opacity: togglingEventId === eventItem.id ? 0.75 : 1,
+                                                            }}
+                                                        >
+                                                            {togglingEventId === eventItem.id
+                                                                ? 'Updating...'
+                                                                : (eventItem?.myAttendance === true ? 'Leave event' : 'Join event')}
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onOpenEventDetails?.(eventItem)}
+                                                    style={{
+                                                        marginTop: '8px',
+                                                        width: '100%',
+                                                        border: '1px solid rgba(29, 78, 216, 0.18)',
+                                                        borderRadius: '999px',
+                                                        padding: '6px 10px',
+                                                        backgroundColor: 'rgba(29, 78, 216, 0.06)',
+                                                        color: '#1d4ed8',
+                                                        fontWeight: 600,
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px',
+                                                        lineHeight: 1,
+                                                        opacity: 0.95,
+                                                    }}
+                                                >
+                                                    <span aria-hidden="true" style={{ fontSize: '13px', lineHeight: 1 }}>👁</span>
+                                                    <span>View event info</span>
+                                                </button>
+                                                <span style={{ opacity: 0.8 }}>
+                                                    {cluster.coords.lat.toFixed(5)}, {cluster.coords.lng.toFixed(5)}
+                                                </span>
+                                            </div>
+                                        </Popup>
+                                    )}
                                 </Marker>
                             );
                         })}
@@ -772,6 +1004,43 @@ export default function MapComponent({
                             ))}
                     </MapContainer>
                 </div>
+
+                <Modal
+                    visible={Boolean(selectedGroupedEvents)}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={closeGroupedEventsModal}
+                >
+                    <Pressable style={styles.groupModalOverlay} onPress={closeGroupedEventsModal}>
+                        <Pressable style={styles.groupModalCard} onPress={() => { }}>
+                            <View style={styles.groupModalHeader}>
+                                <View style={styles.groupModalHeaderText}>
+                                    <Text style={styles.groupModalTitle}>Events at this location</Text>
+                                    <Text style={styles.groupModalSubtitle}>
+                                        {selectedGroupedEvents?.events?.length || 0} events found nearby
+                                    </Text>
+                                </View>
+
+                                <TouchableOpacity onPress={closeGroupedEventsModal} style={styles.groupModalCloseBtn}>
+                                    <MaterialIcons name="close" size={20} color="#334155" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={styles.groupModalHint}>
+                                Tap any event to open its details page.
+                            </Text>
+
+                            <FlatList
+                                data={selectedGroupedEvents?.events || []}
+                                keyExtractor={(item) => String(item.id)}
+                                renderItem={renderGroupedEventItem}
+                                ItemSeparatorComponent={() => <View style={styles.groupEventSeparator} />}
+                                contentContainerStyle={styles.groupEventList}
+                                showsVerticalScrollIndicator={true}
+                            />
+                        </Pressable>
+                    </Pressable>
+                </Modal>
 
                 <ConfirmationModal
                     visible={leaveConfirmVisible}
@@ -968,6 +1237,137 @@ const styles = StyleSheet.create({
     infoText: {
         color: '#FFF',
         fontSize: 12,
+    },
+    groupModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 16,
+    },
+    groupModalCard: {
+        width: '92%',
+        maxWidth: 560,
+        maxHeight: '80%',
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        padding: 18,
+        shadowColor: '#000000',
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 12 },
+        elevation: 8,
+    },
+    groupModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    groupModalHeaderText: {
+        flex: 1,
+    },
+    groupModalTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0f172a',
+    },
+    groupModalSubtitle: {
+        marginTop: 4,
+        fontSize: 13,
+        color: '#64748b',
+    },
+    groupModalCloseBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f1f5f9',
+    },
+    groupModalHint: {
+        marginTop: 10,
+        marginBottom: 14,
+        fontSize: 12,
+        color: '#64748b',
+    },
+    groupEventList: {
+        paddingBottom: 4,
+    },
+    groupEventSeparator: {
+        height: 10,
+    },
+    groupEventItem: {
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        backgroundColor: '#f8fafc',
+        padding: 14,
+    },
+    groupEventHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    groupEventTitleWrap: {
+        flex: 1,
+    },
+    groupEventTitle: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#0f172a',
+    },
+    groupEventSubtitle: {
+        marginTop: 2,
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#0f766e',
+    },
+    groupEventBadge: {
+        minWidth: 52,
+        borderRadius: 999,
+        backgroundColor: '#0f766e',
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+    },
+    groupEventBadgeText: {
+        color: '#ffffff',
+        fontSize: 15,
+        fontWeight: '900',
+        lineHeight: 18,
+    },
+    groupEventBadgeLabel: {
+        color: '#d1fae5',
+        fontSize: 10,
+        fontWeight: '700',
+        lineHeight: 12,
+    },
+    groupEventDescription: {
+        marginTop: 10,
+        color: '#334155',
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    groupEventMeta: {
+        marginTop: 10,
+        gap: 4,
+    },
+    groupEventMetaText: {
+        color: '#475569',
+        fontSize: 12,
+    },
+    groupEventActionRow: {
+        marginTop: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    groupEventActionText: {
+        color: '#1d4ed8',
+        fontSize: 13,
+        fontWeight: '700',
     },
     // Fallback styles
     webContainer: {
