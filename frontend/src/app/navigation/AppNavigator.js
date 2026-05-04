@@ -143,7 +143,7 @@ export default function AppNavigator() {
             let callbackSucceeded = false;
             let shouldClearParams = true;
             let shouldClearStreetCoinsPending = true;
-            let shouldClearBusinessSignupPending = flow !== 'streetcoins';
+            let shouldClearBusinessSignupPending = false;
             let shouldClearBusinessSubscriptionPending = flow !== 'streetcoins';
             let shouldClearRegularPremiumPending = flow !== 'streetcoins';
             let redirectAfterCallback = null;
@@ -169,8 +169,8 @@ export default function AppNavigator() {
             const pendingReturnTo = flow === 'streetcoins'
                 ? pendingStreetCoins?.returnTo
                 : pendingBusinessSubscription?.returnTo
-                    || pendingRegularPremium?.returnTo
-                    || pendingBusinessSignup?.returnTo;
+                || pendingRegularPremium?.returnTo
+                || pendingBusinessSignup?.returnTo;
             const fallbackReturnTo = normalizeReturnPath(
                 pendingReturnTo
                 || pendingStreetCoins?.returnTo
@@ -276,6 +276,7 @@ export default function AppNavigator() {
                                     });
                                 }
 
+                                shouldClearBusinessSignupPending = true;
                                 callbackSucceeded = true;
                             }
                         }

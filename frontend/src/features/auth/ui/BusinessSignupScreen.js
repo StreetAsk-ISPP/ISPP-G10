@@ -14,15 +14,37 @@ import {
 } from '../../../shared/services/payments/checkoutReturnUrl';
 
 export default function BusinessSignupScreen({ navigation, route }) {
+	const getPendingBusinessSignup = () => {
+		if (Platform.OS !== 'web' || typeof window === 'undefined') {
+			return null;
+		}
+
+		try {
+			const rawValue = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+			if (!rawValue) {
+				return null;
+			}
+
+			return JSON.parse(rawValue);
+		} catch {
+			return null;
+		}
+	};
+
+	const pendingBusinessSignup = getPendingBusinessSignup();
 	const { email, password } = route.params || {};
 	const { width } = useWindowDimensions();
 	const isNarrow = width < 500;
 
-	const [taxId, setTaxId] = useState('');
-	const [companyName, setCompanyName] = useState('');
-	const [address, setAddress] = useState('');
-	const [website, setWebsite] = useState('');
-	const [description, setDescription] = useState('');
+	const [taxId, setTaxId] = useState(pendingBusinessSignup?.taxId || '');
+	const [companyName, setCompanyName] = useState(pendingBusinessSignup?.companyName || '');
+	const [address, setAddress] = useState(pendingBusinessSignup?.address || '');
+	const [website, setWebsite] = useState(pendingBusinessSignup?.website || '');
+	const [description, setDescription] = useState(pendingBusinessSignup?.description || '');
+	const [signupCredentials] = useState(() => ({
+		email: typeof email === 'string' && email ? email : pendingBusinessSignup?.email || '',
+		password: typeof password === 'string' && password ? password : pendingBusinessSignup?.password || '',
+	}));
 	const [error, setError] = useState('');
 	const [taxIdError, setTaxIdError] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,19 +78,19 @@ export default function BusinessSignupScreen({ navigation, route }) {
 			setIsSubmitting(true);
 			const normalizedTaxId = taxId.trim().toUpperCase();
 			const pendingBusinessSignup = {
-				email,
+				email: signupCredentials.email,
 				taxId: normalizedTaxId,
 				companyName: companyName.trim(),
 				address: address.trim() || null,
 				website: website.trim() || null,
 				description: description.trim() || null,
-				password: typeof password === 'string' ? password : null,
+				password: typeof signupCredentials.password === 'string' ? signupCredentials.password : null,
 			};
 
 			const checkoutResponse = await apiClient.post(
 				'/api/v1/business-subscriptions/stripe/checkout-session',
 				{
-					email,
+					email: signupCredentials.email,
 					taxId: normalizedTaxId,
 					companyName: companyName.trim(),
 					address: address.trim() || null,
