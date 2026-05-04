@@ -158,6 +158,27 @@ Si necesitas probar con MySQL (ej: queries específicas de producción):
 
 ---
 
+## Test de carga en local
+
+Si quieres probar rendimiento usando el entorno local, tienes un script k6 en [src/test/load/streetask-load-test.js](src/test/load/streetask-load-test.js).
+
+### Ejecución
+
+**Requisitos:** 
+- `k6` debe estar instalado y disponible en el `PATH`.
+- El backend debe estar corriendo.
+
+Si no lo tienes instalado, en Windows puedes hacerlo con `winget`:
+
+```powershell
+winget install k6 --source winget
+```
+Para correr los tests:
+
+```bash
+k6 run src/test/load/streetask-load-test.js
+```
+
 ## Variables de entorno
 
 ### Frontend (frontend/.env)
