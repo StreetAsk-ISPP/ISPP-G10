@@ -611,6 +611,15 @@ def build_report(
         for s in sprint_names_ordered:
             all_contributors.update(metrics[s].keys())
 
+        # Filter out excluded contributors and those with no scores
+        all_contributors = {
+            c for c in all_contributors
+            if c.lower() not in EXCLUDED_CONTRIBUTORS and any(
+                metrics[s].get(c, {}).get("performance_score") is not None
+                for s in sprint_names_ordered
+            )
+        }
+
         lines.extend(["## Combined Scores by Contributor", "", "| Contributor | " + " | ".join(sprint_names_ordered) + " |", "|---" + "|---" * len(sprint_names_ordered) + "|"])
 
         for contributor in sorted(all_contributors, key=lambda x: x.lower()):
