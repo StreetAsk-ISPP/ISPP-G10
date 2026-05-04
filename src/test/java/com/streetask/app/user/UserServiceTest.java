@@ -584,6 +584,33 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("getUserStats should return business vote counters and rating")
+    void getUserStats_shouldReturnBusinessVoteCountersAndRating() {
+        BusinessAccount businessAccount = new BusinessAccount();
+        businessAccount.setId(testUserId);
+        businessAccount.setEmail(TEST_EMAIL);
+        businessAccount.setUserName(TEST_USERNAME);
+        Authorities businessAuthority = new Authorities();
+        businessAuthority.setAuthority("BUSINESS");
+        businessAccount.setAuthority(businessAuthority);
+        businessAccount.setCompanyName("Test Company");
+        businessAccount.setTaxId("12345678X");
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(businessAccount));
+        when(questionRepository.countByCreatorId(testUserId)).thenReturn(1L);
+        when(answerRepository.countByUserId(testUserId)).thenReturn(4L);
+        when(answerRepository.aggregateVotesByUserIds(eq(List.of(testUserId))))
+            .thenReturn(Collections.singletonList(new Object[] { testUserId, 6L, 2L }));
+
+        Map<String, Object> stats = userService.getUserStats(testUserId);
+
+        assertNotNull(stats);
+        assertEquals(6, stats.get("likesCount"));
+        assertEquals(2, stats.get("dislikesCount"));
+        assertEquals(3.8, stats.get("rating"));
+        assertEquals(0, stats.get("coinBalance"));
+    }
+
+    @Test
     @DisplayName("getUserStats should return correct role for ADMIN user")
     void getUserStats_shouldReturnAdminRole() {
         User user = createTestUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "ADMIN");
