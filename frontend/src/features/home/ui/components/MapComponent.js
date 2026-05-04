@@ -96,60 +96,56 @@ const MapBoundsTrackerComponent = ({ questions = [], onBoundsChange, onVisibleQu
     return null;
 };
 
-// Función para crear iconos SVG personalizados
+// Función para crear iconos SVG personalizados - Pregunta Regular
 const createCustomIcon = (color) => {
     if (!L) return undefined;
 
-    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
         <defs>
             <linearGradient id="questionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#f87171"/>
+                <stop offset="0%" stop-color="#ff6b6b"/>
                 <stop offset="55%" stop-color="${color}"/>
-                <stop offset="100%" stop-color="#991b1b"/>
+                <stop offset="100%" stop-color="#7f1d1d"/>
             </linearGradient>
-            <filter id="questionShadow" x="-20%" y="-10%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000033"/>
+            <filter id="questionShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000044"/>
             </filter>
         </defs>
-        <path filter="url(#questionShadow)" fill="url(#questionGrad)" d="M17 0C9.82 0 4 5.82 4 13c0 8.7 13 31 13 31s13-22.3 13-31C30 5.82 24.18 0 17 0z"/>
-        <circle cx="17" cy="14" r="7.2" fill="#ffffff"/>
-        <text x="17" y="17" text-anchor="middle" font-size="11" font-weight="800" fill="#b91c1c" font-family="Arial, Helvetica, sans-serif">?</text>
+        <path filter="url(#questionShadow)" fill="url(#questionGrad)" stroke="#ffffff" stroke-width="1.5" d="M19 2C9.5 2 2 9.5 2 19C2 30 10 37 19 46C28 37 36 30 36 19C36 9.5 28.5 2 19 2Z"/>
+        <text x="19" y="27" text-anchor="middle" font-size="22" font-weight="900" fill="#ffffff" font-family="Arial, sans-serif" letter-spacing="0">?</text>
     </svg>`;
 
     return L.icon({
-        iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
-        iconSize: [34, 44],
-        iconAnchor: [17, 44],
-        popupAnchor: [0, -44],
+        iconUrl: `data:image/svg+xml,${encodeURIComponent(svgIcon)}`,
+        iconSize: [38, 48],
+        iconAnchor: [19, 48],
+        popupAnchor: [0, -48],
     });
 };
 
 const createFeaturedIcon = () => {
     if (!L) return undefined;
 
-    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="56" viewBox="0 0 44 56">
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
         <defs>
-            <radialGradient id="pinGrad" cx="40%" cy="30%" r="70%">
-                <stop offset="0%" stop-color="#FFE566"/>
-                <stop offset="60%" stop-color="#F59E0B"/>
-                <stop offset="100%" stop-color="#B45309"/>
-            </radialGradient>
-            <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000055"/>
+            <linearGradient id="featuredGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffd700"/>
+                <stop offset="55%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#b45309"/>
+            </linearGradient>
+            <filter id="featuredShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#00000055"/>
             </filter>
         </defs>
-        <path filter="url(#shadow)" fill="url(#pinGrad)" stroke="#92400E" stroke-width="1.2"
-              d="M22 1C13.163 1 6 8.163 6 17c0 11 16 38 16 38s16-27 16-38C38 8.163 30.837 1 22 1z"/>
-        <circle fill="white" fill-opacity="0.25" cx="22" cy="16" r="10"/>
-        <polygon fill="white"
-                 points="22,8 24.35,14.2 31,14.2 25.8,18.1 27.9,24.3 22,20.5 16.1,24.3 18.2,18.1 13,14.2 19.65,14.2"/>
+        <path filter="url(#featuredShadow)" fill="url(#featuredGrad)" stroke="#ffffff" stroke-width="1.5" d="M19 2C9.5 2 2 9.5 2 19C2 30 10 37 19 46C28 37 36 30 36 19C36 9.5 28.5 2 19 2Z"/>
+        <polygon fill="#ffffff" points="19,9 22,16 29.5,16 23.8,20.5 26.3,28 19,23.5 11.7,28 14.2,20.5 8.5,16 16,16"/>
     </svg>`;
 
     return L.icon({
-        iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
-        iconSize: [44, 56],
-        iconAnchor: [22, 56],
-        popupAnchor: [0, -56],
+        iconUrl: `data:image/svg+xml,${encodeURIComponent(svgIcon)}`,
+        iconSize: [38, 48],
+        iconAnchor: [19, 48],
+        popupAnchor: [0, -48],
     });
 };
 
@@ -159,24 +155,24 @@ const createEventIcon = () => {
     const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
         <defs>
             <linearGradient id="eventGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#2dd4bf"/>
+                <stop offset="0%" stop-color="#22d3ee"/>
                 <stop offset="55%" stop-color="#0f766e"/>
-                <stop offset="100%" stop-color="#0f4c4a"/>
+                <stop offset="100%" stop-color="#064e3b"/>
             </linearGradient>
-            <filter id="eventShadow" x="-20%" y="-10%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000033"/>
+            <filter id="eventShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000044"/>
             </filter>
         </defs>
-        <path filter="url(#eventShadow)" fill="url(#eventGrad)" d="M19 0C11.16 0 5 6.16 5 14c0 9.2 14 34 14 34s14-24.8 14-34C33 6.16 26.84 0 19 0z"/>
-        <rect x="11" y="9" width="16" height="13" rx="3" fill="#ffffff"/>
-        <rect x="11" y="9" width="16" height="4" rx="2" fill="#99f6e4"/>
-        <circle cx="15" cy="16" r="1.2" fill="#0f766e"/>
-        <circle cx="19" cy="16" r="1.2" fill="#0f766e"/>
-        <circle cx="23" cy="16" r="1.2" fill="#0f766e"/>
+        <path filter="url(#eventShadow)" fill="url(#eventGrad)" stroke="#ffffff" stroke-width="1.5" d="M19 2C9.5 2 2 9.5 2 19C2 30 10 37 19 46C28 37 36 30 36 19C36 9.5 28.5 2 19 2Z"/>
+        <rect x="12" y="10" width="14" height="11" rx="1.5" fill="#ffffff" opacity="0.95"/>
+        <rect x="12" y="10" width="14" height="3" fill="#67e8f9" opacity="0.85"/>
+        <circle cx="16" cy="15" r="1" fill="#0f766e"/>
+        <circle cx="19" cy="15" r="1" fill="#0f766e"/>
+        <circle cx="22" cy="15" r="1" fill="#0f766e"/>
     </svg>`;
 
     return L.icon({
-        iconUrl: `data:image/svg+xml;base64,${btoa(svgIcon)}`,
+        iconUrl: `data:image/svg+xml,${encodeURIComponent(svgIcon)}`,
         iconSize: [38, 48],
         iconAnchor: [19, 48],
         popupAnchor: [0, -48],
@@ -191,48 +187,76 @@ const createGroupedEventIcon = (count) => {
         className: '',
         html: `
             <div style="position: relative; width: 52px; height: 58px; overflow: visible;">
-                <div style="position: absolute; left: 9px; top: 6px; width: 34px; height: 48px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.20));">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 38 48">
+                <div style="position: absolute; left: 7px; top: 5px; width: 38px; height: 48px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.25));">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
                         <defs>
                             <linearGradient id="eventGroupGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stop-color="#2dd4bf"/>
+                                <stop offset="0%" stop-color="#22d3ee"/>
                                 <stop offset="55%" stop-color="#0f766e"/>
-                                <stop offset="100%" stop-color="#0f4c4a"/>
+                                <stop offset="100%" stop-color="#064e3b"/>
                             </linearGradient>
                         </defs>
-                        <path fill="url(#eventGroupGrad)" d="M19 0C11.16 0 5 6.16 5 14c0 9.2 14 34 14 34s14-24.8 14-34C33 6.16 26.84 0 19 0z"/>
-                        <rect x="11" y="9" width="16" height="13" rx="3" fill="#ffffff"/>
-                        <rect x="11" y="9" width="16" height="4" rx="2" fill="#99f6e4"/>
-                        <circle cx="15" cy="16" r="1.2" fill="#0f766e"/>
-                        <circle cx="19" cy="16" r="1.2" fill="#0f766e"/>
-                        <circle cx="23" cy="16" r="1.2" fill="#0f766e"/>
+                        <path fill="url(#eventGroupGrad)" stroke="#ffffff" stroke-width="1.5" d="M19 2C9.5 2 2 9.5 2 19C2 30 10 37 19 46C28 37 36 30 36 19C36 9.5 28.5 2 19 2Z"/>
+                        <rect x="12" y="10" width="14" height="11" rx="1.5" fill="#ffffff" opacity="0.95"/>
+                        <rect x="12" y="10" width="14" height="3" fill="#67e8f9" opacity="0.85"/>
+                        <circle cx="16" cy="15" r="1" fill="#0f766e"/>
+                        <circle cx="19" cy="15" r="1" fill="#0f766e"/>
+                        <circle cx="22" cy="15" r="1" fill="#0f766e"/>
                     </svg>
                 </div>
                 <div style="
                     position: absolute;
                     right: -14px;
                     top: -12px;
-                    min-width: 24px;
-                    height: 24px;
+                    min-width: 26px;
+                    height: 26px;
                     padding: 0 6px;
                     border-radius: 999px;
                     background: #A52019;
                     color: #ffffff;
-                    border: 2px solid #ffffff;
-                    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
-                    font-size: ${label.length > 2 ? 10 : 11}px;
-                    font-weight: 800;
+                    border: 2.5px solid #ffffff;
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+                    font-size: ${label.length > 2 ? 10 : 12}px;
+                    font-weight: 900;
                     line-height: 20px;
                     text-align: center;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    letter-spacing: -0.5px;
                 ">${label}</div>
             </div>
         `,
         iconSize: [52, 58],
         iconAnchor: [26, 58],
         popupAnchor: [0, -58],
+    });
+};
+
+const createPublicLocationIcon = () => {
+    if (!L) return undefined;
+
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
+        <defs>
+            <linearGradient id="publicLocGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fb923c"/>
+                <stop offset="55%" stop-color="#f97316"/>
+                <stop offset="100%" stop-color="#c2410c"/>
+            </linearGradient>
+            <filter id="publicLocShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000044"/>
+            </filter>
+        </defs>
+        <path filter="url(#publicLocShadow)" fill="url(#publicLocGrad)" stroke="#ffffff" stroke-width="1.5" d="M19 2C9.5 2 2 9.5 2 19C2 30 10 37 19 46C28 37 36 30 36 19C36 9.5 28.5 2 19 2Z"/>
+        <circle cx="19" cy="19" r="6" fill="#ffffff" opacity="0.95"/>
+        <circle cx="19" cy="19" r="3" fill="#f97316"/>
+    </svg>`;
+
+    return L.icon({
+        iconUrl: `data:image/svg+xml,${encodeURIComponent(svgIcon)}`,
+        iconSize: [38, 48],
+        iconAnchor: [19, 48],
+        popupAnchor: [0, -48],
     });
 };
 
@@ -989,7 +1013,7 @@ export default function MapComponent({
                                 <Marker
                                     key={pubLocation.id}
                                     position={[pubLocation.latitude, pubLocation.longitude]}
-                                    icon={createCustomIcon('#FF3B30')}
+                                    icon={createPublicLocationIcon()}
                                 >
                                     <Popup>
                                         <div style={{ fontSize: '12px' }}>
