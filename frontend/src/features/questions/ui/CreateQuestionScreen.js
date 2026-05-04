@@ -12,11 +12,13 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../../../shared/services/http/apiClient';
+import Slider from '@react-native-community/slider';
 import Toast from 'react-native-toast-message';
+
+import apiClient from '../../../shared/services/http/apiClient';
 import MapPickerWeb from '../../home/ui/components/MapPickerWeb';
 import { useAuth } from '../../../app/providers/AuthProvider';
-import Slider from '@react-native-community/slider';
+import { calculateDistanceInKm } from '../../../shared/utils/helpers';
 
 const FREE_FIXED_RADIUS_KM = 0.5;
 const FREE_FIXED_RADIUS_M = 500;
@@ -28,6 +30,66 @@ const PREMIUM_MAX_DURATION_HOURS = 24;
 const FAKE_AD_DURATION_SECONDS = 30;
 const DEFAULT_FALLBACK_LAT = 37.3886;
 const DEFAULT_FALLBACK_LNG = -5.9823;
+
+const SEARCH_VIEWBOX_DELTA = 0.35;
+
+const parseSearchCoordinate = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const buildNominatimSearchUrl = (query, centerLat, centerLng, bounded = true) => {
+    const params = new URLSearchParams({
+        format: 'json',
+        limit: '8',
+        addressdetails: '1',
+        q: query,
+    });
+
+    if (bounded && Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
+        params.set(
+            'viewbox',
+            [
+                centerLng - SEARCH_VIEWBOX_DELTA,
+                centerLat + SEARCH_VIEWBOX_DELTA,
+                centerLng + SEARCH_VIEWBOX_DELTA,
+                centerLat - SEARCH_VIEWBOX_DELTA,
+            ].join(',')
+        );
+        params.set('bounded', '1');
+    }
+
+    return `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+};
+
+const distanceToCenter = (item, centerLat, centerLng) => {
+    const lat = Number(item.lat);
+    const lon = Number(item.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return Number.MAX_VALUE;
+    }
+
+    if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+        return Number.MAX_VALUE;
+    }
+
+    return calculateDistanceInKm(
+        { latitude: centerLat, longitude: centerLng },
+        { latitude: lat, longitude: lon }
+    );
+};
+
+const mapAndPrioritizeSearchResults = (data, centerLat, centerLng) => {
+    return (Array.isArray(data) ? data : [])
+        .map((item) => ({
+            label: item.display_name,
+            lat: Number(item.lat),
+            lon: Number(item.lon),
+            distanceKm: distanceToCenter(item, centerLat, centerLng),
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+};
 
 const addHoursISO = (hours) => {
   const nowMs = Date.now();
@@ -475,63 +537,92 @@ export default function CreateQuestionScreen({ navigation, route }) {
     proceedWithStreetCoinConsent(payload);
   }, [streetCoinConsentPayload, proceedWithStreetCoinConsent]);
 
-  const searchAddress = async () => {
-    if (eventId) {
-      return;
-    }
+    const searchAddress = async () => {
+        const q = place.trim();
 
-    const q = place.trim();
-    if (!q) {
-      Toast.show({
-        type: 'info',
-        text1: 'Search field is empty',
-        text2: 'Enter an address or place before searching.',
-        position: 'top',
-      });
-      return;
-    }
+        if (!q) {
+            Toast.show({
+            type: 'info',
+            text1: 'Search field is empty',
+            text2: 'Enter an address or place before searching.',
+            position: 'top',
+            });
+            return;
+        }
 
-    setSearching(true);
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url, {
-        headers: { Accept: 'application/json' },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const items = (data || []).map((it) => ({
-        label: it.display_name,
-        lat: Number(it.lat),
-        lon: Number(it.lon),
-      }));
-      setSearchResults(items);
-      if (items.length === 0) {
-        Toast.show({
-          type: 'info',
-          text1: 'No results',
-          text2: 'No addresses were found. Try being more specific.',
-          position: 'top',
-        });
-      }
-      if (items.length === 1) {
-        setLatitude(items[0].lat);
-        setLongitude(items[0].lon);
-        setPickedLabel(items[0].label);
-        setSearchResults([]);
-        clearLocationError();
-      }
-    } catch (e) {
-      console.error('Nominatim search error:', e);
-      Toast.show({
-        type: 'error',
-        text1: 'Search error',
-        text2: 'The address could not be found. Please try again.',
-        position: 'top',
-      });
-    } finally {
-      setSearching(false);
-    }
-  };
+        setSearching(true);
+
+        try {
+            const centerLat = Number.isFinite(userLat) ? userLat : latitude;
+            const centerLng = Number.isFinite(userLng) ? userLng : longitude;
+
+            const localUrl = buildNominatimSearchUrl(q, centerLat, centerLng, true);
+
+            let res = await fetch(localUrl, {
+            headers: {
+                Accept: 'application/json',
+                'Accept-Language': 'es',
+            },
+            });
+
+            if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+            }
+
+            let data = await res.json();
+            let items = mapAndPrioritizeSearchResults(data, centerLat, centerLng);
+
+            if (items.length === 0) {
+            const globalUrl = buildNominatimSearchUrl(q, centerLat, centerLng, false);
+
+            res = await fetch(globalUrl, {
+                headers: {
+                Accept: 'application/json',
+                'Accept-Language': 'es',
+                },
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            data = await res.json();
+            items = mapAndPrioritizeSearchResults(data, centerLat, centerLng);
+            }
+
+            setSearchResults(items);
+
+            if (items.length === 0) {
+            Toast.show({
+                type: 'info',
+                text1: 'No results',
+                text2: 'No address was found.',
+                position: 'top',
+            });
+            return;
+            }
+
+            if (items.length === 1) {
+            setLatitude(items[0].lat);
+            setLongitude(items[0].lon);
+            setPlace(items[0].label);
+            setPickedLabel(items[0].label);
+            setSearchResults([]);
+            clearLocationError();
+            }
+        } catch (e) {
+            console.error('Nominatim search error:', e);
+
+            Toast.show({
+            type: 'error',
+            text1: 'Search error',
+            text2: 'Could not search the address.',
+            position: 'top',
+            });
+        } finally {
+            setSearching(false);
+        }
+    };
 
   const openMapPick = useCallback(async () => {
     if (eventId) {
