@@ -62,7 +62,8 @@ const isPremiumHoursValid = (value) => {
   );
 };
 
-const REQUIRED_LOCATION_MESSAGE = 'Please select a location on the map before submitting your question.';
+const REQUIRED_LOCATION_MESSAGE =
+  'Please select a location on the map before submitting your question.';
 
 const extractErrorMessage = (error) => {
   const message = error?.response?.data?.message;
@@ -92,10 +93,12 @@ const extractErrorMessage = (error) => {
 
 const isLocationValidationError = (message) => {
   const normalized = String(message || '').toLowerCase();
-  return normalized.includes('location')
-    || normalized.includes('latitude')
-    || normalized.includes('longitude')
-    || normalized.includes('geopoint');
+  return (
+    normalized.includes('location') ||
+    normalized.includes('latitude') ||
+    normalized.includes('longitude') ||
+    normalized.includes('geopoint')
+  );
 };
 
 export default function CreateQuestionScreen({ navigation, route }) {
@@ -107,9 +110,16 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const eventId = route?.params?.eventId || eventData?.id || null;
   const eventTitle = route?.params?.eventTitle || eventData?.title || null;
   const eventLoc = eventData?.location ?? null;
-  const eventLat = Number(eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat);
+  const eventLat = Number(
+    eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat
+  );
   const eventLng = Number(
-    eventLoc?.longitude ?? eventLoc?.lng ?? eventLoc?.lon ?? eventLoc?.x ?? eventData?.longitude ?? eventData?.lng
+    eventLoc?.longitude ??
+      eventLoc?.lng ??
+      eventLoc?.lon ??
+      eventLoc?.x ??
+      eventData?.longitude ??
+      eventData?.lng
   );
   const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
@@ -270,8 +280,20 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setLatitude(eventLat);
       setLongitude(eventLng);
       clearLocationError();
-      setPlace((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
-      setPickedLabel((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
+      setPlace((prev) =>
+        eventData?.address
+          ? eventData.address
+          : prev?.trim()
+            ? prev
+            : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+      );
+      setPickedLabel((prev) =>
+        eventData?.address
+          ? eventData.address
+          : prev?.trim()
+            ? prev
+            : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+      );
       return;
     }
 
@@ -374,7 +396,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setLatitude((prev) => (typeof prev === 'number' ? prev : lat));
       setLongitude((prev) => (typeof prev === 'number' ? prev : lng));
       clearLocationError();
-      setPlace((prev) => (prev?.trim() ? prev : `(${lat.toFixed(5)}, ${lng.toFixed(5)})`));
+      setPlace((prev) => (prev?.trim() ? prev : ''));
     };
 
     preloadCurrentLocation();
@@ -424,7 +446,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const premiumRadiusValid = !isPremium || isPremiumRadiusValid(parsedRadiusMeters);
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
-  const dailyLimitReached = eventId ? todayQuestionCount >= 3 : (!isPremium && todayQuestionCount >= 3);
+  const dailyLimitReached = eventId
+    ? todayQuestionCount >= 3
+    : !isPremium && todayQuestionCount >= 3;
   const requiresStreetCoinSpend = !isPremium && todayQuestionCount >= 3;
   const hasZeroStreetCoins = requiresStreetCoinSpend && streetCoinBalance === 0;
 
@@ -439,21 +463,24 @@ export default function CreateQuestionScreen({ navigation, route }) {
     [title, content, premiumRadiusValid, premiumHoursValid, hasZeroStreetCoins, isSubmitting]
   );
 
-  const proceedWithStreetCoinConsent = useCallback((payload) => {
-    const payloadWithConsent = {
-      ...payload,
-      confirmStreetCoinSpend: true,
-    };
+  const proceedWithStreetCoinConsent = useCallback(
+    (payload) => {
+      const payloadWithConsent = {
+        ...payload,
+        confirmStreetCoinSpend: true,
+      };
 
-    if (!isPremium) {
-      setQueuedPayload(payloadWithConsent);
-      setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
-      setShowFakeAd(true);
-      return;
-    }
+      if (!isPremium) {
+        setQueuedPayload(payloadWithConsent);
+        setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+        setShowFakeAd(true);
+        return;
+      }
 
-    submitQuestion(payloadWithConsent);
-  }, [isPremium, submitQuestion]);
+      submitQuestion(payloadWithConsent);
+    },
+    [isPremium, submitQuestion]
+  );
 
   const showStreetCoinConsentDialog = useCallback((payload) => {
     setStreetCoinConsentPayload(payload);
@@ -579,7 +606,6 @@ export default function CreateQuestionScreen({ navigation, route }) {
     }
     setLatitude(tempLat);
     setLongitude(tempLng);
-    setPlace(`(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`);
     setPickedLabel('');
     setSearchResults([]);
     clearLocationError();
@@ -699,7 +725,6 @@ export default function CreateQuestionScreen({ navigation, route }) {
       }
       return;
     }
-
 
     if (!isPremium) {
       setQueuedPayload(payload);
@@ -821,7 +846,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
             pickEnabled={false}
             tempLat={tempLat}
             tempLng={tempLng}
-            onPick={() => { }}
+            onPick={() => {}}
           />
         </View>
 
@@ -879,12 +904,17 @@ export default function CreateQuestionScreen({ navigation, route }) {
                     <Text style={styles.lockedLocationTitle}>Fixed event location</Text>
                   </View>
                   <Text style={styles.lockedLocationText}>
-                    {place?.trim() || (hasEventFixedLocation ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})` : 'Location not available')}
+                    {place?.trim() ||
+                      (hasEventFixedLocation
+                        ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+                        : 'Location not available')}
                   </Text>
                 </View>
               ) : (
                 <>
-                  <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
+                  <View
+                    style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}
+                  >
                     <Ionicons
                       name="search-outline"
                       size={18}
@@ -916,7 +946,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="search" size={16} color="#a52019" />
-                      <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
+                      <Text style={styles.btnOutlineText}>
+                        {searching ? 'Searching...' : 'Search'}
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -932,7 +964,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
               )}
 
               {/* Search results */}
-              {!eventId && searchResults.length > 1 &&
+              {!eventId &&
+                searchResults.length > 1 &&
                 searchResults.map((r, idx) => (
                   <TouchableOpacity
                     key={idx}
@@ -1104,8 +1137,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
             <Text style={styles.consentTitle}>Spend 1 StreetCoin?</Text>
             <Text style={styles.consentText}>
               {eventId
-                ? 'You already reached today\'s free limit in this event. Confirm to spend 1 StreetCoin and publish this question.'
-                : 'You already reached today\'s free limit. Confirm to spend 1 StreetCoin and publish this question.'}
+                ? "You already reached today's free limit in this event. Confirm to spend 1 StreetCoin and publish this question."
+                : "You already reached today's free limit. Confirm to spend 1 StreetCoin and publish this question."}
             </Text>
             {typeof streetCoinBalance === 'number' ? (
               <Text style={styles.consentBalanceText}>
@@ -1132,18 +1165,27 @@ export default function CreateQuestionScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-      <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => { }}>
+      <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
             <Text style={styles.adBadge}>Sponsored</Text>
             <Text style={styles.adTitle}>University of Seville</Text>
-            <Text style={styles.adText}>Simulated ad shown to free users before their question is published.</Text>
+            <Text style={styles.adText}>
+              Simulated ad shown to free users before their question is published.
+            </Text>
             <View style={styles.adVisual}>
               <Text style={styles.adVisualTitle}>Study, research, connect</Text>
-              <Text style={styles.adVisualText}>Discover degrees, scholarships, campus life, and opportunities at the University of Seville.</Text>
+              <Text style={styles.adVisualText}>
+                Discover degrees, scholarships, campus life, and opportunities at the University of
+                Seville.
+              </Text>
             </View>
-            <Text style={styles.adHelperText}>Your question will only be created when this countdown finishes.</Text>
-            <Text style={styles.adCountdown}>Your question will be published in {adSecondsLeft}s</Text>
+            <Text style={styles.adHelperText}>
+              Your question will only be created when this countdown finishes.
+            </Text>
+            <Text style={styles.adCountdown}>
+              Your question will be published in {adSecondsLeft}s
+            </Text>
             {canSkipAd && (
               <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
                 <Text style={styles.adSkipText}>X</Text>
