@@ -33,11 +33,6 @@ const DEFAULT_FALLBACK_LNG = -5.9823;
 
 const SEARCH_VIEWBOX_DELTA = 0.35;
 
-const parseSearchCoordinate = (value) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-};
-
 const buildNominatimSearchUrl = (query, centerLat, centerLng, bounded = true) => {
     const params = new URLSearchParams({
         format: 'json',
