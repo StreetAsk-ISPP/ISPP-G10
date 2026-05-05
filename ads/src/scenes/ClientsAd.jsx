@@ -109,7 +109,8 @@ function Intro() {
           style={{
             marginTop: 24,
             fontFamily: 'Space Grotesk',
-            fontSize: 168, fontWeight: 800, letterSpacing: -4, lineHeight: 1,
+            fontSize: 168, fontWeight: 800, letterSpacing: -4, lineHeight: 1.15,
+            paddingBottom: 12,
             background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>
