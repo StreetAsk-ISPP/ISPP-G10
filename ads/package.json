@@ -9,7 +9,9 @@
     "preview": "vite preview --port 5180",
     "record:investors": "node scripts/record.mjs investors",
     "record:clients": "node scripts/record.mjs clients",
-    "record:all": "node scripts/record.mjs investors && node scripts/record.mjs clients"
+    "record:all": "node scripts/record.mjs investors && node scripts/record.mjs clients",
+    "record:investors:debug": "DEBUG_FFMPEG=1 node scripts/record.mjs investors",
+    "record:clients:debug": "DEBUG_FFMPEG=1 node scripts/record.mjs clients"
   },
   "dependencies": {
     "framer-motion": "^11.11.17",

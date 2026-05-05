@@ -24,7 +24,7 @@ export default function InvestorsAd() {
   const scene = SCENES[currentIndex].id;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
+    <div style={{ position: 'absolute', inset: 0, color: theme.text }}>
       <Background variant="investors" />
 
       {/* Persistent top-left logo */}
@@ -79,7 +79,7 @@ function Hook() {
         initial={{ opacity: 0, letterSpacing: '0.4em' }}
         animate={{ opacity: 1, letterSpacing: '0.08em' }}
         transition={{ duration: 1.2 }}
-        style={{ fontSize: 22, color: theme.textDim, fontWeight: 600, textTransform: 'uppercase' }}
+        style={{ fontSize: 26, color: theme.textDim, fontWeight: 600, textTransform: 'uppercase' }}
       >
         Hiperlocal · Tiempo real · Comunidad
       </motion.div>
@@ -115,7 +115,7 @@ function Hook() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 3, duration: 1 }}
-        style={{ marginTop: 48, fontSize: 24, color: theme.textDim, maxWidth: 900, textAlign: 'center' }}
+        style={{ marginTop: 48, fontSize: 28, color: theme.textDim, maxWidth: 900, textAlign: 'center' }}
       >
         StreetAsk convierte cada calle en un mini-foro en vivo.
       </motion.div>
@@ -143,8 +143,8 @@ function Problem() {
             style={card()}
           >
             <IconChip name={it.icon} color={it.color} size={72} />
-            <div style={{ fontSize: 30, fontWeight: 700, marginTop: 20 }}>{it.t}</div>
-            <div style={{ fontSize: 20, color: theme.textDim, marginTop: 8 }}>{it.s}</div>
+            <div style={{ fontSize: 34, fontWeight: 700, marginTop: 20 }}>{it.t}</div>
+            <div style={{ fontSize: 24, color: theme.textDim, marginTop: 8 }}>{it.s}</div>
           </motion.div>
         ))}
       </div>
@@ -158,7 +158,7 @@ function Solution() {
     <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center', padding: '0 120px', gap: 60 }}>
       <div>
         <SectionTitle eyebrow="LA SOLUCIÓN" title="Pregunta. Responde. En el momento." align="left" />
-        <ul style={{ listStyle: 'none', padding: 0, margin: '40px 0 0', fontSize: 26, lineHeight: 1.7 }}>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '40px 0 0', fontSize: 30, lineHeight: 1.7 }}>
           {[
             { ic: 'pin',    c: theme.red,    t: 'Preguntas ancladas a un radio (50m–1km).' },
             { ic: 'chat',   c: theme.purple, t: 'Mini-foros que viven mientras importan (1–24h).' },
@@ -204,7 +204,7 @@ function Market({ localTime }) {
           <motion.div key={i} style={{ ...card(), alignItems: 'center', textAlign: 'center' }}
             initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 + i * 0.2, duration: 0.6 }}>
-            <div style={{ fontSize: 18, color: theme.textDim, letterSpacing: 2, fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 22, color: theme.textDim, letterSpacing: 2, fontWeight: 600 }}>{s.label}</div>
             <div style={{
               fontFamily: 'Space Grotesk', fontSize: 96, fontWeight: 800, lineHeight: 1,
               background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
@@ -213,12 +213,12 @@ function Market({ localTime }) {
             }}>
               <Counter to={s.value} suffix={s.suffix} decimals={s.decimals} duration={2} start={start} />
             </div>
-            <div style={{ fontSize: 18, color: theme.textDim }}>{s.hint}</div>
+            <div style={{ fontSize: 22, color: theme.textDim }}>{s.hint}</div>
           </motion.div>
         ))}
       </div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}
-        style={{ marginTop: 56, fontSize: 22, color: theme.textDim }}>
+        style={{ marginTop: 56, fontSize: 26, color: theme.textDim }}>
         Fuentes: estimación interna · Statista local search · GMV eventos UE 2025.
       </motion.div>
     </div>
@@ -232,7 +232,7 @@ function Model({ localTime }) {
     {
       name: 'Free', price: '0', tag: 'Adquisición',
       bullets: ['3 preguntas/día', 'Radio 500m · 6h', 'Ads pre-roll'],
-      color: theme.textDim,
+      color: '#4a4a55',
     },
     {
       name: 'Premium', price: '2,99', tag: 'Conversión 4,2%',
@@ -262,9 +262,9 @@ function Model({ localTime }) {
               transform: p.highlight ? 'scale(1.04)' : 'none',
             }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{p.name}</div>
+              <div style={{ fontSize: 32, fontWeight: 700 }}>{p.name}</div>
               <div style={{
-                padding: '6px 14px', borderRadius: 999, fontSize: 14, fontWeight: 700,
+                padding: '6px 14px', borderRadius: 999, fontSize: 16, fontWeight: 700,
                 background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}55`,
               }}>{p.tag}</div>
             </div>
@@ -273,7 +273,7 @@ function Model({ localTime }) {
             </div>
             <div style={{ marginTop: 16 }}>
               {p.bullets.map((b, j) => (
-                <div key={j} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 18 }}>
+                <div key={j} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 22 }}>
                   <span style={{ color: p.color }}>✓</span>{b}
                 </div>
               ))}
@@ -319,8 +319,8 @@ function CTA() {
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.8 }}
-        style={{ fontSize: 30, color: theme.textDim, textAlign: 'center', maxWidth: 1100 }}>
-        Buscamos <strong style={{ color: '#fff' }}>500.000 €</strong> para escalar a 10k MAU,
+        style={{ fontSize: 34, color: theme.textDim, textAlign: 'center', maxWidth: 1100 }}>
+        Buscamos <strong style={{ color: theme.text }}>500.000 €</strong> para escalar a 10k MAU,
         cerrar 200 cuentas Business y entrar en 3 ciudades.
       </motion.div>
 
@@ -331,7 +331,7 @@ function CTA() {
         <div style={{
           padding: '22px 44px', borderRadius: 999,
           background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
-          fontSize: 26, fontWeight: 700,
+          fontSize: 30, fontWeight: 700,
           boxShadow: `0 20px 60px ${theme.red}55`,
         }}>invest@streetask.app</div>
         <div style={{ fontSize: 22, color: theme.textDim }}>streetask.app</div>
@@ -346,7 +346,7 @@ function SectionTitle({ eyebrow, title, align = 'center' }) {
     <div style={{ textAlign: align, width: '100%' }}>
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ fontSize: 22, color: theme.red, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
+        style={{ fontSize: 26, color: theme.red, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
         {eyebrow}
       </motion.div>
       <motion.h2
@@ -371,7 +371,7 @@ function KPI({ label, value, prefix = '', suffix = '', decimals = 0, start }) {
       }}>
         <Counter to={value} prefix={prefix} suffix={suffix} decimals={decimals} duration={1.8} start={start} />
       </div>
-      <div style={{ fontSize: 18, color: theme.textDim, marginTop: 4, letterSpacing: 1 }}>{label}</div>
+      <div style={{ fontSize: 22, color: theme.textDim, marginTop: 4, letterSpacing: 1 }}>{label}</div>
     </div>
   );
 }

@@ -46,8 +46,8 @@ function Index() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: `radial-gradient(900px 600px at 30% 0%, ${theme.purpleDeep}, ${theme.bg0})`,
-      color: '#fff', padding: '80px 8vw',
+      minHeight: '100vh', background: `radial-gradient(900px 600px at 30% 0%, ${theme.purple}22, ${theme.bg0})`,
+      color: theme.text, padding: '80px 8vw',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{
@@ -65,7 +65,7 @@ function Index() {
       }}>
         Dos anuncios.<br/>Listos para grabar.
       </h1>
-      <p style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)', maxWidth: 720, marginTop: 16 }}>
+      <p style={{ fontSize: 22, color: theme.textDim, maxWidth: 720, marginTop: 16 }}>
         Cada anuncio dura ~60&nbsp;s y se renderiza a 1920×1080. Para grabarlo, ejecuta el comando
         de Playwright o pulsa F11 y graba con OBS.
       </p>
@@ -74,25 +74,25 @@ function Index() {
           <a key={i} href={c.to} style={{
             display: 'block', textDecoration: 'none', color: 'inherit',
             padding: 36, borderRadius: 24,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(14,14,24,0.04)',
+            border: `1px solid ${theme.border}`,
             transition: 'transform 0.2s, background 0.2s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = 'rgba(14,14,24,0.07)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(14,14,24,0.04)'; }}
           >
             <div style={{
               display: 'inline-block', padding: '6px 14px', borderRadius: 999,
-              background: `${c.color}33`, color: '#fff',
+              background: `${c.color}1f`, color: c.color,
               border: `1px solid ${c.color}66`, fontSize: 13, fontWeight: 700, letterSpacing: 2,
             }}>{c.tag.toUpperCase()}</div>
             <div style={{ fontSize: 36, fontWeight: 700, marginTop: 16, fontFamily: 'Space Grotesk' }}>{c.title}</div>
-            <div style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>{c.desc}</div>
+            <div style={{ fontSize: 18, color: theme.textDim, marginTop: 8 }}>{c.desc}</div>
             <div style={{ marginTop: 24, color: c.color, fontWeight: 700 }}>Reproducir →</div>
           </a>
         ))}
       </div>
-      <div style={{ marginTop: 60, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
+      <div style={{ marginTop: 60, fontSize: 14, color: theme.textFaint }}>
         Comandos: <code>npm run dev</code> · <code>npm run record:investors</code> · <code>npm run record:clients</code>
       </div>
     </div>

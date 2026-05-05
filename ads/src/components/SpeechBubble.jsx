@@ -29,7 +29,8 @@ export default function SpeechBubble({
         borderRadius: 32,
         fontSize: 40, fontWeight: 700, lineHeight: 1.2,
         maxWidth: 620,
-        boxShadow: '0 24px 60px rgba(0,0,0,0.55)',
+        boxShadow: '0 24px 60px rgba(14,14,24,0.25)',
+        border: color ? 'none' : `1px solid ${theme.border}`,
         ...style,
       }}
     >

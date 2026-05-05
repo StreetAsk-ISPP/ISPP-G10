@@ -7,7 +7,7 @@ export default function ProgressBar({ progress }) {
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, height: 4,
-      background: 'rgba(255,255,255,0.08)', zIndex: 50,
+      background: 'rgba(14,14,24,0.12)', zIndex: 50,
     }}>
       <motion.div
         style={{

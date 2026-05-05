@@ -28,7 +28,7 @@ export default function ClientsAd() {
   const scene = SCENES[currentIndex].id;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, color: '#fff' }}>
+    <div style={{ position: 'absolute', inset: 0, color: theme.text }}>
       <Background variant="clients" />
 
       <div style={{ position: 'absolute', top: 48, left: 56, zIndex: 30 }}>
@@ -66,7 +66,7 @@ function Intro() {
         transition={{ duration: 0.8 }}
         style={{ position: 'absolute', left: 130, bottom: 0, zIndex: 4 }}
       >
-        <Person variant="womanPony" color="#ffffff" size={360} />
+        <Person variant="womanPony" color={theme.text} size={360} />
       </motion.div>
       <div style={{ position: 'absolute', left: 130, top: 540, zIndex: 6 }}>
         <SpeechBubble tailSide="left" delay={0.6} color={theme.red}>
@@ -80,7 +80,7 @@ function Intro() {
         transition={{ duration: 0.8, delay: 0.2 }}
         style={{ position: 'absolute', right: 130, bottom: 0, zIndex: 4 }}
       >
-        <Person variant="manCap" color="#ffffff" size={360} flip />
+        <Person variant="manCap" color={theme.text} size={360} flip />
       </motion.div>
       <div style={{ position: 'absolute', right: 130, top: 540, zIndex: 6 }}>
         <SpeechBubble tailSide="right" delay={1.4} color={theme.purple}>
@@ -118,7 +118,7 @@ function Intro() {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           transition={{ delay: 3.8, duration: 0.6 }}
-          style={{ marginTop: 16, fontSize: 36, color: '#fff', fontWeight: 500 }}>
+          style={{ marginTop: 16, fontSize: 36, color: theme.text, fontWeight: 500 }}>
           En StreetAsk, te responde el <strong>barrio</strong>.
         </motion.div>
       </div>
@@ -177,7 +177,7 @@ function UserAsk() {
         transition={{ delay: 0.7 }}
         style={{ position: 'absolute', right: 100, bottom: 0 }}
       >
-        <Person variant="womanPony" color="#ffffff" size={220} flip />
+        <Person variant="womanPony" color={theme.text} size={220} flip />
       </motion.div>
     </div>
   );
@@ -193,7 +193,7 @@ function ComposerScreen() {
 
       <div style={{
         marginTop: 18, padding: 16, borderRadius: 16,
-        background: 'rgba(255,255,255,0.06)', border: `1px solid ${theme.border}`,
+        background: 'rgba(14,14,24,0.04)', border: `1px solid ${theme.border}`,
         minHeight: 120, fontSize: 20, lineHeight: 1.4,
       }}>
         <Typewriter text={text} />
@@ -204,7 +204,7 @@ function ComposerScreen() {
           <Icon name="pin" size={14} /> Radio de pregunta
         </div>
         <div style={{ marginTop: 10, height: 6, borderRadius: 999,
-                      background: 'rgba(255,255,255,0.1)', position: 'relative' }}>
+                      background: 'rgba(14,14,24,0.1)', position: 'relative' }}>
           <motion.div
             initial={{ width: '20%' }} animate={{ width: '50%' }}
             transition={{ duration: 1.4, delay: 1.6 }}
@@ -216,7 +216,8 @@ function ComposerScreen() {
             transition={{ duration: 1.4, delay: 1.6 }}
             style={{ position: 'absolute', top: -5, width: 16, height: 16,
                      borderRadius: '50%', background: '#fff',
-                     boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }}
+                     boxShadow: '0 2px 6px rgba(14,14,24,0.35)',
+                     border: `1px solid ${theme.border}` }}
           />
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: theme.textDim, textAlign: 'right' }}>500 m</div>
@@ -238,9 +239,9 @@ function ComposerScreen() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 14px', borderRadius: 999,
                 fontSize: 14, fontWeight: 600,
-                background: i === 0 ? `${theme.red}33` : 'rgba(255,255,255,0.08)',
+                background: i === 0 ? `${theme.red}1f` : 'rgba(14,14,24,0.05)',
                 border: `1px solid ${i === 0 ? theme.red : theme.border}`,
-                color: i === 0 ? '#fff' : theme.textDim,
+                color: i === 0 ? theme.red : theme.textDim,
               }}>
               <Icon name={t.icon} size={14} />
               {t.label}
@@ -337,10 +338,10 @@ function UserThread() {
             }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.08)', overflow: 'hidden',
+              background: 'rgba(14,14,24,0.08)', overflow: 'hidden',
               display: 'grid', placeItems: 'end center',
             }}>
-              <Person variant={a.person} color="#fff" size={70} bob={false} />
+              <Person variant={a.person} color={theme.text} size={70} bob={false} />
             </div>
             <div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
@@ -373,7 +374,7 @@ function UserThread() {
             <motion.div
               animate={{ y: [0, -6, 0] }} transition={{ duration: 1.4, repeat: Infinity }}
               style={{ display: 'flex', flexDirection: 'column',
-                       alignItems: 'center', gap: 4, color: a.top ? theme.green : '#fff' }}>
+                       alignItems: 'center', gap: 4, color: a.top ? theme.green : theme.text }}>
               <Icon name="thumbUp" size={26} />
               <div style={{ fontWeight: 700 }}>
                 <Counter to={a.likes} duration={1.4} />
@@ -473,7 +474,7 @@ function BizIntro() {
         transition={{ duration: 0.8 }}
         style={{ position: 'absolute', right: 160, bottom: 40, zIndex: 4 }}
       >
-        <Person variant="businessman" color="#ffffff" size={320} flip />
+        <Person variant="businessman" color={theme.text} size={320} flip />
       </motion.div>
       <div style={{ position: 'absolute', right: 180, bottom: 380, zIndex: 6 }}>
         <SpeechBubble tailSide="right" delay={1} color={theme.gold}>
@@ -509,7 +510,7 @@ function BizDash({ localTime }) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Icon name="store" size={20} /> Cuenta Business
           </span>
-          <strong style={{ color: '#fff' }}>19,99 €/mes</strong>
+          <strong style={{ color: theme.text }}>19,99 €/mes</strong>
           <span style={{ color: theme.textFaint }}>·</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bolt" size={20} /> Boost por evento
@@ -573,7 +574,7 @@ function BizPhone() {
         ].map((it, i) => (
           <div key={i} style={{
             padding: 10, borderRadius: 12,
-            background: 'rgba(255,255,255,0.06)', border: `1px solid ${theme.border}`,
+            background: 'rgba(14,14,24,0.04)', border: `1px solid ${theme.border}`,
           }}>
             <div style={{ fontSize: 11, color: theme.textDim,
                           display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -647,7 +648,7 @@ function Outro() {
         {['App Store', 'Google Play'].map((s, i) => (
           <div key={i} style={{
             padding: '16px 32px', borderRadius: 999,
-            background: 'rgba(255,255,255,0.08)', border: `1px solid ${theme.border}`,
+            background: 'rgba(14,14,24,0.05)', border: `1px solid ${theme.border}`,
             fontSize: 22, fontWeight: 700,
           }}>
             {s}

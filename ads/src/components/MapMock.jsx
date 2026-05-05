@@ -21,21 +21,21 @@ export default function MapMock({ width = 900, height = 560, showEvents = false,
     <div style={{
       width, height, position: 'relative',
       borderRadius: 28, overflow: 'hidden',
-      background: 'linear-gradient(160deg, #1a2238, #0e1426)',
+      background: 'linear-gradient(160deg, #e8ecf5, #d3dbeb)',
       border: `1px solid ${theme.border}`,
-      boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+      boxShadow: '0 30px 80px rgba(14,14,24,0.18)',
     }}>
       {/* Streets */}
       <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} style={{ position: 'absolute', inset: 0 }}>
         <defs>
           <linearGradient id="street" x1="0" x2="1">
-            <stop offset="0%" stopColor="#2a3556" />
-            <stop offset="100%" stopColor="#3b4a78" />
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#f5f6fb" />
           </linearGradient>
         </defs>
         {/* parks */}
-        <rect x="60" y="60" width="220" height="160" rx="20" fill="#1f3a2a" opacity="0.7" />
-        <rect x={width - 260} y={height - 200} width="200" height="160" rx="20" fill="#1f3a2a" opacity="0.7" />
+        <rect x="60" y="60" width="220" height="160" rx="20" fill="#bfe3c8" opacity="0.85" />
+        <rect x={width - 260} y={height - 200} width="200" height="160" rx="20" fill="#bfe3c8" opacity="0.85" />
         {/* avenues */}
         {[100, 250, 400, 540].map((y, i) => (
           <motion.line key={`h${i}`} x1="0" y1={y} x2={width} y2={y}
@@ -55,7 +55,7 @@ export default function MapMock({ width = 900, height = 560, showEvents = false,
           const y = 30 + (i * 113) % (height - 60);
           const w = 26 + (i % 3) * 8;
           const h = 26 + (i % 4) * 8;
-          return <rect key={i} x={x} y={y} width={w} height={h} rx="4" fill="#2a3148" opacity="0.55" />;
+          return <rect key={i} x={x} y={y} width={w} height={h} rx="4" fill="#9aa3bd" opacity="0.55" />;
         })}
       </svg>
 
@@ -75,11 +75,11 @@ export default function MapMock({ width = 900, height = 560, showEvents = false,
               <motion.div
                 style={{
                   position: 'absolute', left: '50%', top: '100%',
-                  width: 60, height: 60, marginLeft: -30, marginTop: -30,
-                  borderRadius: '50%', background: color, opacity: 0.4,
+                  width: 44, height: 44, marginLeft: -22, marginTop: -22,
+                  borderRadius: '50%', background: color, opacity: 0.28,
                 }}
-                animate={{ scale: [1, 2.4], opacity: [0.5, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.15 }}
+                animate={{ scale: [0.7, 1.15, 0.7] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
               />
             )}
             <svg width="34" height="44" viewBox="0 0 24 32">
@@ -95,7 +95,7 @@ export default function MapMock({ width = 900, height = 560, showEvents = false,
       })}
 
       {/* User dot */}
-      <motion.div
+      <div
         style={{
           position: 'absolute', left: width / 2, top: height / 2,
           width: 22, height: 22, borderRadius: '50%',
@@ -103,8 +103,6 @@ export default function MapMock({ width = 900, height = 560, showEvents = false,
           boxShadow: '0 0 0 6px rgba(59,130,246,0.3)',
           transform: 'translate(-50%, -50%)',
         }}
-        animate={{ boxShadow: ['0 0 0 6px rgba(59,130,246,0.3)', '0 0 0 18px rgba(59,130,246,0)'] }}
-        transition={{ duration: 1.6, repeat: Infinity }}
       />
     </div>
   );

@@ -29,8 +29,8 @@ export default function Stage({ children }) {
         transformOrigin: 'center center',
         position: 'relative',
         overflow: 'hidden',
-        background: '#0a0a14',
-        boxShadow: '0 30px 120px rgba(0,0,0,0.8)',
+        background: '#ffffff',
+        boxShadow: '0 30px 120px rgba(14,14,24,0.4)',
       }}>
         {children}
       </div>
