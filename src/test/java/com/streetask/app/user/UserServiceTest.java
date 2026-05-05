@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,6 +28,7 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,6 +47,7 @@ import com.streetask.app.exceptions.AccessDeniedException;
 import com.streetask.app.exceptions.ResourceNotFoundException;
 import com.streetask.app.model.Answer;
 import com.streetask.app.model.Question;
+import com.streetask.app.payments.StripeRedirectUrlResolver;
 import com.streetask.app.question.QuestionRepository;
 
 import jakarta.persistence.EntityManager;
@@ -70,6 +73,9 @@ class UserServiceTest {
     private EntityManager entityManager;
 
     @Mock
+    private StripeRedirectUrlResolver stripeRedirectUrlResolver;
+
+    @Mock
     private Query nativeQuery;
 
     @InjectMocks
@@ -90,6 +96,7 @@ class UserServiceTest {
         SecurityContextHolder.clearContext();
 
         ReflectionTestUtils.setField(userService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(userService, "stripeRedirectUrlResolver", stripeRedirectUrlResolver);
         lenient().when(entityManager.createNativeQuery(anyString())).thenReturn(nativeQuery);
         lenient().when(nativeQuery.setParameter(eq("userId"), any())).thenReturn(nativeQuery);
         lenient().when(nativeQuery.executeUpdate()).thenReturn(1);
@@ -98,6 +105,34 @@ class UserServiceTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+    }
+
+    // ================= GET PASSWORD ENCODER =================
+
+    @Test
+    @DisplayName("getPasswordEncoder should return new BCryptPasswordEncoder when field is null")
+    void getPasswordEncoder_shouldReturnDefaultWhenNull() {
+        PasswordEncoder originalEncoder = (PasswordEncoder) ReflectionTestUtils.getField(userService,
+                "passwordEncoder");
+        try {
+            ReflectionTestUtils.setField(userService, "passwordEncoder", null);
+
+            PasswordEncoder result = ReflectionTestUtils.invokeMethod(userService, "getPasswordEncoder");
+
+            assertNotNull(result);
+            assertTrue(result instanceof org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder);
+        } finally {
+            ReflectionTestUtils.setField(userService, "passwordEncoder", originalEncoder);
+        }
+    }
+
+    @Test
+    @DisplayName("getPasswordEncoder should return the injected encoder when field is NOT null")
+    void getPasswordEncoder_shouldReturnInjectedEncoder() {
+        PasswordEncoder result = ReflectionTestUtils.invokeMethod(userService, "getPasswordEncoder");
+
+        assertNotNull(result);
+        assertEquals(passwordEncoder, result);
     }
 
     // ================= SAVE USER =================
@@ -175,6 +210,21 @@ class UserServiceTest {
     }
 
     // ================= CURRENT USER =================
+
+    @Test
+    @DisplayName("findCurrentUser should work with UUID identifier")
+    void findCurrentUser_shouldWorkWithUuid() {
+        String uuidStr = testUserId.toString();
+        setupSecurityContext(uuidStr);
+
+        when(userRepository.findByEmailIgnoreCase(uuidStr)).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase(uuidStr)).thenReturn(Optional.empty());
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+
+        User result = userService.findCurrentUser();
+
+        assertEquals(testUserId, result.getId());
+    }
 
     @Test
     @DisplayName("findCurrentUser should return authenticated user")
@@ -388,6 +438,54 @@ class UserServiceTest {
         verify(userRepository).delete(testUser);
     }
 
+    @Test
+    void deleteUser_shouldCleanupBusinessAccountData() {
+        BusinessAccount business = new BusinessAccount();
+        business.setId(testUserId);
+        business.setAccountType(AccountType.BUSINESS);
+
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(business));
+
+        userService.deleteUser(testUserId);
+
+        verify(userRepository).delete(business);
+    }
+
+    @Test
+    void deleteUser_shouldCleanupAdminData() {
+        Admin admin = new Admin();
+        admin.setId(testUserId);
+
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(admin));
+
+        userService.deleteUser(testUserId);
+
+        verify(userRepository).delete(admin);
+    }
+
+    @Test
+    void deleteCurrentUserAccount_shouldWork() {
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(testUser));
+
+        userService.deleteCurrentUserAccount();
+
+        verify(userRepository).delete(testUser);
+    }
+
+    @Test
+    @DisplayName("deleteUser should cleanup all RegularUser data including questions and answers")
+    void deleteUserAccount_shouldCleanupRegularUserData() {
+        RegularUser regularUser = new RegularUser();
+        regularUser.setId(testUserId);
+
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(regularUser));
+
+        userService.deleteUser(testUserId);
+
+        verify(userRepository).delete(regularUser);
+    }
+
     // ================= REPUTATION TESTS (TRUNK) =================
 
     @Test
@@ -405,6 +503,20 @@ class UserServiceTest {
 
         assertEquals(12, result.getReputation());
         verify(answerRepository).aggregateVotesByUserIds(anyCollection());
+    }
+
+    @Test
+    @DisplayName("findAll should return empty list when no users exist")
+    void findAll_shouldReturnEmptyListWhenNoUsers() {
+        when(userRepository.findAll()).thenReturn(Collections.emptyList());
+
+        Iterable<User> result = userService.findAll();
+
+        assertNotNull(result);
+        List<User> resultList = (List<User>) result;
+        assertTrue(resultList.isEmpty());
+
+        verify(answerRepository, never()).aggregateVotesByUserIds(any());
     }
 
     @Test
@@ -584,6 +696,31 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("getUserStats should cap rating at 5.0 - Forced branch")
+    void getUserStats_shouldCapRatingAtFive() {
+        RegularUser user = new RegularUser() {
+            @Override
+            public Integer getTotalLikesReceived() {
+                return 10;
+            }
+
+            @Override
+            public Integer getTotalDislikesReceived() {
+                return -1;
+            }
+        };
+        user.setId(testUserId);
+        user.setUserName(TEST_USERNAME);
+        user.setAuthority(new Authorities());
+
+        when(userRepository.findById(testUserId)).thenReturn(Optional.of(user));
+
+        Map<String, Object> stats = userService.getUserStats(testUserId);
+
+        assertEquals(5.0, stats.get("rating"));
+    }
+
+    @Test
     @DisplayName("getUserStats should return correct role for ADMIN user")
     void getUserStats_shouldReturnAdminRole() {
         User user = createTestUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "ADMIN");
@@ -685,6 +822,206 @@ class UserServiceTest {
     // ================= REGULAR PREMIUM ACCESS =================
 
     @Test
+    @DisplayName("create Stripe session should throw AccessDeniedException if premium is already active")
+    void createCurrentRegularPremiumStripeCheckoutSessionn_shouldThrowIfAlreadyPremium() {
+        RegularUser premiumUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        premiumUser.setPremiumActive(true);
+        premiumUser.setAccountType(AccountType.REGULAR_USER);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(premiumUser));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> userService.createCurrentRegularPremiumStripeCheckoutSession(null));
+        assertThat(exception.getMessage()).isEqualTo("Regular premium access is already active.");
+    }
+
+    @Test
+    @DisplayName("create Stripe session should return session details")
+    void createCurrentRegularPremiumStripeCheckoutSession_shouldReturnResponse() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setPremiumActive(false);
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test_mock");
+
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            com.stripe.model.checkout.Session mockSession = mock(com.stripe.model.checkout.Session.class);
+            when(mockSession.getId()).thenReturn("sess_123");
+            when(mockSession.getUrl()).thenReturn("https://stripe.com/pay");
+            when(stripeRedirectUrlResolver.resolveCheckoutBaseUrl(any(), any()))
+                    .thenReturn("http://localhost:8081");
+
+            mockedSession
+                    .when(() -> com.stripe.model.checkout.Session
+                            .create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenReturn(mockSession);
+
+            StripeCheckoutSessionResponse response = userService
+                    .createCurrentRegularPremiumStripeCheckoutSession("http://return.url");
+
+            assertNotNull(response);
+            assertEquals("sess_123", response.getSessionId());
+        }
+    }
+
+    @Test
+    @DisplayName("create Stripe session should throw IllegalStateException when Stripe API fails")
+    void createCurrentRegularPremiumStripeCheckoutSession_shouldHandleStripeException() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setPremiumActive(false);
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test_mock");
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            mockedSession.when(() -> com.stripe.model.checkout.Session
+                    .create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenThrow(mock(com.stripe.exception.StripeException.class));
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class,
+                    () -> userService.createCurrentRegularPremiumStripeCheckoutSession(null));
+            assertThat(exception.getMessage()).isEqualTo("Unable to create Stripe checkout session.");
+        }
+    }
+
+    @Test
+    @DisplayName("createCurrentRegularPremiumStripeCheckoutSession (no args) should call overloaded method with null")
+    void createCurrentRegularPremiumStripeCheckoutSession_noArgs_shouldWork() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setPremiumActive(false);
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test_mock");
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+
+        when(stripeRedirectUrlResolver.resolveCheckoutBaseUrl(any(), any()))
+                .thenReturn("http://localhost:8081");
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            com.stripe.model.checkout.Session mockSess = mock(com.stripe.model.checkout.Session.class);
+            when(mockSess.getId()).thenReturn("sess_123");
+            mockedSession.when(() -> com.stripe.model.checkout.Session
+                    .create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenReturn(mockSess);
+
+            StripeCheckoutSessionResponse response = userService.createCurrentRegularPremiumStripeCheckoutSession();
+
+            assertNotNull(response);
+            assertEquals("sess_123", response.getSessionId());
+        }
+    }
+
+    @Test
+    @DisplayName("confirm Stripe session should throw IllegalArgumentException if sessionId is blank")
+    void confirmCurrentRegularPremiumStripeCheckoutSession_shouldThrowIfIdIsBlank() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.confirmCurrentRegularPremiumStripeCheckoutSession(" "));
+
+        assertThat(ex.getMessage()).isEqualTo("Stripe sessionId is required.");
+    }
+
+    @Test
+    @DisplayName("confirm Stripe session should activate premium")
+    void confirmCurrentRegularPremiumStripeCheckoutSession_shouldWork() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test");
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+
+        com.stripe.model.checkout.Session mockSession = mock(com.stripe.model.checkout.Session.class);
+        when(mockSession.getPaymentStatus()).thenReturn("paid");
+        when(mockSession.getMetadata()).thenReturn(Map.of("regularUserId", testUserId.toString()));
+
+        try (org.mockito.MockedStatic<com.stripe.model.checkout.Session> mockedSession = mockStatic(
+                com.stripe.model.checkout.Session.class)) {
+            mockedSession.when(() -> com.stripe.model.checkout.Session.retrieve(anyString())).thenReturn(mockSession);
+
+            userService.confirmCurrentRegularPremiumStripeCheckoutSession("sess_123");
+
+            assertTrue(regularUser.getPremiumActive());
+            verify(userRepository).save(regularUser);
+        }
+    }
+
+    @Test
+    @DisplayName("confirm Stripe session should throw AccessDeniedException if payment status is not paid")
+    void confirmCurrentRegularPremiumStripeCheckoutSession_shouldThrowIfNotPaid() {
+        RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        user.setAccountType(AccountType.REGULAR_USER);
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test");
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            com.stripe.model.checkout.Session mockSess = mock(com.stripe.model.checkout.Session.class);
+            when(mockSess.getPaymentStatus()).thenReturn("unpaid");
+
+            mockedSession.when(() -> com.stripe.model.checkout.Session.retrieve(anyString()))
+                    .thenReturn(mockSess);
+
+            AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                    () -> userService.confirmCurrentRegularPremiumStripeCheckoutSession("sess_123"));
+
+            assertThat(ex.getMessage()).isEqualTo("Payment has not been completed yet.");
+        }
+    }
+
+    @Test
+    @DisplayName("confirm Stripe session should throw AccessDeniedException if userId mismatch")
+    void confirmCurrentRegularPremiumStripeCheckoutSession_shouldThrowIfUserIdMismatch() {
+        RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        regularUser.setPremiumActive(false);
+        regularUser.setAccountType(AccountType.REGULAR_USER);
+
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test_mock");
+
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(regularUser));
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            com.stripe.model.checkout.Session mockSess = mock(com.stripe.model.checkout.Session.class);
+
+            when(mockSess.getPaymentStatus()).thenReturn("paid");
+            when(mockSess.getMetadata()).thenReturn(null);
+
+            mockedSession.when(() -> com.stripe.model.checkout.Session.retrieve(anyString()))
+                    .thenReturn(mockSess);
+
+            AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                    () -> userService.confirmCurrentRegularPremiumStripeCheckoutSession("sess_123"));
+
+            assertThat(exception.getMessage()).isEqualTo("Stripe session does not belong to this regular account.");
+        }
+    }
+
+    @Test
+    @DisplayName("confirm Stripe session should throw IllegalStateException on Stripe retrieve error")
+    void confirmCurrentRegularPremiumStripeCheckoutSession_shouldHandleStripeException() {
+        RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        user.setAccountType(AccountType.REGULAR_USER);
+        setupSecurityContext(TEST_EMAIL);
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test");
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            mockedSession.when(() -> com.stripe.model.checkout.Session.retrieve(anyString()))
+                    .thenThrow(mock(com.stripe.exception.StripeException.class));
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class,
+                    () -> userService.confirmCurrentRegularPremiumStripeCheckoutSession("sess_123"));
+            assertThat(exception.getMessage()).isEqualTo("Unable to confirm Stripe checkout session.");
+        }
+    }
+
+    @Test
     @DisplayName("updateCurrentRegularPremiumAccess should allow regular users to activate premium")
     void updateCurrentRegularPremiumAccess_shouldAllowRegularUser() {
         RegularUser regularUser = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
@@ -720,6 +1057,78 @@ class UserServiceTest {
                 () -> userService.updateCurrentRegularPremiumAccess(true));
 
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Coverage: getCurrentRegularUser should throw if AccountType is wrong")
+    void getCurrentRegularUser_WrongAccountType() {
+        RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        user.setAccountType(null);
+
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> userService.createCurrentRegularPremiumStripeCheckoutSession(null));
+        assertThat(exception.getMessage()).isEqualTo("Only regular users can access this endpoint.");
+    }
+
+    @Test
+    @DisplayName("Coverage: ensureStripeConfigured should throw if key is blank")
+    void ensureStripeConfigured_shouldThrowIfKeyBlank() {
+        RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        user.setAccountType(AccountType.REGULAR_USER);
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(user));
+
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "");
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> userService.createCurrentRegularPremiumStripeCheckoutSession(null));
+        assertThat(exception.getMessage()).isEqualTo("Stripe secret key is not configured.");
+    }
+
+    @Test
+    @DisplayName("Coverage: normalizeCurrency and appendQuery defaults and fallbacks")
+    void normalizeCurrencyAndAppendQuery_shouldWork() {
+        RegularUser user = createTestRegularUserWithAuthority(testUserId, TEST_EMAIL, TEST_USERNAME, "USER");
+        user.setAccountType(AccountType.REGULAR_USER);
+        setupSecurityContext(TEST_EMAIL);
+        when(userRepository.findByEmailIgnoreCase(TEST_EMAIL)).thenReturn(Optional.of(user));
+        ReflectionTestUtils.setField(userService, "stripeSecretKey", "sk_test");
+
+        try (var mockedSession = mockStatic(com.stripe.model.checkout.Session.class)) {
+            com.stripe.model.checkout.Session mockSess = mock(com.stripe.model.checkout.Session.class);
+            mockedSession.when(() -> com.stripe.model.checkout.Session
+                    .create(any(com.stripe.param.checkout.SessionCreateParams.class)))
+                    .thenReturn(mockSess);
+            ReflectionTestUtils.setField(userService, "stripeCurrency", "");
+            ReflectionTestUtils.setField(userService, "frontendUrl", "");
+            when(stripeRedirectUrlResolver.resolveCheckoutBaseUrl(any(), any()))
+                    .thenReturn(null, "http://localhost:8081");
+
+            userService.createCurrentRegularPremiumStripeCheckoutSession("http://return.url");
+
+            ReflectionTestUtils.setField(userService, "stripeCurrency", " USD ");
+            ReflectionTestUtils.setField(userService, "frontendUrl", "http://mi-frontend.com?param=1 ");
+            when(stripeRedirectUrlResolver.resolveCheckoutBaseUrl(any(), any()))
+                    .thenReturn(null);
+
+            userService.createCurrentRegularPremiumStripeCheckoutSession("http://return.url");
+
+        }
+    }
+
+    @Test
+    @DisplayName("resolveRegularPremiumAmount should handle nulls and minimums")
+    void resolveRegularPremiumAmount_shouldHandleEdgeCases() {
+        ReflectionTestUtils.setField(userService, "stripeRegularPremiumAmountCents", null);
+        Long amount = ReflectionTestUtils.invokeMethod(userService, "resolveRegularPremiumAmount");
+        assertEquals(999L, amount);
+
+        ReflectionTestUtils.setField(userService, "stripeRegularPremiumAmountCents", -50);
+        amount = ReflectionTestUtils.invokeMethod(userService, "resolveRegularPremiumAmount");
+        assertEquals(1L, amount);
     }
 
     // ================= HELPERS =================
