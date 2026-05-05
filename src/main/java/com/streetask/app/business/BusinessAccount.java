@@ -49,6 +49,10 @@ public class BusinessAccount extends User {
 
     private Float rating = 0.0f;
 
+    private Integer totalLikesReceived;
+
+    private Integer totalDislikesReceived;
+
     private LocalDateTime verifiedAt;
 
     @Enumerated(EnumType.STRING)

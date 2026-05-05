@@ -317,6 +317,10 @@ public class UserService {
             likesCount = regularUser.getTotalLikesReceived() == null ? 0 : regularUser.getTotalLikesReceived();
             dislikesCount = regularUser.getTotalDislikesReceived() == null ? 0 : regularUser.getTotalDislikesReceived();
             coinBalance = regularUser.getCoinBalance() == null ? 0 : regularUser.getCoinBalance();
+        } else if (user instanceof BusinessAccount businessAccount) {
+            int[] voteCounts = resolveAnswerVoteCounts(userId);
+            likesCount = voteCounts[0];
+            dislikesCount = voteCounts[1];
         }
 
         Map<String, Object> stats = new HashMap<>();
@@ -349,6 +353,17 @@ public class UserService {
         stats.put("rating", rating);
 
         return stats;
+    }
+
+    private int[] resolveAnswerVoteCounts(UUID userId) {
+        List<Object[]> aggregates = answerRepository.aggregateVotesByUserIds(List.of(userId));
+        if (aggregates.isEmpty()) {
+            return new int[] { 0, 0 };
+        }
+        Object[] row = aggregates.get(0);
+        int likes = ((Number) row[1]).intValue();
+        int dislikes = ((Number) row[2]).intValue();
+        return new int[] { likes, dislikes };
     }
 
     @Transactional(readOnly = true)
