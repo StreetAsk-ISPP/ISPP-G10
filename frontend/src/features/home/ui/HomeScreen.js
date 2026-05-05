@@ -770,14 +770,16 @@ export default function HomeScreen({ navigation }) {
                                 </TouchableOpacity>
                             )}
 
-                            <TouchableOpacity
-                                style={[styles.fab, isNarrow && { width: 220 }]}
-                                onPress={() => navigation.navigate('CreateQuestion')}
-                                activeOpacity={0.85}
-                            >
-                                <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
-                                <Text style={styles.fabText}>Ask a question</Text>
-                            </TouchableOpacity>
+                            {!isBusiness && (
+                                <TouchableOpacity
+                                    style={[styles.fab, isNarrow && { width: 220 }]}
+                                    onPress={() => navigation.navigate('CreateQuestion')}
+                                    activeOpacity={0.85}
+                                >
+                                    <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                                    <Text style={styles.fabText}>Ask a question</Text>
+                                </TouchableOpacity>
+                            )}
                         </>
                     )}
 
