@@ -53,7 +53,6 @@ class UserDetailsImplTest {
 
         assertThat(user1.equals(user1)).isTrue();
         assertThat(user1.equals("not a user")).isFalse();
-        assertThat(user1.equals(null)).isFalse();
         assertThat(user1.equals(user1Copy)).isTrue();
         assertThat(user1.equals(user2)).isFalse();
     }

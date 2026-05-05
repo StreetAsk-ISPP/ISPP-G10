@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 class RestPreconditionsTest {
 
     @Test
+    @SuppressWarnings("reflection")
     void privateConstructorShouldThrowAssertionError() throws NoSuchMethodException {
         Constructor<RestPreconditions> constructor = RestPreconditions.class.getDeclaredConstructor();
 
