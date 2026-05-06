@@ -5,7 +5,7 @@
 
 import http from 'k6/http';
 import { check, fail } from 'k6';
-import { BASE_URL, ADMIN_EMAIL, ADMIN_PASSWORD, ENDPOINTS, CONTENT_TYPE_JSON } from './config.js';
+import { BASE_URL, USER_EMAIL, USER_PASSWORD, ENDPOINTS, CONTENT_TYPE_JSON } from './config.js';
 
 /**
  * Creates authorization headers with Bearer token
@@ -26,7 +26,7 @@ export function authHeaders(token) {
 export function login() {
     const response = http.post(
         `${BASE_URL}${ENDPOINTS.SIGNIN}`,
-        JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+        JSON.stringify({ email: USER_EMAIL, password: USER_PASSWORD }),
         { headers: CONTENT_TYPE_JSON }
     );
 

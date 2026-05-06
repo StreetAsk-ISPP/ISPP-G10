@@ -67,7 +67,7 @@ export function createQuestion(headers, questionData) {
         { headers }
     );
 
-    check(response, {
+    const checkResult = check(response, {
         'create question returns 201': (r) => r.status === 201,
         'created question has id': (r) => {
             try {
@@ -77,6 +77,10 @@ export function createQuestion(headers, questionData) {
             }
         },
     });
+
+    if (!checkResult) {
+        console.log(`[CREATE QUESTION FAILED] Status: ${response.status}, Body: ${response.body}`);
+    }
 
     return response;
 }
@@ -91,6 +95,6 @@ export function buildQuestionPayload() {
         title: `Load test question ${__VU}-${__ITER}`,
         content: `Generated during local load testing at ${createdAt}`,
         radiusKm: 0.5,
-        confirmStreetCoinSpend: false,
+        confirmStreetCoinSpend: true,
     };
 }

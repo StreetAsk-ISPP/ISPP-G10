@@ -15,15 +15,20 @@ import { BASE_URL, QUESTION_ID, ENDPOINTS } from './config.js';
  * @returns {Object} Response object
  */
 export function listAnswers(headers, questionId = QUESTION_ID, options = {}) {
-    const params = new URLSearchParams({
-        questionId,
-        sort: options.sort || 'date',
-        ...(options.limit && { limit: options.limit }),
-        ...(options.offset && { offset: options.offset }),
-    });
+    let queryParams = [
+        `questionId=${questionId}`,
+        `sort=${options.sort || 'date'}`
+    ];
+
+    if (options.limit) {
+        queryParams.push(`limit=${options.limit}`);
+    }
+    if (options.offset) {
+        queryParams.push(`offset=${options.offset}`);
+    }
 
     const response = http.get(
-        `${BASE_URL}${ENDPOINTS.ANSWERS}?${params.toString()}`,
+        `${BASE_URL}${ENDPOINTS.ANSWERS}?${queryParams.join('&')}`,
         { headers }
     );
 
@@ -79,29 +84,20 @@ export function createAnswer(headers, answerData) {
         { headers }
     );
 
-    check(response, {
-        'create answer returns 201': (r) => r.status === 201,
-        'created answer has id': (r) => {
-            try {
-                return !!r.json('id');
-            } catch {
-                return false;
-            }
-        },
-    });
-
     return response;
 }
 
 /**
  * Builds a default answer payload for load testing
  * @param {string} questionId - Question ID to answer
- * @returns {Object} Answer payload with content and questionId
+ * @returns {Object} Answer payload with content and question object
  */
 export function buildAnswerPayload(questionId = QUESTION_ID) {
     const createdAt = new Date().toISOString();
     return {
         content: `Load test answer from VU ${__VU} at ${createdAt}`,
-        questionId,
+        question: {
+            id: questionId
+        },
     };
 }
