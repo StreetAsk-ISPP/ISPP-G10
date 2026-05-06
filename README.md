@@ -210,6 +210,39 @@ cp .env.example .env  # Windows: copy .env.example .env
 
 ---
 
+## Tests E2E de Interfaz con Selenium
+
+En este proyecto utilizamos Selenium WebDriver junto con JUnit  para realizar pruebas de la interfaz de usuario (E2E). Para agilizar la creación de estos tests, nos apoyamos en la extensión de navegador TestCase Studio.
+
+### Requisitos Previos e Instalación
+Para grabar nuevos flujos de prueba, necesitas instalar la extensión TestCase Studio:
+- Disponible para [Google Chrome](https://chromewebstore.google.com/detail/testcase-studio-selenium/loopjjegnlccnhgfehekecpanpmielcj?hl=es&utm_source=ext_sidebar) y navegadores basados en Chromium.
+- Esta herramienta graba tus clics e interacciones en la web y genera automáticamente los selectores (`XPath` y `CSS`) que necesitamos para cada Test en Java.
+
+### Grabar un nuevo Test 
+1. Levanta el entorno local (Frontend en `8081` y Backend en `8080`).
+2. Abre tu navegador y activa la extensión TestCase Studio.
+3. Navega por tu aplicación realizando el flujo que quieres probar (ej. hacer login, crear una pregunta, responder una pregunta).
+4. La extensión grabará cada paso. Al terminar, copia los selectores generados (preferiblemente los `XPath` relativos, ya que son más robustos a cambios en la interfaz).
+
+### @Disabled
+Todos los tests E2E están deshabilitados por defecto con `@Disabled` por dos motivos:
+- **Evitar bloqueos en CI/CD o JaCoCo:** Estos entornos no levantan el frontend por defecto; el test fallaría al no encontrar la interfaz, entonces no hay aumento de cobertura de tests.
+- **Evitar colisión de puertos:** Si tu backend ya está corriendo localmente, Spring Boot lanzará un `IllegalStateException` al intentar usar el puerto `8080` de nuevo.
+
+### Ejecutar los tests manualmente
+Para probar un flujo en tu máquina, sigue estos pasos exactos:
+
+1. Apaga tu Backend (si lo tienes corriendo en el IDE).
+2. Mantén tu Frontend encendido (`puerto 8081`).
+3. Elimina temporalmente la anotación `@Disabled` del test que quieras probar.
+4. Ejecuta el test. Spring Boot levantará su propio backend temporal y abrirá Chrome.
+
+> **💡 Tip: Modo Silencioso (Headless)**
+> Para ejecutar los tests sin que la ventana de Chrome se abra visualmente por si no está instalado, descomenta la línea `options.addArguments("--headless");` en el método `@BeforeEach`.
+
+---
+
 ## Producción (Azure)
 
 Backend, Frontend y MySQL están desplegados en Azure. El despliegue es automático vía CI/CD.
