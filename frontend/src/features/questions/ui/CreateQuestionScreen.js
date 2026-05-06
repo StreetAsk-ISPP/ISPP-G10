@@ -115,11 +115,11 @@ export default function CreateQuestionScreen({ navigation, route }) {
   );
   const eventLng = Number(
     eventLoc?.longitude ??
-      eventLoc?.lng ??
-      eventLoc?.lon ??
-      eventLoc?.x ??
-      eventData?.longitude ??
-      eventData?.lng
+    eventLoc?.lng ??
+    eventLoc?.lon ??
+    eventLoc?.x ??
+    eventData?.longitude ??
+    eventData?.lng
   );
   const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
@@ -153,6 +153,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const [locationError, setLocationError] = useState('');
   const [locationSectionY, setLocationSectionY] = useState(0);
   const formScrollRef = useRef(null);
+  const mapPickRequestRef = useRef(0);
+  const manualPickRef = useRef(false);
 
   const getCurrentPositionWeb = useCallback(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -560,10 +562,13 @@ export default function CreateQuestionScreen({ navigation, route }) {
     }
   };
 
-  const openMapPick = useCallback(async () => {
+  const openMapPick = useCallback(() => {
     if (eventId) {
       return;
     }
+
+    manualPickRef.current = false;
+    const requestId = ++mapPickRequestRef.current;
 
     let nextLat = typeof latitude === 'number' ? latitude : null;
     let nextLng = typeof longitude === 'number' ? longitude : null;
@@ -572,20 +577,31 @@ export default function CreateQuestionScreen({ navigation, route }) {
       if (typeof userLat === 'number' && typeof userLng === 'number') {
         nextLat = userLat;
         nextLng = userLng;
-      } else {
-        const coords = await getCurrentPositionWeb();
-        if (coords) {
-          nextLat = coords.lat;
-          nextLng = coords.lng;
-          setUserLat(coords.lat);
-          setUserLng(coords.lng);
-        }
       }
     }
 
     setTempLat(typeof nextLat === 'number' ? nextLat : DEFAULT_FALLBACK_LAT);
     setTempLng(typeof nextLng === 'number' ? nextLng : DEFAULT_FALLBACK_LNG);
     setPickMode(true);
+
+    if (typeof nextLat === 'number' && typeof nextLng === 'number') {
+      return;
+    }
+
+    getCurrentPositionWeb().then((coords) => {
+      if (!coords) {
+        return;
+      }
+
+      if (mapPickRequestRef.current !== requestId || manualPickRef.current) {
+        return;
+      }
+
+      setUserLat(coords.lat);
+      setUserLng(coords.lng);
+      setTempLat(coords.lat);
+      setTempLng(coords.lng);
+    });
   }, [eventId, latitude, longitude, userLat, userLng, getCurrentPositionWeb]);
 
   const cancelMapPick = () => {
@@ -758,6 +774,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
               tempLat={tempLat}
               tempLng={tempLng}
               onPick={(lat, lng) => {
+                manualPickRef.current = true;
                 setTempLat(lat);
                 setTempLng(lng);
               }}
@@ -846,7 +863,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
             pickEnabled={false}
             tempLat={tempLat}
             tempLng={tempLng}
-            onPick={() => {}}
+            onPick={() => { }}
           />
         </View>
 
@@ -1165,7 +1182,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-      <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => {}}>
+      <Modal visible={showFakeAd} transparent animationType="fade" onRequestClose={() => { }}>
         <View style={styles.adOverlay}>
           <View style={styles.adCard}>
             <Text style={styles.adBadge}>Sponsored</Text>
