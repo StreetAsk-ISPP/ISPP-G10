@@ -444,7 +444,6 @@ export default function ManageEventsScreen({ navigation }) {
             longitude: String(tempLng),
             address: prev.address?.trim() || coordinateAddress,
         }));
-        setPlace(`(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`);
         setPickedLabel('');
         setSearchResults([]);
         setPickMode(false);

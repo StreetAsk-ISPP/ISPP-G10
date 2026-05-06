@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       sprint:
-        description: 'Sprint number to analyze (e.g., 2 analyzes only issues with label SPRINT 2). Empty = all sprints'
+        description: 'Sprint to analyze (e.g., 1, SPRINT1, SPRINT 2, SPRINT 3). Empty = all sprints'
         required: false
         default: ''
+      all_sprints:
+        description: 'If true, generate metrics for all sprints (1,2,3). Overrides `sprint` input.'
+        required: false
+        default: 'false'
       threshold:
         description: 'Performance threshold (0-10, default: 6.0)'
         required: false
@@ -39,7 +43,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          TARGET_SPRINT: ${{ github.event.inputs.sprint || '' }}
+          TARGET_SPRINT_LABEL: ${{ github.event.inputs.sprint || '' }}
+          ALL_SPRINTS: ${{ github.event.inputs.all_sprints || 'false' }}
           PERFORMANCE_THRESHOLD: ${{ github.event.inputs.threshold || '6.0' }}
         run: python scripts/generate_performance_metrics.py
 

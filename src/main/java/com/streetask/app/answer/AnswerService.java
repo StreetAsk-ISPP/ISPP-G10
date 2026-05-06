@@ -173,10 +173,12 @@ public class AnswerService {
     @Transactional
     public Answer updateVotes(UUID answerId, UUID userId, VoteType voteType) {
         Answer answer = findAnswer(answerId);
-        RegularUser answerOwner = asRegularUser(answer.getUser());
+        normalizeVoteCounters(answer);
+        User answerOwner = answer.getUser();
         if (answerOwner != null && answerOwner.getId() != null && answerOwner.getId().equals(userId)) {
             throw new IllegalArgumentException("Users cannot like or dislike their own answers");
         }
+        RegularUser regularOwner = asRegularUser(answerOwner);
 
         User voter = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -196,13 +198,13 @@ public class AnswerService {
             if (voteType == VoteType.LIKE) {
                 answer.setUpvotes(answer.getUpvotes() + 1);
                 answer.setDownvotes(Math.max(0, answer.getDownvotes() - 1));
-                decrementDislikes(answerOwner);
-                incrementLikes(answerOwner);
+                decrementDislikes(regularOwner);
+                incrementLikes(regularOwner);
             } else {
                 answer.setDownvotes(answer.getDownvotes() + 1);
                 answer.setUpvotes(Math.max(0, answer.getUpvotes() - 1));
-                decrementLikes(answerOwner);
-                incrementDislikes(answerOwner);
+                decrementLikes(regularOwner);
+                incrementDislikes(regularOwner);
             }
             existing.setVoteType(voteType);
             existing.setVotedAt(LocalDateTime.now());
@@ -216,10 +218,10 @@ public class AnswerService {
             answerVoteRepository.save(vote);
             if (voteType == VoteType.LIKE) {
                 answer.setUpvotes(answer.getUpvotes() + 1);
-                incrementLikes(answerOwner);
+                incrementLikes(regularOwner);
             } else {
                 answer.setDownvotes(answer.getDownvotes() + 1);
-                incrementDislikes(answerOwner);
+                incrementDislikes(regularOwner);
             }
         }
 
@@ -230,15 +232,17 @@ public class AnswerService {
     @Transactional
     public Answer removeVote(UUID answerId, UUID userId) {
         Answer answer = findAnswer(answerId);
-        RegularUser answerOwner = asRegularUser(answer.getUser());
+        normalizeVoteCounters(answer);
+        User answerOwner = answer.getUser();
+        RegularUser regularOwner = asRegularUser(answerOwner);
         AnswerVote existing = answerVoteRepository.findByUserIdAndAnswerId(userId, answerId)
                 .orElseThrow(() -> new IllegalArgumentException("No vote found for this user on this answer"));
         if (existing.getVoteType() == VoteType.LIKE) {
             answer.setUpvotes(Math.max(0, answer.getUpvotes() - 1));
-            decrementLikes(answerOwner);
+            decrementLikes(regularOwner);
         } else {
             answer.setDownvotes(Math.max(0, answer.getDownvotes() - 1));
-            decrementDislikes(answerOwner);
+            decrementDislikes(regularOwner);
         }
         answerVoteRepository.delete(existing);
         Answer savedAnswer = answerRepository.save(answer);
@@ -342,10 +346,21 @@ public class AnswerService {
         }
     }
 
+    private void normalizeVoteCounters(Answer answer) {
+        if (answer.getUpvotes() == null) {
+            answer.setUpvotes(0);
+        }
+        if (answer.getDownvotes() == null) {
+            answer.setDownvotes(0);
+        }
+    }
+
     private Answer reconcileAnswerCoins(Answer answer) {
         if (answer.getUser() == null) {
             return answer;
         }
+
+        normalizeVoteCounters(answer);
 
         int targetCoins = calculateTargetCoinsEarned(answer);
         int currentCoins = answer.getCoinsEarned() == null ? 0 : answer.getCoinsEarned();
@@ -387,6 +402,8 @@ public class AnswerService {
     }
 
     private int calculateTargetCoinsEarned(Answer answer) {
+        normalizeVoteCounters(answer);
+
         if (isSelfAnswer(answer)) {
             return 0;
         }
@@ -397,8 +414,8 @@ public class AnswerService {
             return 0;
         }
 
-        int likes = answer.getUpvotes() == null ? 0 : answer.getUpvotes();
-        int dislikes = answer.getDownvotes() == null ? 0 : answer.getDownvotes();
+        int likes = answer.getUpvotes();
+        int dislikes = answer.getDownvotes();
 
         if (likes > dislikes) {
             return ANSWER_BASE_REWARD + ANSWER_POSITIVE_VOTE_BONUS;
