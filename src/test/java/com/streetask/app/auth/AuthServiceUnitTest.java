@@ -1,28 +1,23 @@
 package com.streetask.app.auth;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import jakarta.persistence.EntityManager;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
-
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -46,6 +41,10 @@ import com.streetask.app.user.User;
 import com.streetask.app.user.UserRepository;
 import com.streetask.app.user.UserService;
 import com.streetask.app.user.UserTypeChangeService;
+
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.persistence.EntityManager;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceUnitTest {
@@ -278,7 +277,8 @@ class AuthServiceUnitTest {
     }
 
     @Test
-    void requestPasswordResetShouldReturnEarlyWhenEmailIsBlank() {
+    void requestPasswordResetShouldReturnEarlyWhenEmailIsInvalid() {
+        authService.requestPasswordReset(null);
         authService.requestPasswordReset("   ");
 
         verify(userRepository, never()).findByEmailIgnoreCase(any());
@@ -334,8 +334,11 @@ class AuthServiceUnitTest {
 
     @Test
     void resetPasswordShouldReturnFalseWhenInputIsInvalid() {
+        assertThat(authService.resetPassword(null, "newPass")).isFalse();
         assertThat(authService.resetPassword(" ", "newPass")).isFalse();
+        assertThat(authService.resetPassword("token", null)).isFalse();
         assertThat(authService.resetPassword("token", " ")).isFalse();
+
         verify(passwordResetTokenRepository, never()).findByToken(any());
     }
 
@@ -398,7 +401,8 @@ class AuthServiceUnitTest {
     }
 
     @Test
-    void isPendingBasicSignupShouldReturnFalseForBlankIdentifier() {
+    void isPendingBasicSignupShouldReturnFalseForInvalidIdentifier() {
+        assertThat(authService.isPendingBasicSignup(null)).isFalse();
         assertThat(authService.isPendingBasicSignup(" ")).isFalse();
         verify(userRepository, never()).findByEmailIgnoreCase(any());
     }
@@ -442,7 +446,8 @@ class AuthServiceUnitTest {
     }
 
     @Test
-    void getPendingBasicSignupEmailShouldReturnNullForBlankIdentifier() {
+    void getPendingBasicSignupEmailShouldReturnNullWhenIdentifierIsInvalid() {
+        assertThat(authService.getPendingBasicSignupEmail(null)).isNull();
         assertThat(authService.getPendingBasicSignupEmail(" ")).isNull();
         verify(userRepository, never()).findByEmailIgnoreCase(any());
     }
@@ -477,6 +482,68 @@ class AuthServiceUnitTest {
         String result = authService.getPendingBasicSignupEmail("boom");
 
         assertThat(result).isNull();
+    }
+
+    @Test
+    void validatePendingBasicSignupShouldThrowExceptionWhenUserIsInvalid() {
+        User pendingUser = new User();
+        pendingUser.setEmail("pending@streetask.com");
+        pendingUser.setActive(true);
+        pendingUser.setAccountType(null);
+        Authorities authority = new Authorities();
+        authority.setAuthority("USER");
+        pendingUser.setAuthority(authority);
+
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("pending@streetask.com");
+        when(userService.findUser("pending@streetask.com")).thenReturn(pendingUser);
+
+        assertThatThrownBy(() -> authService.convertToBusinessUser(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("User is not eligible for business signup.");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnFalseWhenUserIsNull() {
+        BusinessSignupRequest request = new BusinessSignupRequest();
+        request.setEmail("pending@streetask.com");
+
+        when(userService.findUser("pending@streetask.com")).thenReturn(null);
+
+        assertThatThrownBy(() -> authService.convertToBusinessUser(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("User is not eligible for business signup.");
+    }
+
+    @Test
+    void isPendingBasicSignupShouldReturnFalseWhenAnyConditionFails() {
+        String email = "pending@streetask.com";
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase(email)).thenReturn(Optional.empty());
+        assertThat(authService.isPendingBasicSignup(email)).isFalse();
+
+        User user = new User();
+        user.setAccountType(null);
+        user.setActive(false);
+        Authorities authority = new Authorities();
+        authority.setAuthority("USER");
+        user.setAuthority(authority);
+
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+        user.setAccountType(AccountType.REGULAR_USER);
+        assertThat(authService.isPendingBasicSignup(email)).isFalse();
+        user.setAccountType(null);
+
+        user.setActive(true);
+        assertThat(authService.isPendingBasicSignup(email)).isFalse();
+        user.setActive(false);
+
+        authority.setAuthority("BUSINESS");
+        assertThat(authService.isPendingBasicSignup(email)).isFalse();
     }
 
     @Test
