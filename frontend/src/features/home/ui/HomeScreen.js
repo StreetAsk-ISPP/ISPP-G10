@@ -58,7 +58,7 @@ const writeCachedArray = (key, value) => {
     window.localStorage.setItem(key, JSON.stringify(value));
 };
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
     const { logout, token, user } = useAuth();
     const { ephemeralNotification, observeNotifications } = useNotifications();
     const { width } = useWindowDimensions();
@@ -265,12 +265,8 @@ export default function HomeScreen({ navigation }) {
     }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
 
     useEffect(() => {
-        if (Platform.OS !== 'web' || typeof window === 'undefined') {
-            return undefined;
-        }
-
-        const handleQuestionCreated = (event) => {
-            const createdQuestion = event?.detail?.question;
+        if (route.params?.refreshNonce) {
+            const createdQuestion = route.params?.newQuestion;
 
             if (createdQuestion?.id) {
                 setQuestions((currentQuestions) => {
@@ -278,20 +274,21 @@ export default function HomeScreen({ navigation }) {
                         createdQuestion,
                         ...currentQuestions.filter((question) => question?.id !== createdQuestion.id),
                     ];
-                    writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, nextQuestions);
+                    try {
+                        writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, nextQuestions);
+                    } catch (error) {
+                        console.warn("Cache full, ignoring saved data to prevent app crashes");
+                    }
                     return nextQuestions;
                 });
             }
 
             loadQuestions();
             loadEvents();
-        };
 
-        window.addEventListener('streetask:question-created', handleQuestionCreated);
-        return () => {
-            window.removeEventListener('streetask:question-created', handleQuestionCreated);
-        };
-    }, [loadEvents, loadQuestions]);
+            navigation.setParams({ refreshNonce: undefined, newQuestion: undefined });
+        }
+    }, [route.params?.refreshNonce, route.params?.newQuestion, loadQuestions, loadEvents, navigation]);
 
     useEffect(() => {
         if (!isFocused || Platform.OS !== 'web' || typeof window === 'undefined') {
