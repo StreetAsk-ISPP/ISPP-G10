@@ -67,7 +67,7 @@ export default function HomeScreen({ navigation }) {
 
     const [questions, setQuestions] = useState([]);
     const [events, setEvents] = useState([]);
-    const [showQuestions, setShowQuestions] = useState(true);
+    const [showQuestions, setShowQuestions] = useState(!isBusinessUser);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
     const [sidebarTab, setSidebarTab] = useState('QUESTIONS');
@@ -748,15 +748,17 @@ export default function HomeScreen({ navigation }) {
                         }}
                     />
 
-                    <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
-                        <Text style={styles.toggleLabel}>Show Questions</Text>
-                        <Switch
-                            value={showQuestions}
-                            onValueChange={setShowQuestions}
-                            trackColor={{ false: '#d1d5db', true: '#a52019' }}
-                            thumbColor="#fff"
-                        />
-                    </View>
+                    {!isBusinessUser && (
+                        <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
+                            <Text style={styles.toggleLabel}>Show Questions</Text>
+                            <Switch
+                                value={showQuestions}
+                                onValueChange={setShowQuestions}
+                                trackColor={{ false: '#d1d5db', true: '#a52019' }}
+                                thumbColor="#fff"
+                            />
+                        </View>
+                    )}
                     {hasLocationPermission && (
                         <>
                             {isBusiness && (
