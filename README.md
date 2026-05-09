@@ -158,6 +158,46 @@ Si necesitas probar con MySQL (ej: queries específicas de producción):
 
 ---
 
+## Test de carga en local
+
+Si quieres probar rendimiento usando el entorno local, tienes un script k6 en [src/test/java/com/streetask/app/load/streetask-load-test.js](src/test/java/com/streetask/app/load/streetask-load-test.js).
+
+### Ejecución
+
+**Requisitos:** 
+- `k6` debe estar instalado y disponible en el `PATH`.
+- El backend debe estar corriendo.
+
+Si no lo tienes instalado, en Ubuntu puedes hacerlo con APT:
+
+```bash
+# 1. Asegura que gpg esta configurado
+sudo gpg -k
+
+# 2. Descarga y anade la clave oficial del repositorio de k6
+sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+	--keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+
+# 3. Anade el repositorio oficial de k6 a tu lista de fuentes
+echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+	| sudo tee /etc/apt/sources.list.d/k6.list
+
+# 4. Actualiza la lista de paquetes y descarga k6
+sudo apt-get update
+sudo apt-get install k6
+```
+
+En Windows puedes hacerlo con `winget`:
+
+```powershell
+winget install k6 --source winget
+```
+Para correr los tests:
+
+```bash
+k6 run src/test/java/com/streetask/app/load/streetask-load-test.js
+```
+
 ## Variables de entorno
 
 ### Frontend (frontend/.env)
