@@ -158,7 +158,19 @@ Para este escenario se considera:
 - Adopción progresiva de cuentas business.
 - Uso suficiente para que la infraestructura llegue a una fase estable de coste, en torno a 500 EUR al mes.
 
-### 5.3 Ingresos estimados
+### 5.3 Distribución por tipo de usuario
+
+En este escenario, la distribución estimada de usuarios por tipo sería la siguiente:
+
+| Tipo de usuario | % del total | Por qué este número |
+|---|---:|---|
+| Gratuitos | 91% | La gran masa. Generan contenido y ven anuncios sin parar. |
+| Premium | 6% | Superamos el 4,2% previsto. La gente valora mucho el estatus y las alertas prioritarias. |
+| Business | 3% | Los comercios locales ven que StreetAsk les trae clientes de verdad y los 20 EUR les parecen una ganga. |
+
+Resultado: ingresos muy altos y diversificados. El riesgo está en que los servidores trabajen el triple por tanta actividad.
+
+### 5.4 Ingresos estimados
 
 En este escenario el ingreso mensual puede situarse en la siguiente banda:
 
@@ -178,7 +190,7 @@ La diferencia entre el mínimo y el máximo depende de algo muy concreto:
 
 Si la actividad es alta y la conversión acompaña, el ingreso sube hacia el tramo superior. Si el uso es bueno pero la monetización avanza más despacio, el resultado se queda más cerca del inferior.
 
-### 5.4 Coste estimado
+### 5.5 Coste estimado
 
 | Concepto | Estimación |
 |---|---:|
@@ -189,7 +201,7 @@ Si la actividad es alta y la conversión acompaña, el ingreso sube hacia el tra
 
 Aquí hay una idea importante: aunque la aplicación crezca, el coste no sube al mismo ritmo que los ingresos si la arquitectura está bien montada. Por eso este escenario es el más interesante.
 
-### 5.5 Lectura del escenario
+### 5.6 Lectura del escenario
 
 Este escenario muestra que el producto puede ganar dinero de forma clara si consigue una comunidad activa y una monetización bien repartida. Más actividad no significa automáticamente el doble de coste, pero sí puede significar mucho más ingreso. Esa diferencia hace que el proyecto sea atractivo.
 
@@ -209,14 +221,26 @@ En este caso se contemplan los siguientes comportamientos:
 - Pocas cuentas business durante el arranque.
 - Necesidad de mantener la infraestructura en un nivel reducido.
 
-### 6.3 Coste estimado
+### 6.3 Distribución por tipo de usuario
+
+En este escenario, la distribución estimada de usuarios por tipo sería la siguiente:
+
+| Tipo de usuario | % del total | Por qué este número |
+|---|---:|---|
+| Gratuitos | 98,3% | Casi todo el mundo se queda en el plan gratis. Hay mucha gente, pero poco dinero directo. |
+| Premium | 1,5% | Solo unos pocos "frikis" o usuarios muy intensos pagan los 3 EUR. La mayoría prefiere ver anuncios. |
+| Business | 0,2% | Cuesta muchísimo convencer a los dueños de negocios. Solo se apuntan los más innovadores. |
+
+Resultado: la app sobrevive gracias a la publicidad. Es el escenario de "resistencia" que menciona el documento en su punto 6. Aquí la clave es no gastar nada en marketing y dejar que crezca sola.
+
+### 6.4 Coste estimado
 
 | Escenario de usuarios | Coste mensual estimado |
 |---|---:|
 | 50 usuarios activos | 15 - 35 EUR |
 | 250 usuarios activos | 30 - 70 EUR |
 
-### 6.4 Ingresos estimados
+### 6.5 Ingresos estimados
 
 En una fase así, los ingresos todavía son pequeños, pero no tienen por qué ser cero:
 
@@ -229,7 +253,7 @@ En una fase así, los ingresos todavía son pequeños, pero no tienen por qué s
 
 Lo importante en este escenario no es ganar muchísimo, sino no gastar más de la cuenta mientras se comprueba si la app realmente engancha.
 
-### 6.5 Riesgos asociados
+### 6.6 Riesgos asociados
 
 Los principales riesgos en este escenario son:
 
@@ -330,7 +354,53 @@ La referencia recomendable es la siguiente:
 
 La razón de trabajar con una franja y no con un número exacto es muy simple: en la vida real siempre hay meses mejores y meses peores. Un mes puede haber menos actividad, otro más notificaciones o más cuentas business. La franja protege frente a esas variaciones.
 
-## 10. Número mínimo de usuarios para cubrir costes
+### 9.3 Break-even para la inversión total del proyecto
+
+Más allá del equilibrio operativo mensual, resulta crucial analizar el punto en el que la aplicación puede recuperar la **inversión total del proyecto** (€84.181,38 en escenario de startup real completo).
+
+Este análisis se basa en los porcentajes de distribución por tipo de usuario que se han definido para cada escenario:
+
+#### Escenario Optimista: 91% gratuitos, 6% premium, 3% business
+
+Con esta distribución, el **ARPU (Average Revenue Per User) estimado es de 1,3251 EUR/usuario/mes**:
+- Ingresos por ads (usuarios gratuitos): 0,91 × 0,60 = 0,546 EUR
+- Ingresos por premium: 0,06 × 2,99 = 0,1794 EUR
+- Ingresos por business: 0,03 × 19,99 = 0,5997 EUR
+
+| Usuarios activos | Ingresos mensuales | Recuperación de inversión total |
+|---:|---:|---:|
+| 10.000 | 13.251 EUR | 6,35 meses (sin costes operativos) |
+| 10.000 (con 500 EUR/mes operativos) | 12.751 EUR | 6,60 meses |
+| 10.000 (con 650 EUR/mes operativos) | 12.601 EUR | 6,68 meses |
+
+**Lectura:** En el escenario optimista, alcanzar 10.000 usuarios activos con ese mix permite recuperar la inversión total en aproximadamente **6,5 meses**, incluso asumiendo costes operativos de infraestructura. Este es el escenario más favorable para la sostenibilidad del proyecto.
+
+#### Escenario Pesimista: 98,3% gratuitos, 1,5% premium, 0,2% business
+
+Con esta distribución, el **ARPU estimado es de 0,67463 EUR/usuario/mes**:
+- Ingresos por ads (usuarios gratuitos): 0,983 × 0,60 = 0,5898 EUR
+- Ingresos por premium: 0,015 × 2,99 = 0,04485 EUR
+- Ingresos por business: 0,002 × 19,99 = 0,03998 EUR
+
+| Usuarios activos | Ingresos mensuales | Recuperación de inversión total |
+|---:|---:|---:|
+| 250 | 168,66 EUR | 499 meses (sin costes operativos) |
+| 250 (con 30 EUR/mes operativos) | 138,66 EUR | 607 meses |
+| 250 (con 70 EUR/mes operativos) | 98,66 EUR | 853 meses |
+
+**Lectura:** En el escenario pesimista, aunque la app funcione, 250 usuarios activos no son suficientes para recuperar la inversión en un plazo comercial razonable. Este escenario representa un modelo de "supervivencia" donde el producto se sostiene gracias a la publicidad, pero no genera retorno de inversión a corto o medio plazo. Para alcanzar viabilidad económica, sería necesario llegar a un volumen de usuarios significativamente mayor (mínimo 2.500-5.000 usuarios activos mensuales con este mix), lo que ampliaría el horizonte de recuperación a varios años.
+
+#### Conclusión
+
+El contraste entre escenarios evidencia que **la monetización está directamente ligada a la distribución del tipo de usuario**. El éxito del proyecto depende de:
+
+1. **Alcanzar masa crítica en usuarios gratuitos** (que generan ingresos por publicidad y crean densidad de contenido).
+2. **Convertir un porcentaje significativo a premium** (usuarios activos que perciben valor en la experiencia mejorada).
+3. **Captar cuentas business desde fases tempranas** (negocios que ven ROI tangible en la plataforma).
+
+Sin una distribución favorable hacia premium y business, incluso un crecimiento de usuarios genera ingresos insuficientes para justificar la inversión inicial. Por eso, la estrategia de monetización no debe ser "activar pagos tarde", sino **validar desde el piloto que hay voluntad de pago** en ambas dimensiones.
+
+## 11. Número mínimo de usuarios para cubrir costes
 
 En términos prácticos, la lectura más útil es la siguiente:
 
@@ -346,7 +416,7 @@ Si se quiere decir de forma muy simple, la idea es esta:
 - 180-300 usuarios: el proyecto empieza a cubrirse de forma razonable.
 - 500 usuarios o más: el proyecto empieza a parecer estable.
 
-## 11. Lectura global de la viabilidad
+## 12. Lectura global de la viabilidad
 
 StreetAsk puede ser viable, pero su sostenibilidad depende más de la densidad de uso que del número bruto de usuarios.
 
@@ -354,7 +424,7 @@ El escenario optimista muestra que el modelo puede generar margen si la comunida
 
 La clave no es llegar pronto a muchas cuentas registradas, sino reunir suficientes usuarios activos en pocos puntos concretos para que la información sea realmente útil.
 
-## 12. Conclusión
+## 13. Conclusión
 
 La estimación presenta una estructura económicamente razonable siempre que el crecimiento técnico se mantenga controlado, especialmente en base de datos, tiempo real y notificaciones. El principal riesgo no es el coste fijo inicial, sino la posible falta de densidad de uso durante la fase temprana.
 
