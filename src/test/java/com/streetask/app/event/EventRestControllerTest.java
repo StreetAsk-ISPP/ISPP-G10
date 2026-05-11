@@ -427,6 +427,7 @@ class EventRestControllerTest {
         Map<String, Object> payload = new HashMap<>();
         payload.put("title", "Updated Event Title");
         payload.put("description", "Updated Event Description");
+        payload.put("address", "Updated event address");
         payload.put("active", false);
 
         mockMvc.perform(put("/api/v1/events/{eventId}", event1.getId())
@@ -437,6 +438,7 @@ class EventRestControllerTest {
                 .andExpect(jsonPath("$.id").value(event1.getId().toString()))
                 .andExpect(jsonPath("$.title").value("Updated Event Title"))
                 .andExpect(jsonPath("$.description").value("Updated Event Description"))
+                .andExpect(jsonPath("$.address").value("Updated event address"))
                 .andExpect(jsonPath("$.active").value(false));
     }
 

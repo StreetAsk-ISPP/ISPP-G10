@@ -41,6 +41,17 @@ PRESENTATION_BONUS_BY_SPRINT = {
 
 ADMIN_BONUS_POINTS = 0.5
 
+MANUAL_SCORE_FLOORS = {
+    "darrodsas": (7.5, "presentation responsibilities"),
+    "manortper1": (7.5, "presentation responsibilities"),
+    "manorper1": (7.5, "presentation responsibilities"),
+    "pabloarrabalh": (7.5, "presentation responsibilities"),
+    "santiabregu": (9.0, "administrative responsibilities"),
+    "javpalgon": (9.0, "administrative responsibilities"),
+    "Glinbor10": (9.0, "administrative responsibilities"),
+    "manumnzz": (9.0, "administrative responsibilities"),
+}
+
 
 class GitHubClient:
     def __init__(self, token: str):
@@ -120,9 +131,9 @@ def parse_dt(value: str | None):
 
 
 def extract_sprint_number(labels: list) -> int | None:
-    """Extract sprint number from labels (e.g., 'SPRINT 1', 'SPRINT 2')"""
+    """Extract sprint number from labels (e.g., 'SPRINT1', 'SPRINT 1', 'SPRINT 2')"""
     for label in labels:
-        match = re.search(r'SPRINT\s+(\d+)', label.get("name", ""), re.IGNORECASE)
+        match = re.search(r'SPRINT\s*(\d+)', label.get("name", ""), re.IGNORECASE)
         if match:
             return int(match.group(1))
     return None
@@ -341,6 +352,21 @@ def calculate_performance_score(data: dict) -> float:
     # Bonus for presentation/deliverable responsibilities configured per sprint.
     presentation_bonus = PRESENTATION_BONUS_BY_SPRINT.get(sprint_name, {}).get(contributor_login, 0.0)
     score += presentation_bonus
+
+    # Save raw score before manual floor
+    raw_score = score
+
+    floor_info = MANUAL_SCORE_FLOORS.get(contributor_login)
+    floor_applied = False
+    if floor_info is not None:
+        floor_score, _reason = floor_info
+        if raw_score < floor_score:
+            score = max(score, floor_score)
+            floor_applied = True
+
+    # Attach raw and floor info to data for reporting
+    data["performance_score_raw"] = raw_score
+    data["performance_score_floor_applied"] = floor_applied
     
     # Ensure score is between 0 and 10
     return max(0.0, min(10.0, score))
@@ -477,8 +503,20 @@ def build_report(
         "Additionally:",
         "- `Copilot` entries are excluded from individual contributor assessment.",
         f"- Contributors with admin responsibilities can receive an additional admin bonus (+{ADMIN_BONUS_POINTS:.1f}) in final score.",
+        "- Some contributors have manual minimum scores to reflect presentation or administrative duties that are not captured well by PR/commit volume.",
         "",
     ]
+
+    manual_floor_entries = sorted(MANUAL_SCORE_FLOORS.items(), key=lambda item: item[0].lower())
+    if manual_floor_entries:
+        lines.extend([
+            "## Manual Score Floors",
+            "",
+            "The following contributors have a minimum score applied before the final 0-10 clamp:",
+        ])
+        for contributor, (floor_score, reason) in manual_floor_entries:
+            lines.append(f"- {contributor}: minimum {floor_score:.1f} because of {reason}.")
+        lines.append("")
     
     if not metrics:
         lines.extend([
@@ -559,6 +597,53 @@ def build_report(
         
         lines.extend(["", ""])
     
+    # If multiple sprints are present, add a combined table with each contributor's score per sprint
+    if len(metrics) > 1:
+        # Determine sprint order (extract numeric suffix if possible)
+        def sprint_key(name: str):
+            m = re.search(r"(\d+)", name)
+            return int(m.group(1)) if m else name
+
+        sprint_names_ordered = sorted(metrics.keys(), key=sprint_key)
+
+        # Collect all contributors across sprints
+        all_contributors = set()
+        for s in sprint_names_ordered:
+            all_contributors.update(metrics[s].keys())
+
+        # Filter out excluded contributors and those with no scores
+        all_contributors = {
+            c for c in all_contributors
+            if c.lower() not in EXCLUDED_CONTRIBUTORS and any(
+                metrics[s].get(c, {}).get("performance_score") is not None
+                for s in sprint_names_ordered
+            )
+        }
+
+        lines.extend(["## Combined Scores by Contributor", "", "| Contributor | " + " | ".join(sprint_names_ordered) + " |", "|---" + "|---" * len(sprint_names_ordered) + "|"])
+
+        for contributor in sorted(all_contributors, key=lambda x: x.lower()):
+            row_parts = [contributor]
+            for s in sprint_names_ordered:
+                sdata = metrics[s].get(contributor)
+                if not sdata:
+                    row_parts.append("-")
+                else:
+                    score = sdata.get("performance_score")
+                    floored = sdata.get("performance_score_floor_applied", False)
+                    if score is None:
+                        row_parts.append("-")
+                    else:
+                        score_str = f"{score:.1f}"
+                        if floored:
+                            score_str += "*"
+                        row_parts.append(score_str)
+
+            lines.append("| " + " | ".join(row_parts) + " |")
+
+        lines.append("")
+        lines.append("* Scores marked with * were adjusted to a manual minimum (see 'Manual Score Floors').")
+        lines.append("")
     lines.extend([
         "## Scoring System (0-10)",
         "",
@@ -630,7 +715,8 @@ def build_report(
 def main():
     token = os.getenv("GITHUB_TOKEN")
     repository = os.getenv("GITHUB_REPOSITORY")
-    target_sprint_env = os.getenv("TARGET_SPRINT", "").strip()
+    target_sprint_env = os.getenv("TARGET_SPRINT_LABEL", os.getenv("TARGET_SPRINT", "")).strip()
+    all_sprints_flag = os.getenv("ALL_SPRINTS", "false").strip().lower() in ("1", "true", "yes")
     threshold_env = os.getenv("PERFORMANCE_THRESHOLD", "6.0")
 
     if not token:
@@ -649,9 +735,18 @@ def main():
         try:
             target_sprint = int(target_sprint_env)
         except ValueError as exc:
-            raise RuntimeError(
-                f"Invalid TARGET_SPRINT '{target_sprint_env}'. Use an integer sprint number, e.g. 2"
-            ) from exc
+            match = re.search(r'SPRINT\s*(\d+)', target_sprint_env, re.IGNORECASE)
+            if match:
+                target_sprint = int(match.group(1))
+            else:
+                raise RuntimeError(
+                    f"Invalid TARGET_SPRINT_LABEL '{target_sprint_env}'. Use a sprint label like SPRINT1, SPRINT 2, or SPRINT 3."
+                ) from exc
+        
+    # If ALL_SPRINTS flag is set, ignore any target and process all sprints
+    if all_sprints_flag:
+        target_sprint = None
+        
 
     owner, repo_name = repository.split("/", 1)
     gh = GitHubClient(token)

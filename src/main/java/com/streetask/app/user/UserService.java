@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -35,7 +34,6 @@ import com.streetask.app.question.QuestionRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.validation.Valid;
 
 @Service
 public class UserService {
@@ -150,21 +148,13 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUser(@Valid User user, UUID idToUpdate) {
+    public User updateUser(UserUpdateRequest request, UUID idToUpdate) {
         User toUpdate = findUser(idToUpdate);
 
-        String previousPassword = toUpdate.getPassword();
-
-        BeanUtils.copyProperties(user, toUpdate, "id", "authority", "accountType", "createdAt", "lastLogin", "active");
-
-        if (user.getPassword() == null
-                || user.getPassword().isBlank()
-                || user.getPassword().equals(previousPassword)
-                || BCRYPT_HASH_PATTERN.matcher(user.getPassword()).matches()) {
-            toUpdate.setPassword(previousPassword);
-        } else {
-            toUpdate.setPassword(getPasswordEncoder().encode(user.getPassword()));
-        }
+        toUpdate.setEmail(request.getEmail());
+        toUpdate.setUserName(request.getUserName());
+        toUpdate.setFirstName(request.getFirstName());
+        toUpdate.setLastName(request.getLastName());
 
         userRepository.save(toUpdate);
         return enrichReputation(toUpdate);
@@ -327,6 +317,10 @@ public class UserService {
             likesCount = regularUser.getTotalLikesReceived() == null ? 0 : regularUser.getTotalLikesReceived();
             dislikesCount = regularUser.getTotalDislikesReceived() == null ? 0 : regularUser.getTotalDislikesReceived();
             coinBalance = regularUser.getCoinBalance() == null ? 0 : regularUser.getCoinBalance();
+        } else if (user instanceof BusinessAccount businessAccount) {
+            int[] voteCounts = resolveAnswerVoteCounts(userId);
+            likesCount = voteCounts[0];
+            dislikesCount = voteCounts[1];
         }
 
         Map<String, Object> stats = new HashMap<>();
@@ -359,6 +353,17 @@ public class UserService {
         stats.put("rating", rating);
 
         return stats;
+    }
+
+    private int[] resolveAnswerVoteCounts(UUID userId) {
+        List<Object[]> aggregates = answerRepository.aggregateVotesByUserIds(List.of(userId));
+        if (aggregates.isEmpty()) {
+            return new int[] { 0, 0 };
+        }
+        Object[] row = aggregates.get(0);
+        int likes = ((Number) row[1]).intValue();
+        int dislikes = ((Number) row[2]).intValue();
+        return new int[] { likes, dislikes };
     }
 
     @Transactional(readOnly = true)

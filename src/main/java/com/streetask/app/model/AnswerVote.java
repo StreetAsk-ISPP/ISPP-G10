@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.streetask.app.model.enums.VoteType;
 import com.streetask.app.user.RegularUser;
+import com.streetask.app.user.User;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,7 +32,7 @@ public class AnswerVote extends BaseEntity {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")
-    private RegularUser user;
+    private User user;
 
     @Enumerated(EnumType.STRING)
     private VoteType voteType;

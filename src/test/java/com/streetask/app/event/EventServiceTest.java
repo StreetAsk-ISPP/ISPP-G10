@@ -86,6 +86,7 @@ class EventServiceTest {
         Event event = new Event();
         event.setTitle("Service Event");
         event.setDescription("Created from service test");
+        event.setAddress("Test address");
 
         Event saved = eventService.saveEvent(event);
 
@@ -230,10 +231,12 @@ class EventServiceTest {
         existing.setCreator(owner);
         existing.setTitle("Original Title");
         existing.setDescription("Original Description");
+        existing.setAddress("Original address");
 
         Event incoming = new Event();
         incoming.setTitle("Updated Title");
         incoming.setDescription("Updated Description");
+        incoming.setAddress("Updated address");
         incoming.setActive(false);
 
         authenticateAs(owner.getEmail());
@@ -246,6 +249,7 @@ class EventServiceTest {
         assertEquals(eventId, updated.getId());
         assertEquals("Updated Title", updated.getTitle());
         assertEquals("Updated Description", updated.getDescription());
+        assertEquals("Updated address", updated.getAddress());
         assertFalse(updated.getActive());
         assertEquals(owner.getId(), updated.getCreator().getId());
         verify(eventRepository).save(existing);
