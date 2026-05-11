@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
 
 const AuthContext = createContext(null);
 const TOKEN_STORAGE_KEY = 'auth_token';
@@ -47,6 +48,12 @@ const removeFromStorage = async (key) => {
   }
 };
 
+const clearPendingBusinessSignupDraft = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.sessionStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+  }
+};
+
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -85,11 +92,13 @@ export function AuthProvider({ children }) {
     }
 
     setIsAuthenticated(true);
+    clearPendingBusinessSignupDraft();
   };
 
   const logout = async () => {
     await removeFromStorage(TOKEN_STORAGE_KEY);
     await removeFromStorage(USER_STORAGE_KEY);
+    clearPendingBusinessSignupDraft();
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);

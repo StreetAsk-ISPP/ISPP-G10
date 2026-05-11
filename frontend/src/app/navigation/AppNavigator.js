@@ -152,7 +152,7 @@ export default function AppNavigator() {
                 STORAGE_KEYS.PENDING_STREETCOINS_CHECKOUT
             ));
 
-            const pendingBusinessSignup = parsePendingCheckout(window.localStorage.getItem(
+            const pendingBusinessSignup = parsePendingCheckout(window.sessionStorage.getItem(
                 STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT
             ));
 
@@ -324,7 +324,7 @@ export default function AppNavigator() {
                 redirectAfterCallback = fallbackReturnTo;
             } finally {
                 if (shouldClearBusinessSignupPending) {
-                    window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+                    window.sessionStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
                 }
 
                 if (shouldClearRegularPremiumPending) {
