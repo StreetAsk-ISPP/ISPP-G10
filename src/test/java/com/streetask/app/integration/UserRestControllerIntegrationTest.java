@@ -35,6 +35,7 @@ import com.streetask.app.model.Question;
 import com.streetask.app.user.Authorities;
 import com.streetask.app.user.User;
 import com.streetask.app.user.UserService;
+import com.streetask.app.user.UserUpdateRequest;
 import com.streetask.app.user.AuthoritiesService;
 
 @SpringBootTest
@@ -138,7 +139,7 @@ class UserRestControllerIntegrationTest {
                 when(userService.findCurrentUser()).thenReturn(adminUser);
 
                 when(userService.findUser(userId)).thenReturn(existingUser);
-                when(userService.updateUser(any(User.class), eq(userId))).thenReturn(updatedUser);
+                when(userService.updateUser(any(UserUpdateRequest.class), eq(userId))).thenReturn(updatedUser);
 
                 mockMvc.perform(put("/api/v1/users/{userId}", userId)
                                 .contentType(APPLICATION_JSON)
@@ -158,7 +159,7 @@ class UserRestControllerIntegrationTest {
 
                 when(userService.findCurrentUser()).thenReturn(currentUser);
                 when(userService.findUser(userId)).thenReturn(currentUser);
-                when(userService.updateUser(any(User.class), eq(userId))).thenReturn(updatedUser);
+                when(userService.updateUser(any(UserUpdateRequest.class), eq(userId))).thenReturn(updatedUser);
 
                 mockMvc.perform(put("/api/v1/users/{userId}", userId)
                                 .contentType(APPLICATION_JSON)
@@ -173,7 +174,7 @@ class UserRestControllerIntegrationTest {
         void update_withInvalidPayload_shouldReturnBadRequest() throws Exception {
                 UUID userId = UUID.randomUUID();
 
-                User invalidPayload = new User();
+                UserUpdateRequest invalidPayload = new UserUpdateRequest();
                 invalidPayload.setEmail("");
                 invalidPayload.setUserName("");
                 invalidPayload.setFirstName("");
@@ -184,7 +185,7 @@ class UserRestControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(invalidPayload)))
                                 .andExpect(status().isBadRequest());
 
-                verify(userService, never()).updateUser(any(User.class), eq(userId));
+                verify(userService, never()).updateUser(any(UserUpdateRequest.class), eq(userId));
         }
 
         @Test
@@ -205,7 +206,7 @@ class UserRestControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(payload)))
                                 .andExpect(status().isForbidden());
 
-                verify(userService, never()).updateUser(any(User.class), eq(targetUserId));
+                verify(userService, never()).updateUser(any(UserUpdateRequest.class), eq(targetUserId));
         }
 
         @Test // No authentication provided

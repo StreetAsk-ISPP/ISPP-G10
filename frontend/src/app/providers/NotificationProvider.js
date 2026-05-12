@@ -11,6 +11,7 @@ import { calculateDistanceInKm } from '../../shared/utils/helpers';
 
 const MAX_NOTIFICATIONS = 50;
 const EPHEMERAL_NOTIFICATION_MS = 6000;
+const EPHEMERAL_STRIKE_NOTIFICATION_MS = 15000;
 const NotificationContext = createContext(null);
 
 function parseMessage(frame, source) {
@@ -70,12 +71,16 @@ export function NotificationProvider({ children }) {
     setNotifications((previous) => [normalized, ...previous].slice(0, MAX_NOTIFICATIONS));
     setEphemeralNotification(normalized);
 
+    const duration = normalized.type === 'STRIKE'
+      ? EPHEMERAL_STRIKE_NOTIFICATION_MS
+      : EPHEMERAL_NOTIFICATION_MS;
+
     if (ephemeralTimeoutRef.current) {
       clearTimeout(ephemeralTimeoutRef.current);
     }
     ephemeralTimeoutRef.current = setTimeout(() => {
       setEphemeralNotification((current) => (current?.clientId === normalized.clientId ? null : current));
-    }, EPHEMERAL_NOTIFICATION_MS);
+    }, duration);
 
     notificationCenter.publish(normalized);
   }, []);

@@ -1,17 +1,17 @@
 package com.streetask.app.configuration.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -50,7 +50,19 @@ class UserDetailsServiceImplTest {
         when(userRepository.findByEmailIgnoreCase(identifier)).thenReturn(Optional.empty());
         when(userRepository.findByUserNameIgnoreCase(identifier)).thenReturn(Optional.empty());
 
-        assertThrows(UsernameNotFoundException.class, () -> userDetailsService.loadUserByUsername(identifier));
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
+                () -> userDetailsService.loadUserByUsername(identifier));
+        assertThat(exception.getMessage()).contains("User Not Found with email, username, or id: ");
+    }
+
+    @Test
+    void shouldThrowWhenIdentifierIsNull() {
+        when(userRepository.findByEmailIgnoreCase("")).thenReturn(Optional.empty());
+        when(userRepository.findByUserNameIgnoreCase("")).thenReturn(Optional.empty());
+
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
+                () -> userDetailsService.loadUserByUsername(null));
+        assertThat(exception.getMessage()).contains("User Not Found with email, username, or id: ");
     }
 
     private User buildUser(UUID id, String email, String username) {

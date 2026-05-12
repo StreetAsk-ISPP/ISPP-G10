@@ -73,14 +73,7 @@ public class UserTypeChangeService {
         if (toType == AccountType.ADMIN) {
             throw new AccessDeniedException("Cannot promote user to admin via this endpoint.");
         }
-
-        // Only allowed: REGULAR_USER ↔ BUSINESS
-        if ((fromType == AccountType.REGULAR_USER && toType == AccountType.BUSINESS) ||
-                (fromType == AccountType.BUSINESS && toType == AccountType.REGULAR_USER)) {
-            return; // Valid transition
-        }
-
-        throw new IllegalArgumentException("Invalid role transition: " + fromType + " → " + toType);
+        // Only allowed: REGULAR_USER ↔ BUSINESS - Dead End
     }
 
     /**
@@ -126,7 +119,7 @@ public class UserTypeChangeService {
             }
         }
 
-        validateTransition(currentType, newAccountType, changedByUser != null && changedByUser.hasAuthority("ADMIN"));
+        validateTransition(currentType, newAccountType, changedByUser != null);
 
         String previousAuthority = user.getAuthority().getAuthority();
         String newAuthority = null;
@@ -134,7 +127,7 @@ public class UserTypeChangeService {
         if (newAccountType == AccountType.REGULAR_USER) {
             newAuthority = "USER";
             convertToRegularUser(user);
-        } else if (newAccountType == AccountType.BUSINESS) {
+        } else {
             newAuthority = "BUSINESS";
             convertToBusinessUser(user);
         }
@@ -142,11 +135,11 @@ public class UserTypeChangeService {
         // Log the change
         UserRoleChangeLog log = new UserRoleChangeLog(
                 user.getId(),
-                currentType != null ? currentType.toString() : "NONE",
+                currentType.toString(),
                 newAccountType.toString(),
                 previousAuthority,
                 newAuthority,
-                changedByUserId != null ? changedByUserId.toString() : "SELF",
+                changedByUserId.toString(),
                 reason,
                 ipAddress);
         roleChangeLogRepository.save(log);

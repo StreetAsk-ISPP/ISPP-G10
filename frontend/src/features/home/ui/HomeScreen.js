@@ -58,7 +58,7 @@ const writeCachedArray = (key, value) => {
     window.localStorage.setItem(key, JSON.stringify(value));
 };
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
     const { logout, token, user } = useAuth();
     const { ephemeralNotification, observeNotifications } = useNotifications();
     const { width } = useWindowDimensions();
@@ -67,13 +67,14 @@ export default function HomeScreen({ navigation }) {
 
     const [questions, setQuestions] = useState([]);
     const [events, setEvents] = useState([]);
-    const [showQuestions, setShowQuestions] = useState(true);
+    const [showQuestions, setShowQuestions] = useState(!isBusinessUser);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [isPremium, setIsPremium] = useState(false);
     const [sidebarTab, setSidebarTab] = useState('QUESTIONS');
 
     // null = revisando, true = concedido, false = denegado
     const [hasLocationPermission, setHasLocationPermission] = useState(null);
+    const [mapKey, setMapKey] = useState(0);
 
     const [feedbackVisible, setFeedbackVisible] = useState(false);
     const [feedbackType, setFeedbackType] = useState('SUGGESTION');
@@ -264,12 +265,8 @@ export default function HomeScreen({ navigation }) {
     }, [isFocused, loadEvents, loadQuestions, observeNotifications]);
 
     useEffect(() => {
-        if (Platform.OS !== 'web' || typeof window === 'undefined') {
-            return undefined;
-        }
-
-        const handleQuestionCreated = (event) => {
-            const createdQuestion = event?.detail?.question;
+        if (route.params?.refreshNonce) {
+            const createdQuestion = route.params?.newQuestion;
 
             if (createdQuestion?.id) {
                 setQuestions((currentQuestions) => {
@@ -277,20 +274,21 @@ export default function HomeScreen({ navigation }) {
                         createdQuestion,
                         ...currentQuestions.filter((question) => question?.id !== createdQuestion.id),
                     ];
-                    writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, nextQuestions);
+                    try {
+                        writeCachedArray(STORAGE_KEYS.HOME_QUESTIONS_CACHE, nextQuestions);
+                    } catch (error) {
+                        console.warn("Cache full, ignoring saved data to prevent app crashes");
+                    }
                     return nextQuestions;
                 });
             }
 
             loadQuestions();
             loadEvents();
-        };
 
-        window.addEventListener('streetask:question-created', handleQuestionCreated);
-        return () => {
-            window.removeEventListener('streetask:question-created', handleQuestionCreated);
-        };
-    }, [loadEvents, loadQuestions]);
+            navigation.setParams({ refreshNonce: undefined, newQuestion: undefined });
+        }
+    }, [route.params?.refreshNonce, route.params?.newQuestion, loadQuestions, loadEvents, navigation]);
 
     useEffect(() => {
         if (!isFocused || Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -510,6 +508,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleRefresh = async () => {
         try {
+            setMapKey((k) => k + 1);
             await loadQuestions();
             await loadEvents();
         } catch (e) {
@@ -692,6 +691,7 @@ export default function HomeScreen({ navigation }) {
 
                     <View style={styles.mapWrapper}>
                         <MapComponent
+                            key={mapKey}
                             questions={showQuestions ? questions : []}
                             events={events}
                             eventNavigationTarget={selectedEventTarget}
@@ -745,15 +745,17 @@ export default function HomeScreen({ navigation }) {
                         }}
                     />
 
-                    <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
-                        <Text style={styles.toggleLabel}>Show Questions</Text>
-                        <Switch
-                            value={showQuestions}
-                            onValueChange={setShowQuestions}
-                            trackColor={{ false: '#d1d5db', true: '#a52019' }}
-                            thumbColor="#fff"
-                        />
-                    </View>
+                    {!isBusinessUser && (
+                        <View style={[styles.footer, isNarrow && { paddingHorizontal: 14 }]}>
+                            <Text style={styles.toggleLabel}>Show Questions</Text>
+                            <Switch
+                                value={showQuestions}
+                                onValueChange={setShowQuestions}
+                                trackColor={{ false: '#d1d5db', true: '#a52019' }}
+                                thumbColor="#fff"
+                            />
+                        </View>
+                    )}
                     {hasLocationPermission && (
                         <>
                             {isBusiness && (
@@ -767,14 +769,16 @@ export default function HomeScreen({ navigation }) {
                                 </TouchableOpacity>
                             )}
 
-                            <TouchableOpacity
-                                style={[styles.fab, isNarrow && { width: 220 }]}
-                                onPress={() => navigation.navigate('CreateQuestion')}
-                                activeOpacity={0.85}
-                            >
-                                <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
-                                <Text style={styles.fabText}>Ask a question</Text>
-                            </TouchableOpacity>
+                            {!isBusiness && (
+                                <TouchableOpacity
+                                    style={[styles.fab, isNarrow && { width: 220 }]}
+                                    onPress={() => navigation.navigate('CreateQuestion')}
+                                    activeOpacity={0.85}
+                                >
+                                    <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                                    <Text style={styles.fabText}>Ask a question</Text>
+                                </TouchableOpacity>
+                            )}
                         </>
                     )}
 

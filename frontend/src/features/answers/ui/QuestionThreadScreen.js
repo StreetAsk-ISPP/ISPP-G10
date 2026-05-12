@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
     View, Text, StyleSheet, SafeAreaView, FlatList, TextInput,
     KeyboardAvoidingView, Platform, Pressable, ActivityIndicator, Modal,
-    TouchableOpacity, useWindowDimensions,
+    TouchableOpacity, useWindowDimensions, Image,
 } from 'react-native';
 import { theme } from '../../../shared/ui/theme/theme';
 import * as Location from 'expo-location';
@@ -79,6 +79,16 @@ export default function QuestionThreadScreen({ route, navigation }) {
         return avatarColors[Math.abs(hash) % avatarColors.length];
     }, []);
 
+    const getInitials = useCallback((firstName, lastName, userName) => {
+        if (firstName && lastName) {
+            return `${firstName[0]}${lastName[0]}`.toUpperCase();
+        }
+        if (userName) {
+            return userName.slice(0, 2).toUpperCase();
+        }
+        return 'U';
+    }, []);
+
     const mapAnswer = useCallback((a) => ({
         id: a.id,
         author: a.user?.userName || a.user?.username || 'Anonymous',
@@ -90,7 +100,12 @@ export default function QuestionThreadScreen({ route, navigation }) {
         createdAt: a.createdAt || null,
         userId: a.user?.id,
         isVerified: a.isVerified,
-    }), [pickColor]);
+        profilePictureUrl: a.user?.profilePictureUrl || null,
+        firstName: a.user?.firstName || null,
+        lastName: a.user?.lastName || null,
+        userName: a.user?.userName || a.user?.username || 'Anonymous',
+        initials: getInitials(a.user?.firstName, a.user?.lastName, a.user?.userName || a.user?.username),
+    }), [pickColor, getInitials]);
 
     const sortAnswersInMemory = useCallback((items, sort) => {
         const copy = [...items];
@@ -584,6 +599,20 @@ export default function QuestionThreadScreen({ route, navigation }) {
                 <View style={styles.threadLineCol}>
                     <View style={[styles.threadDot, { backgroundColor: item.color }]} />
                     {!isLast && <View style={styles.threadLine} />}
+                </View>
+
+                {/* User Avatar */}
+                <View style={styles.threadAvatarCol}>
+                    {item.profilePictureUrl ? (
+                        <Image
+                            source={{ uri: item.profilePictureUrl }}
+                            style={styles.threadAvatarImage}
+                        />
+                    ) : (
+                        <View style={[styles.threadAvatarFallback, { backgroundColor: item.color }]}>
+                            <Text style={styles.threadAvatarInitials}>{item.initials}</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Content */}
@@ -1166,9 +1195,35 @@ const styles = StyleSheet.create({
         backgroundColor: '#e5e7eb',
         marginTop: 2,
     },
+    threadAvatarCol: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        overflow: 'hidden',
+        marginLeft: 8,
+        marginTop: 4,
+        backgroundColor: '#f3f4f6',
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+    },
+    threadAvatarImage: {
+        width: '100%',
+        height: '100%',
+    },
+    threadAvatarFallback: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    threadAvatarInitials: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#1f2937',
+    },
     threadContent: {
         flex: 1,
-        marginLeft: 10,
+        marginLeft: 8,
         marginBottom: 16,
         backgroundColor: '#fff',
         borderRadius: 14,

@@ -1,0 +1,44 @@
+/**
+ * Scenarios module for StreetTask load testing
+ * Defines test configuration, executor settings, and thresholds
+ */
+
+/**
+ * Local ramping VU scenario configuration
+ * Gradually increases from 0 to 10 VUs over 1 minute,
+ * holds at 25 VUs for 3 minutes,
+ * then ramps down to 0 over 1 minute
+ * Total duration: ~5 minutes
+ */
+export const scenarios = {
+    local_ramp: {
+        executor: 'ramping-vus',
+        startVUs: 0,
+        stages: [
+            { duration: '30s', target: 10 },
+            { duration: '1m', target: 25 },
+            { duration: '30s', target: 0 },
+        ],
+        gracefulRampDown: '10s',
+    },
+};
+
+/**
+ * Performance thresholds
+ * - Failed requests: less than 5% (allows for rate limiting)
+ * - 95th percentile response time: under 10000ms (realistic for load test)
+ * - 99th percentile response time: under 13000ms (realistic for load test)
+ */
+export const thresholds = {
+    http_req_failed: ['rate<0.05'],
+    http_req_duration: ['p(95)<10000', 'p(99)<13000'],
+};
+
+/**
+ * Complete test options configuration
+ * Exported for direct use in main test file
+ */
+export const options = {
+    scenarios,
+    thresholds,
+};

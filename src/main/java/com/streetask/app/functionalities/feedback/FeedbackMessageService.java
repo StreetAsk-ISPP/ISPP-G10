@@ -53,10 +53,6 @@ public class FeedbackMessageService {
         FeedbackMessage feedbackMessage = feedbackMessageRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Feedback message not found with id: " + id));
 
-        if (feedbackMessage == null) {
-            throw new IllegalArgumentException("Feedback message not found with id: " + id);
-        }
-
         feedbackMessageRepository.delete(feedbackMessage);
     }
 

@@ -12,11 +12,13 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import apiClient from '../../../shared/services/http/apiClient';
+import Slider from '@react-native-community/slider';
 import Toast from 'react-native-toast-message';
+
+import apiClient from '../../../shared/services/http/apiClient';
 import MapPickerWeb from '../../home/ui/components/MapPickerWeb';
 import { useAuth } from '../../../app/providers/AuthProvider';
-import Slider from '@react-native-community/slider';
+import { calculateDistanceInKm } from '../../../shared/utils/helpers';
 
 const FREE_FIXED_RADIUS_KM = 0.5;
 const FREE_FIXED_RADIUS_M = 500;
@@ -28,6 +30,61 @@ const PREMIUM_MAX_DURATION_HOURS = 24;
 const FAKE_AD_DURATION_SECONDS = 30;
 const DEFAULT_FALLBACK_LAT = 37.3886;
 const DEFAULT_FALLBACK_LNG = -5.9823;
+
+const SEARCH_VIEWBOX_DELTA = 0.35;
+
+const buildNominatimSearchUrl = (query, centerLat, centerLng, bounded = true) => {
+    const params = new URLSearchParams({
+        format: 'json',
+        limit: '8',
+        addressdetails: '1',
+        q: query,
+    });
+
+    if (bounded && Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
+        params.set(
+            'viewbox',
+            [
+                centerLng - SEARCH_VIEWBOX_DELTA,
+                centerLat + SEARCH_VIEWBOX_DELTA,
+                centerLng + SEARCH_VIEWBOX_DELTA,
+                centerLat - SEARCH_VIEWBOX_DELTA,
+            ].join(',')
+        );
+        params.set('bounded', '1');
+    }
+
+    return `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+};
+
+const distanceToCenter = (item, centerLat, centerLng) => {
+    const lat = Number(item.lat);
+    const lon = Number(item.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return Number.MAX_VALUE;
+    }
+
+    if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+        return Number.MAX_VALUE;
+    }
+
+    return calculateDistanceInKm(
+        { latitude: centerLat, longitude: centerLng },
+        { latitude: lat, longitude: lon }
+    );
+};
+
+const mapAndPrioritizeSearchResults = (data, centerLat, centerLng) => {
+    return (Array.isArray(data) ? data : [])
+        .map((item) => ({
+            label: item.display_name,
+            lat: Number(item.lat),
+            lon: Number(item.lon),
+            distanceKm: distanceToCenter(item, centerLat, centerLng),
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+};
 
 const addHoursISO = (hours) => {
   const nowMs = Date.now();
@@ -62,7 +119,8 @@ const isPremiumHoursValid = (value) => {
   );
 };
 
-const REQUIRED_LOCATION_MESSAGE = 'Please select a location on the map before submitting your question.';
+const REQUIRED_LOCATION_MESSAGE =
+  'Please select a location on the map before submitting your question.';
 
 const extractErrorMessage = (error) => {
   const message = error?.response?.data?.message;
@@ -92,10 +150,12 @@ const extractErrorMessage = (error) => {
 
 const isLocationValidationError = (message) => {
   const normalized = String(message || '').toLowerCase();
-  return normalized.includes('location')
-    || normalized.includes('latitude')
-    || normalized.includes('longitude')
-    || normalized.includes('geopoint');
+  return (
+    normalized.includes('location') ||
+    normalized.includes('latitude') ||
+    normalized.includes('longitude') ||
+    normalized.includes('geopoint')
+  );
 };
 
 export default function CreateQuestionScreen({ navigation, route }) {
@@ -107,9 +167,16 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const eventId = route?.params?.eventId || eventData?.id || null;
   const eventTitle = route?.params?.eventTitle || eventData?.title || null;
   const eventLoc = eventData?.location ?? null;
-  const eventLat = Number(eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat);
+  const eventLat = Number(
+    eventLoc?.latitude ?? eventLoc?.lat ?? eventLoc?.y ?? eventData?.latitude ?? eventData?.lat
+  );
   const eventLng = Number(
-    eventLoc?.longitude ?? eventLoc?.lng ?? eventLoc?.lon ?? eventLoc?.x ?? eventData?.longitude ?? eventData?.lng
+    eventLoc?.longitude ??
+    eventLoc?.lng ??
+    eventLoc?.lon ??
+    eventLoc?.x ??
+    eventData?.longitude ??
+    eventData?.lng
   );
   const hasEventFixedLocation = eventId && Number.isFinite(eventLat) && Number.isFinite(eventLng);
 
@@ -143,6 +210,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const [locationError, setLocationError] = useState('');
   const [locationSectionY, setLocationSectionY] = useState(0);
   const formScrollRef = useRef(null);
+  const mapPickRequestRef = useRef(0);
+  const manualPickRef = useRef(false);
 
   const getCurrentPositionWeb = useCallback(() => {
     if (Platform.OS !== 'web' || !navigator.geolocation) {
@@ -187,18 +256,6 @@ export default function CreateQuestionScreen({ navigation, route }) {
         const response = await apiClient.post('/api/v1/questions', payload);
         console.log('[CreateQuestionScreen] Created question response:', response?.data);
 
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          window.dispatchEvent(
-            new CustomEvent('streetask:question-created', {
-              detail: {
-                questionId: response?.data?.id ?? null,
-                eventId,
-                question: response?.data ?? null,
-              },
-            })
-          );
-        }
-
         if (eventId) {
           const eventQuestionsResponse = await apiClient.get(`/api/v1/events/${eventId}/questions`);
           const eventQuestionsPayload = eventQuestionsResponse?.data;
@@ -230,8 +287,11 @@ export default function CreateQuestionScreen({ navigation, route }) {
         });
         if (eventId) {
           navigation.navigate({
-            name: 'EventDetails',
-            params: { eventId, refreshNonce: Date.now() },
+            name: 'Home',
+            params: {
+              refreshNonce: Date.now(),
+              newQuestion: response?.data
+            },
             merge: true,
           });
           return;
@@ -270,8 +330,20 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setLatitude(eventLat);
       setLongitude(eventLng);
       clearLocationError();
-      setPlace((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
-      setPickedLabel((prev) => (eventData?.address ? eventData.address : (prev?.trim() ? prev : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`)));
+      setPlace((prev) =>
+        eventData?.address
+          ? eventData.address
+          : prev?.trim()
+            ? prev
+            : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+      );
+      setPickedLabel((prev) =>
+        eventData?.address
+          ? eventData.address
+          : prev?.trim()
+            ? prev
+            : `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+      );
       return;
     }
 
@@ -374,7 +446,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
       setLatitude((prev) => (typeof prev === 'number' ? prev : lat));
       setLongitude((prev) => (typeof prev === 'number' ? prev : lng));
       clearLocationError();
-      setPlace((prev) => (prev?.trim() ? prev : `(${lat.toFixed(5)}, ${lng.toFixed(5)})`));
+      setPlace((prev) => (prev?.trim() ? prev : ''));
     };
 
     preloadCurrentLocation();
@@ -424,7 +496,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
   const premiumRadiusValid = !isPremium || isPremiumRadiusValid(parsedRadiusMeters);
   const premiumHoursValid = !isPremium || isPremiumHoursValid(parsedHours);
   const showRadiusRangeError = isPremium && radiusInput.trim().length > 0 && !premiumRadiusValid;
-  const dailyLimitReached = eventId ? todayQuestionCount >= 3 : (!isPremium && todayQuestionCount >= 3);
+  const dailyLimitReached = eventId
+    ? todayQuestionCount >= 3
+    : !isPremium && todayQuestionCount >= 3;
   const requiresStreetCoinSpend = !isPremium && todayQuestionCount >= 3;
   const hasZeroStreetCoins = requiresStreetCoinSpend && streetCoinBalance === 0;
 
@@ -439,21 +513,24 @@ export default function CreateQuestionScreen({ navigation, route }) {
     [title, content, premiumRadiusValid, premiumHoursValid, hasZeroStreetCoins, isSubmitting]
   );
 
-  const proceedWithStreetCoinConsent = useCallback((payload) => {
-    const payloadWithConsent = {
-      ...payload,
-      confirmStreetCoinSpend: true,
-    };
+  const proceedWithStreetCoinConsent = useCallback(
+    (payload) => {
+      const payloadWithConsent = {
+        ...payload,
+        confirmStreetCoinSpend: true,
+      };
 
-    if (!isPremium) {
-      setQueuedPayload(payloadWithConsent);
-      setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
-      setShowFakeAd(true);
-      return;
-    }
+      if (!isPremium) {
+        setQueuedPayload(payloadWithConsent);
+        setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
+        setShowFakeAd(true);
+        return;
+      }
 
-    submitQuestion(payloadWithConsent);
-  }, [isPremium, submitQuestion]);
+      submitQuestion(payloadWithConsent);
+    },
+    [isPremium, submitQuestion]
+  );
 
   const showStreetCoinConsentDialog = useCallback((payload) => {
     setStreetCoinConsentPayload(payload);
@@ -475,68 +552,100 @@ export default function CreateQuestionScreen({ navigation, route }) {
     proceedWithStreetCoinConsent(payload);
   }, [streetCoinConsentPayload, proceedWithStreetCoinConsent]);
 
-  const searchAddress = async () => {
+    const searchAddress = async () => {
+        const q = place.trim();
+
+        if (!q) {
+            Toast.show({
+            type: 'info',
+            text1: 'Search field is empty',
+            text2: 'Enter an address or place before searching.',
+            position: 'top',
+            });
+            return;
+        }
+
+        setSearching(true);
+
+        try {
+            const centerLat = Number.isFinite(userLat) ? userLat : latitude;
+            const centerLng = Number.isFinite(userLng) ? userLng : longitude;
+
+            const localUrl = buildNominatimSearchUrl(q, centerLat, centerLng, true);
+
+            let res = await fetch(localUrl, {
+            headers: {
+                Accept: 'application/json',
+                'Accept-Language': 'es',
+            },
+            });
+
+            if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+            }
+
+            let data = await res.json();
+            let items = mapAndPrioritizeSearchResults(data, centerLat, centerLng);
+
+            if (items.length === 0) {
+            const globalUrl = buildNominatimSearchUrl(q, centerLat, centerLng, false);
+
+            res = await fetch(globalUrl, {
+                headers: {
+                Accept: 'application/json',
+                'Accept-Language': 'es',
+                },
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            data = await res.json();
+            items = mapAndPrioritizeSearchResults(data, centerLat, centerLng);
+            }
+
+            setSearchResults(items);
+
+            if (items.length === 0) {
+            Toast.show({
+                type: 'info',
+                text1: 'No results',
+                text2: 'No address was found.',
+                position: 'top',
+            });
+            return;
+            }
+
+            if (items.length === 1) {
+            setLatitude(items[0].lat);
+            setLongitude(items[0].lon);
+            setPlace(items[0].label);
+            setPickedLabel(items[0].label);
+            setSearchResults([]);
+            clearLocationError();
+            }
+        } catch (e) {
+            console.error('Nominatim search error:', e);
+
+            Toast.show({
+            type: 'error',
+            text1: 'Search error',
+            text2: 'Could not search the address.',
+            position: 'top',
+            });
+        } finally {
+            setSearching(false);
+        }
+    };
+
+  const openMapPick = useCallback(() => {
     if (eventId) {
       return;
     }
 
-    const q = place.trim();
-    if (!q) {
-      Toast.show({
-        type: 'info',
-        text1: 'Search field is empty',
-        text2: 'Enter an address or place before searching.',
-        position: 'top',
-      });
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`;
-      const res = await fetch(url, {
-        headers: { Accept: 'application/json' },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const items = (data || []).map((it) => ({
-        label: it.display_name,
-        lat: Number(it.lat),
-        lon: Number(it.lon),
-      }));
-      setSearchResults(items);
-      if (items.length === 0) {
-        Toast.show({
-          type: 'info',
-          text1: 'No results',
-          text2: 'No addresses were found. Try being more specific.',
-          position: 'top',
-        });
-      }
-      if (items.length === 1) {
-        setLatitude(items[0].lat);
-        setLongitude(items[0].lon);
-        setPickedLabel(items[0].label);
-        setSearchResults([]);
-        clearLocationError();
-      }
-    } catch (e) {
-      console.error('Nominatim search error:', e);
-      Toast.show({
-        type: 'error',
-        text1: 'Search error',
-        text2: 'The address could not be found. Please try again.',
-        position: 'top',
-      });
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const openMapPick = useCallback(async () => {
-    if (eventId) {
-      return;
-    }
+    manualPickRef.current = false;
+    const requestId = ++mapPickRequestRef.current;
 
     let nextLat = typeof latitude === 'number' ? latitude : null;
     let nextLng = typeof longitude === 'number' ? longitude : null;
@@ -545,20 +654,31 @@ export default function CreateQuestionScreen({ navigation, route }) {
       if (typeof userLat === 'number' && typeof userLng === 'number') {
         nextLat = userLat;
         nextLng = userLng;
-      } else {
-        const coords = await getCurrentPositionWeb();
-        if (coords) {
-          nextLat = coords.lat;
-          nextLng = coords.lng;
-          setUserLat(coords.lat);
-          setUserLng(coords.lng);
-        }
       }
     }
 
     setTempLat(typeof nextLat === 'number' ? nextLat : DEFAULT_FALLBACK_LAT);
     setTempLng(typeof nextLng === 'number' ? nextLng : DEFAULT_FALLBACK_LNG);
     setPickMode(true);
+
+    if (typeof nextLat === 'number' && typeof nextLng === 'number') {
+      return;
+    }
+
+    getCurrentPositionWeb().then((coords) => {
+      if (!coords) {
+        return;
+      }
+
+      if (mapPickRequestRef.current !== requestId || manualPickRef.current) {
+        return;
+      }
+
+      setUserLat(coords.lat);
+      setUserLng(coords.lng);
+      setTempLat(coords.lat);
+      setTempLng(coords.lng);
+    });
   }, [eventId, latitude, longitude, userLat, userLng, getCurrentPositionWeb]);
 
   const cancelMapPick = () => {
@@ -579,7 +699,6 @@ export default function CreateQuestionScreen({ navigation, route }) {
     }
     setLatitude(tempLat);
     setLongitude(tempLng);
-    setPlace(`(${tempLat.toFixed(5)}, ${tempLng.toFixed(5)})`);
     setPickedLabel('');
     setSearchResults([]);
     clearLocationError();
@@ -700,7 +819,6 @@ export default function CreateQuestionScreen({ navigation, route }) {
       return;
     }
 
-
     if (!isPremium) {
       setQueuedPayload(payload);
       setAdSecondsLeft(FAKE_AD_DURATION_SECONDS);
@@ -733,6 +851,7 @@ export default function CreateQuestionScreen({ navigation, route }) {
               tempLat={tempLat}
               tempLng={tempLng}
               onPick={(lat, lng) => {
+                manualPickRef.current = true;
                 setTempLat(lat);
                 setTempLng(lng);
               }}
@@ -879,12 +998,17 @@ export default function CreateQuestionScreen({ navigation, route }) {
                     <Text style={styles.lockedLocationTitle}>Fixed event location</Text>
                   </View>
                   <Text style={styles.lockedLocationText}>
-                    {place?.trim() || (hasEventFixedLocation ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})` : 'Location not available')}
+                    {place?.trim() ||
+                      (hasEventFixedLocation
+                        ? `(${eventLat.toFixed(5)}, ${eventLng.toFixed(5)})`
+                        : 'Location not available')}
                   </Text>
                 </View>
               ) : (
                 <>
-                  <View style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}>
+                  <View
+                    style={[styles.inputWrapper, focusedField === 'place' && styles.inputFocused]}
+                  >
                     <Ionicons
                       name="search-outline"
                       size={18}
@@ -916,7 +1040,9 @@ export default function CreateQuestionScreen({ navigation, route }) {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="search" size={16} color="#a52019" />
-                      <Text style={styles.btnOutlineText}>{searching ? 'Searching...' : 'Search'}</Text>
+                      <Text style={styles.btnOutlineText}>
+                        {searching ? 'Searching...' : 'Search'}
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -932,7 +1058,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
               )}
 
               {/* Search results */}
-              {!eventId && searchResults.length > 1 &&
+              {!eventId &&
+                searchResults.length > 1 &&
                 searchResults.map((r, idx) => (
                   <TouchableOpacity
                     key={idx}
@@ -1104,8 +1231,8 @@ export default function CreateQuestionScreen({ navigation, route }) {
             <Text style={styles.consentTitle}>Spend 1 StreetCoin?</Text>
             <Text style={styles.consentText}>
               {eventId
-                ? 'You already reached today\'s free limit in this event. Confirm to spend 1 StreetCoin and publish this question.'
-                : 'You already reached today\'s free limit. Confirm to spend 1 StreetCoin and publish this question.'}
+                ? "You already reached today's free limit in this event. Confirm to spend 1 StreetCoin and publish this question."
+                : "You already reached today's free limit. Confirm to spend 1 StreetCoin and publish this question."}
             </Text>
             {typeof streetCoinBalance === 'number' ? (
               <Text style={styles.consentBalanceText}>
@@ -1137,13 +1264,22 @@ export default function CreateQuestionScreen({ navigation, route }) {
           <View style={styles.adCard}>
             <Text style={styles.adBadge}>Sponsored</Text>
             <Text style={styles.adTitle}>University of Seville</Text>
-            <Text style={styles.adText}>Simulated ad shown to free users before their question is published.</Text>
+            <Text style={styles.adText}>
+              Simulated ad shown to free users before their question is published.
+            </Text>
             <View style={styles.adVisual}>
               <Text style={styles.adVisualTitle}>Study, research, connect</Text>
-              <Text style={styles.adVisualText}>Discover degrees, scholarships, campus life, and opportunities at the University of Seville.</Text>
+              <Text style={styles.adVisualText}>
+                Discover degrees, scholarships, campus life, and opportunities at the University of
+                Seville.
+              </Text>
             </View>
-            <Text style={styles.adHelperText}>Your question will only be created when this countdown finishes.</Text>
-            <Text style={styles.adCountdown}>Your question will be published in {adSecondsLeft}s</Text>
+            <Text style={styles.adHelperText}>
+              Your question will only be created when this countdown finishes.
+            </Text>
+            <Text style={styles.adCountdown}>
+              Your question will be published in {adSecondsLeft}s
+            </Text>
             {canSkipAd && (
               <TouchableOpacity style={styles.adSkipBtn} onPress={skipAd}>
                 <Text style={styles.adSkipText}>X</Text>

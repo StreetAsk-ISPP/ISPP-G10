@@ -10,14 +10,6 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface UserRepository extends CrudRepository<User, UUID> {
 
-	// @Modifying
-	// @Query("DELETE FROM Owner o WHERE o.user.email = :email")
-	// void deleteOwnerOfUser(String email);
-	//
-	// @Modifying
-	// @Query("DELETE FROM Pet p WHERE p.owner.id = :id")
-	// public void deletePetsOfOwner(@Param("id") int id);
-
 	Optional<User> findByEmail(String email);
 
 	Optional<User> findByEmailIgnoreCase(String email);
