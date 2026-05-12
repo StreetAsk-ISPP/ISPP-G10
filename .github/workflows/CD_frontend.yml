@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - feature/migration-sprint3
+      - feature/migration-ppl
 
 jobs:
   deploy:

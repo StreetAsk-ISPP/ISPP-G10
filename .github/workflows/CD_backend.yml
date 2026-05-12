@@ -7,7 +7,7 @@ on:
   push:
     branches:
       - main
-      - feature/migration-sprint3
+      - feature/migration-ppl
   workflow_dispatch:
  
 jobs:
@@ -48,6 +48,6 @@ jobs:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
             az containerapp update \
-              --name sprint3-backend \
-              --resource-group sprint3-recursos \
+              --name ppl-backend \
+              --resource-group ppl-recursos \
               --image $IMAGE_NAME:$IMAGE_TAG \
