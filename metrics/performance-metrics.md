@@ -1,8 +1,8 @@
 # Performance Metrics Report - Individual Contributors
 
 - Repository: `StreetAsk-ISPP/ISPP-G10`
-- Generated at (UTC): `2026-05-04 17:45:57`
-- Performance Threshold: `5.0/10`
+- Generated at (UTC): `2026-05-12 15:36:38`
+- Performance Threshold: `6.0/10`
 - Target Sprint: `ALL`
 
 ## Important Notes
@@ -49,7 +49,7 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | celdorrui | 7.0 | ✅ | 2 | [#136](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/136), [#177](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/177) | [#559](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/559) | 1 | 1 | 0 | 0 | 0 |  | manumnzz (1 PR), santiabregu (1 PR) |
 | manchilop | 6.3 | ✅ | 3 | [#117](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/117), [#119](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/119), [#125](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/125) | [#155](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/155) | 0 | 3 | 0 | 0 | 1 | +1 | javpalgon (1 PR) |
 | Robmunnper | 6.0 | ✅ | 2 | [#115](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/115), [#138](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/138) | - | 0 | 2 | 0 | 0 | 0 |  | - |
-| raqgarhor | 5.0 | ✅ | 1 | [#137](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/137) | - | 0 | 1 | 0 | 0 | 0 |  | - |
+| raqgarhor | 5.0 | ⚠️ | 1 | [#137](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/137) | - | 0 | 1 | 0 | 0 | 0 |  | - |
 
 
 ## Sprint 2
@@ -75,7 +75,7 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | jossilguz | 7.0 | ✅ | 7 | [#267](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/267), [#296](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/296), [#364](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/364), [#380](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/380), [#383](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/383), [#426](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/426), [#450](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/450) | - | 0 | 5 | 2 | 0 | 0 |  | - |
 | OscarGomezGonzalezz | 6.0 | ✅ | 5 | [#243](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/243), [#336](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/336), [#351](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/351), [#444](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/444), [#449](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/449) | - | 0 | 2 | 1 | 2 | 0 |  | - |
 | anamarva2 | 6.0 | ✅ | 2 | [#266](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/266), [#375](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/375) | - | 0 | 2 | 0 | 0 | 0 |  | - |
-| miguelmirceballos | 5.0 | ✅ | 2 | [#278](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/278), [#446](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/446) | - | 0 | 0 | 1 | 1 | 0 |  | - |
+| miguelmirceballos | 5.0 | ⚠️ | 2 | [#278](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/278), [#446](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/446) | - | 0 | 0 | 1 | 1 | 0 |  | - |
 
 
 ## Sprint 3
@@ -91,8 +91,8 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | manortper1 | 7.5 | ✅ | 1 | [#547](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/547) | [#552](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/552) | 0 | 0 | 1 | 0 | 0 |  | Glinbor10 (1 PR) |
 | darrodsas | 7.5 | ✅ | 1 | [#427](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/427) | - | 0 | 1 | 0 | 0 | 0 |  | - |
 | pabloarrabalh | 7.5 | ✅ | 1 | [#494](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/494) | - | 0 | 1 | 0 | 0 | 0 |  | - |
-| 60Manu82 | 6.0 | ✅ | 5 | [#472](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/472), [#557](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/557), [#575](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/575), [#598](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/598), [#653](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/653) | - | 2 | 1 | 2 | 0 | 0 |  | - |
 | jossilguz | 6.0 | ✅ | 3 | [#413](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/413), [#522](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/522), [#654](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/654) | - | 0 | 2 | 1 | 0 | 0 |  | - |
+| 60Manu82 | 6.0 | ✅ | 5 | [#472](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/472), [#557](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/557), [#575](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/575), [#598](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/598), [#653](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/653) | - | 2 | 1 | 2 | 0 | 0 |  | - |
 | Sergiootl | 6.0 | ✅ | 4 | [#519](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/519), [#521](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/521), [#541](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/541), [#601](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/601) | - | 4 | 0 | 0 | 0 | 0 |  | - |
 | miguelmirceballos | 6.0 | ✅ | 4 | [#529](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/529), [#572](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/572), [#573](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/573), [#576](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/576) | - | 0 | 1 | 3 | 0 | 0 |  | - |
 | Robmunnper | 6.0 | ✅ | 3 | [#486](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/486), [#523](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/523), [#561](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/561) | - | 0 | 3 | 0 | 0 | 0 |  | - |
@@ -100,7 +100,7 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | darzafrui | 6.0 | ✅ | 4 | [#487](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/487), [#508](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/508), [#530](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/530), [#537](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/537) | - | 0 | 4 | 0 | 0 | 0 |  | - |
 | josegicar | 6.0 | ✅ | 3 | [#528](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/528), [#535](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/535), [#536](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/536) | - | 0 | 1 | 2 | 0 | 0 |  | - |
 | sfernandez07 | 6.0 | ✅ | 2 | [#484](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/484), [#531](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/531) | - | 0 | 2 | 0 | 0 | 0 |  | - |
-| anamarva2 | 5.0 | ✅ | 1 | [#518](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/518) | - | 0 | 0 | 1 | 0 | 0 |  | - |
+| anamarva2 | 5.0 | ⚠️ | 1 | [#518](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/518) | - | 0 | 0 | 1 | 0 | 0 |  | - |
 
 
 ## Combined Scores by Contributor
@@ -110,7 +110,6 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | 60Manu82 | 8.0 | 10.0 | 6.0 |
 | anamarva2 | - | 6.0 | 5.0 |
 | celdorrui | 7.0 | 8.0 | 6.0 |
-| Copilot | 0.0 | - | - |
 | darrodsas | 7.5* | 7.5* | 7.5* |
 | darzafrui | 9.0 | 8.0 | 6.0 |
 | Glinbor10 | 9.0* | 10.0 | 9.0* |
