@@ -230,6 +230,15 @@ cp .env.example .env  # Windows: copy .env.example .env
 | `BREVO_MAIL_FROM`     | `streetask0@gmail.com`    | Remitente de emails transaccionales |
 | `STRIPE_SECRET_KEY`    | `sk_test_...`             | Clave privada de Stripe (backend)   |
 | `STRIPE_PUBLISHABLE_KEY` | `pk_test_...`          | Clave pública de Stripe             |
+| `FRONTEND_URL` | `https://ppl-streetask.expo.app` | URL base del frontend para redirecciones de Stripe |
+| `STREETASK_STRIPE_SUCCESS_URL` | `https://ppl-streetask.expo.app` | Redirección tras pago Stripe exitoso |
+| `STREETASK_STRIPE_CANCEL_URL` | `https://ppl-streetask.expo.app` | Redirección cuando se cancela Stripe |
+| `STREETASK_STRIPE_STREETCOINS_SUCCESS_URL` | `https://ppl-streetask.expo.app` | Redirección éxito para compra de StreetCoins |
+| `STREETASK_STRIPE_STREETCOINS_CANCEL_URL` | `https://ppl-streetask.expo.app` | Redirección cancelación para StreetCoins |
+| `STREETASK_STRIPE_ALLOWED_RETURN_ORIGIN_PATTERNS` | `https://ppl-streetask.expo.app,https://streetask-preprod-frontend.onrender.com` | Allowlist de orígenes válidos para retorno dinámico |
+
+> Para cloud (Render/Azure): configura al menos `FRONTEND_URL` y `STREETASK_STRIPE_ALLOWED_RETURN_ORIGIN_PATTERNS`.
+> Si quieres máxima previsibilidad, define también todas las `STREETASK_STRIPE_*_URL` explícitamente.
 
 ### Matriz de configuración por entorno
 
