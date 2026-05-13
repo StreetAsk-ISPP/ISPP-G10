@@ -229,57 +229,60 @@ export default function AppNavigator() {
                         throw new Error('Missing Stripe session ID for checkout callback.');
                     }
 
-                    // =========================
-                    // BUSINESS FLOW (feature/buy-streetcoins + trunk)
-                    // =========================
-                    if (Array.isArray(user?.roles) && user.roles.includes('BUSINESS')) {
+                    const hasBusinessRole = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
+                    const isBusinessSignupCallback = flow === 'business-signup'
+                        || (!flow && pendingBusinessSignup?.email && pendingBusinessSignup?.taxId);
+                    const isBusinessSubscriptionCallback = flow === 'business-subscription'
+                        || (!flow && !isBusinessSignupCallback && (pendingBusinessSubscription || hasBusinessRole));
+                    const isRegularPremiumCallback = flow === 'regular-premium'
+                        || (!flow && !isBusinessSignupCallback && !isBusinessSubscriptionCallback
+                            && pendingRegularPremium && isAuthenticated);
+
+                    if (isBusinessSignupCallback) {
+                        if (!pendingBusinessSignup?.email || !pendingBusinessSignup?.taxId) {
+                            throw new Error('Missing pending business signup data for checkout callback.');
+                        }
+
+                        await apiClient.post(
+                            '/api/v1/business-subscriptions/stripe/confirm-session',
+                            {
+                                email: pendingBusinessSignup.email,
+                                taxId: pendingBusinessSignup.taxId,
+                                sessionId: effectiveSessionId,
+                            }
+                        );
+
+                        const pendingBusinessPassword = typeof pendingBusinessSignup?.password === 'string'
+                            ? pendingBusinessSignup.password.trim()
+                            : '';
+
+                        if (!isAuthenticated && pendingBusinessPassword) {
+                            const signInResponse = await apiClient.post('/api/v1/auth/signin', {
+                                email: pendingBusinessSignup.email,
+                                password: pendingBusinessPassword,
+                            });
+
+                            await login(signInResponse?.data?.token, {
+                                id: signInResponse?.data?.id,
+                                username: signInResponse?.data?.username,
+                                roles: signInResponse?.data?.roles,
+                            });
+                        }
+
+                        shouldClearBusinessSignupPending = true;
+                        callbackSucceeded = true;
+                    } else if (isBusinessSubscriptionCallback) {
                         await apiClient.post(
                             '/api/v1/business-subscriptions/me/stripe/confirm-session',
                             { sessionId: effectiveSessionId }
                         );
                         callbackSucceeded = true;
-                    } else {
-                        // =========================
-                        // PREMIUM USER (trunk)
-                        // =========================
-                        if (pendingRegularPremium && isAuthenticated) {
-                            await apiClient.post(
-                                '/api/v1/users/me/premium/stripe/confirm-session',
-                                { sessionId: effectiveSessionId }
-                            );
-                            callbackSucceeded = true;
-                        } else {
-                            if (pendingBusinessSignup?.email && pendingBusinessSignup?.taxId) {
-                                await apiClient.post(
-                                    '/api/v1/business-subscriptions/stripe/confirm-session',
-                                    {
-                                        email: pendingBusinessSignup.email,
-                                        taxId: pendingBusinessSignup.taxId,
-                                        sessionId: effectiveSessionId,
-                                    }
-                                );
-
-                                const pendingBusinessPassword = typeof pendingBusinessSignup?.password === 'string'
-                                    ? pendingBusinessSignup.password.trim()
-                                    : '';
-
-                                if (!isAuthenticated && pendingBusinessPassword) {
-                                    const signInResponse = await apiClient.post('/api/v1/auth/signin', {
-                                        email: pendingBusinessSignup.email,
-                                        password: pendingBusinessPassword,
-                                    });
-
-                                    await login(signInResponse?.data?.token, {
-                                        id: signInResponse?.data?.id,
-                                        username: signInResponse?.data?.username,
-                                        roles: signInResponse?.data?.roles,
-                                    });
-                                }
-
-                                shouldClearBusinessSignupPending = true;
-                                callbackSucceeded = true;
-                            }
-                        }
+                    } else if (isRegularPremiumCallback) {
+                        await apiClient.post(
+                            '/api/v1/users/me/premium/stripe/confirm-session',
+                            { sessionId: effectiveSessionId }
+                        );
+                        callbackSucceeded = true;
                     }
 
                     if (!callbackSucceeded) {
