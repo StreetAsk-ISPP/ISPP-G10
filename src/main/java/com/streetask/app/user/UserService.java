@@ -398,8 +398,9 @@ public class UserService {
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl,
+                        "payment=success&flow=regular-premium&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel&flow=regular-premium"))
                 .putMetadata("regularUserId", regularUser.getId().toString())
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
