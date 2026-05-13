@@ -158,6 +158,12 @@ public class UserService {
         toUpdate.setBio(request.getBio());
         toUpdate.setProfilePictureUrl(request.getProfilePictureUrl());
 
+        String newPassword = request.getPassword();
+        if (StringUtils.hasText(newPassword)
+                && !BCRYPT_HASH_PATTERN.matcher(newPassword).matches()) {
+            toUpdate.setPassword(getPasswordEncoder().encode(newPassword));
+        }
+
         userRepository.save(toUpdate);
         return enrichReputation(toUpdate);
     }

@@ -50,7 +50,7 @@ const removeFromStorage = async (key) => {
 
 const clearPendingBusinessSignupDraft = () => {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    window.sessionStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+    window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
   }
 };
 

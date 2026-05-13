@@ -20,7 +20,7 @@ export default function BusinessSignupScreen({ navigation, route }) {
 		}
 
 		try {
-			const rawValue = window.sessionStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
+			const rawValue = window.localStorage.getItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
 			if (!rawValue) {
 				return null;
 			}
@@ -109,7 +109,7 @@ export default function BusinessSignupScreen({ navigation, route }) {
 
 			if (Platform.OS === 'web' && typeof window !== 'undefined') {
 				const returnTo = getCurrentWebPathWithSearchAndHash();
-				window.sessionStorage.setItem(
+				window.localStorage.setItem(
 					STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT,
 					JSON.stringify({
 						...pendingBusinessSignup,
