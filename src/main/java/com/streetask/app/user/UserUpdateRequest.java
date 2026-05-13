@@ -2,6 +2,7 @@ package com.streetask.app.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,4 +22,9 @@ public class UserUpdateRequest {
 
     @NotBlank
     private String lastName;
+
+    @Size(max = 255)
+    private String bio;
+
+    private String profilePictureUrl;
 }

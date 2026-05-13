@@ -1,69 +1,181 @@
-# Informe de Uso de IA
+# Informe de Uso de IA — PPL
 
-Durante el PPL, el uso de herramientas de IA Generativa (como ChatGPT, Gemini, Copilot y Claude Code) se mantuvo enfocado en apoyar el desarrollo y mantener la documentación del proyecto. Sin embargo, en comparación con sprints anteriores, la cantidad de desarrollo activo fue menor, por lo que el uso de IA fue más moderado y estuvo centrado principalmente en tareas de mantenimiento, pequeñas mejoras, soporte al flujo de trabajo y generación de contenido.
+## 0. Resumen ejecutivo
 
-## 1. Soporte en Mantenimiento y Pequeñas Mejoras
+Durante la fase de **Preparing Project Launch (PPL)**, el uso de herramientas de Inteligencia Artificial Generativa siguió siendo un complemento relevante del trabajo del equipo, aunque con un enfoque distinto al de sprints anteriores. En etapas previas del proyecto, la IA se utilizó principalmente como apoyo al desarrollo intensivo de funcionalidades, pruebas y arquitectura. En PPL, en cambio, el peso del trabajo se desplazó hacia la **estabilización del producto, la preparación del lanzamiento y la generación de materiales de comunicación**, por lo que el uso de IA también cambió de naturaleza: menos generación masiva de código y más apoyo a documentación, validación, redacción, contenidos promocionales y revisión.
 
-Dado que esta etapa involucró menos funcionalidades nuevas y un desarrollo menos intensivo, las herramientas de IA se utilizaron principalmente para asistir en pequeños ajustes y tareas de mantenimiento dentro del proyecto.
+Las herramientas utilizadas con mayor frecuencia han sido **ChatGPT, Gemini, GitHub Copilot y Claude Code**, cada una con un papel diferenciado dentro del flujo de trabajo. En todos los casos la IA se usó como **herramienta de asistencia**, nunca como sustituto de la revisión humana ni de la responsabilidad técnica del equipo. Cada salida producida por una herramienta de IA fue validada manualmente antes de incorporarse al repositorio, a la presentación o a los materiales públicos del proyecto.
 
-- **Refactorización y Mejora de Código:** La IA se utilizó ocasionalmente para sugerir implementaciones más limpias y pequeñas optimizaciones tanto en el frontend como en el backend.
+El equipo considera que el principal beneficio aportado por la IA durante PPL ha sido **reducir el tiempo invertido en tareas repetitivas o de baja complejidad** (formato, redacción, revisión, generación de variantes de texto, esquemas iniciales de slides, ideas de copy para anuncios, etc.), permitiendo que las personas se concentren en las decisiones de producto, la coordinación entre áreas y la calidad final del entregable.
 
-- **Soporte en Corrección de Bugs:** Utilizamos IA para ayudar a identificar posibles causas de errores menores y validar posibles soluciones antes de implementarlas.
+---
 
-- **Mejora de Funcionalidades Existentes:** La IA ayudó a refinar funcionalidades ya implementadas, contribuyendo a un comportamiento más estable y una experiencia de usuario más fluida.
+## 1. Herramientas utilizadas y rol asignado
 
-- **Asistencia en Revisión de Código:** Las herramientas de IA también se utilizaron como una capa secundaria de validación para revisar lógica, detectar posibles inconsistencias y sugerir pequeñas mejoras de calidad antes de la integración final.
+Aunque las herramientas de IA generativa son intercambiables en muchos casos, el equipo ha ido especializando su uso según el tipo de tarea. La siguiente tabla resume el reparto observado durante PPL:
 
-## 2. Actualización de Documentación
+| Herramienta | Uso principal en PPL | Ventaja diferencial percibida |
+|---|---|---|
+| **ChatGPT** | Redacción y revisión de documentación, generación de variantes de copy publicitario, resúmenes de feedback, soporte a la elaboración de la knowledge base. | Buena calidad lingüística en español y flexibilidad para iterar tono. |
+| **Gemini** | Búsqueda complementaria de referencias, contraste de cifras de mercado, exploración de fuentes alternativas para datos económicos y de marketing. | Acceso a información más reciente y verificación cruzada de datos. |
+| **GitHub Copilot** | Autocompletado puntual en código durante tareas de mantenimiento y pequeños refactores. | Integración directa en el editor; agiliza tareas repetitivas. |
+| **Claude Code** | Generación, refinamiento y depuración de los anuncios audiovisuales y de la landing, soporte a scripts de grabación y automatización, edición de documentación técnica. | Manejo cómodo de archivos largos y trabajo multi-archivo con contexto amplio. |
 
-Aunque la actividad de desarrollo fue más ligera durante este sprint, mantener la documentación alineada con el estado actual del proyecto siguió siendo importante.
+Esta especialización no es estricta: en muchos casos varias herramientas se usan en paralelo para contrastar respuestas, especialmente cuando el contenido se publica fuera del repositorio (anuncios, landing, redes sociales, presentación).
 
-- **Actualización de Documentación:** La IA ayudó a revisar la documentación existente para reflejar la estructura actual del proyecto, las funcionalidades implementadas y los ajustes realizados durante el sprint.
+---
 
-- **Mejora de Claridad:** Las herramientas de IA se utilizaron para reorganizar y simplificar explicaciones técnicas, haciendo la documentación más clara y fácil de mantener.
+## 2. Soporte en mantenimiento y pequeñas mejoras de código
 
-- **Formato y Consistencia:** La IA también ayudó a mantener una terminología, estructura y formato consistentes en la documentación y los informes del proyecto.
+Dado que en PPL el peso del desarrollo se redujo respecto a sprints anteriores, el papel de la IA en código se limitó a tareas **acotadas y de bajo riesgo**:
 
-## 3. Soporte al Flujo de Trabajo y al Equipo
+- **Refactorización ligera:** sugerencias para simplificar componentes ya existentes, renombrar variables, extraer pequeños helpers o eliminar duplicación menor en archivos del frontend y del backend.
+- **Soporte en corrección de bugs:** ante errores pequeños o reportes de comportamientos extraños, se usó la IA para proponer hipótesis sobre la causa probable y validar posibles soluciones antes de aplicarlas.
+- **Mejora de funcionalidades existentes:** ajustes en mensajes de error, validaciones de formularios, comportamientos de navegación, animaciones o pequeñas correcciones de UI.
+- **Asistencia en revisión de código:** revisión secundaria de PRs para detectar inconsistencias, faltas de validación o posibles efectos colaterales antes de la integración final.
 
-Las herramientas de IA continuaron apoyando el flujo de trabajo general del equipo y los procesos de colaboración.
+En todos los casos, las propuestas de la IA se han tratado como **borradores**: nunca se han fusionado cambios automáticos sin lectura humana, ejecución de pruebas y validación manual.
 
-- **Soporte en Pull Requests:** La IA se utilizó ocasionalmente para ayudar a estructurar descripciones de pull requests y resumir cambios de forma más clara.
+---
 
-- **Reducción de Trabajo Repetitivo:** La IA ayudó en tareas repetitivas o de baja complejidad, permitiendo que el equipo se enfocara más en coordinación, pruebas y pulido de funcionalidades existentes.
+## 3. Actualización y mejora de la documentación
 
-- **Asistencia en Validación y Revisión:** Antes de cerrar tareas, la IA se utilizó en ocasiones como herramienta secundaria de revisión para sugerir validaciones faltantes o posibles casos límite.
+Aunque el desarrollo activo fue menor, mantener la documentación alineada con el estado real del proyecto siguió siendo crítico para el cierre del PPL.
 
-- **Organización de Tareas:** Las herramientas de IA también se utilizaron ocasionalmente para resumir trabajo pendiente, organizar prioridades y mejorar la claridad de discusiones técnicas dentro del equipo.
+- **Sincronización con el estado del proyecto:** la IA ayudó a revisar documentos existentes para reflejar la estructura actual del repositorio, las funcionalidades realmente implementadas y los ajustes realizados durante el sprint.
+- **Mejora de claridad:** se usaron herramientas de IA para reorganizar, resumir y simplificar explicaciones técnicas largas, especialmente las dirigidas a perfiles no técnicos (presentación, knowledge base, materiales para el público objetivo).
+- **Formato y consistencia:** la IA contribuyó a mantener una terminología, estructura y tono uniformes a lo largo de los documentos de PPL, evitando contradicciones entre los entregables económicos, técnicos y de marketing.
+- **Traducción y adaptación:** en algunos documentos generados originalmente con apuntes en inglés o con citas de fuentes externas, la IA se usó para producir versiones en español consistentes con el resto del proyecto.
 
-## 4. Creación de Anuncios y Contenido Promocional
+El objetivo no fue *generar documentación de forma automática*, sino **acelerar el trabajo de redacción y revisión** sin perder control sobre el contenido.
 
-Durante este sprint, las herramientas de IA también se utilizaron para apoyar la creación de contenido promocional y anuncios relacionados con el proyecto.
+---
 
-- **Generación de Anuncios con Claude Code:** Claude Code se utilizó para asistir en la creación y refinamiento de materiales promocionales, ayudando a generar textos estructurados y mejorar la presentación general del contenido.
+## 4. Soporte al flujo de trabajo y al equipo
 
-- **Iteración de Contenido:** La IA permitió generar rápidamente diferentes versiones de mensajes, eslóganes y estilos de comunicación para adaptar los anuncios a distintos contextos y audiencias.
+Las herramientas de IA siguieron apoyando los procesos de colaboración del equipo durante PPL.
 
-- **Mayor Eficiencia en la Creación de Contenido:** El uso de IA redujo significativamente el tiempo necesario para preparar contenido promocional, manteniendo siempre una revisión y personalización final por parte del equipo antes de su publicación.
+- **Estructuración de pull requests:** redacción de descripciones de PR más claras, listas de cambios y resúmenes de impacto que facilitan la revisión por parte de otros miembros del equipo.
+- **Reducción del trabajo repetitivo:** automatización ligera o asistida de tareas como reformatear listados, generar checklists de validación, organizar notas de reuniones o preparar versiones limpias de documentos colaborativos.
+- **Asistencia en validación previa al cierre de tareas:** antes de marcar tareas como completadas, la IA se usó para sugerir validaciones faltantes, posibles casos límite o pequeñas comprobaciones manuales.
+- **Organización de tareas y priorización:** apoyo puntual para resumir el trabajo pendiente, agrupar tareas por área (desarrollo, marketing, costes, presentación) y aclarar dependencias entre subtareas.
 
-## 5. Apoyo en Testing y QA
+En este apartado la IA actúa más como un **asistente operativo** que como herramienta técnica: ayuda al equipo a coordinarse, pero las decisiones de planificación se toman entre las personas del grupo.
 
-La IA también se utilizó como apoyo durante tareas relacionadas con pruebas y validación del sistema. En algunos casos ayudó a identificar posibles escenarios de error, sugerir casos límite y revisar comportamientos esperados antes de realizar pruebas manuales más completas.
+---
 
-Además, sirvió como herramienta de apoyo para verificar rápidamente fragmentos de código y confirmar que ciertos cambios no afectaran funcionalidades previamente implementadas.
+## 5. Creación de anuncios, landing y contenido promocional
 
-## 6. Optimización de Tiempo y Productividad
+Esta ha sido, sin duda, la categoría de uso más visible durante PPL. La preparación del lanzamiento exigió generar **varias piezas de comunicación** alineadas entre sí: anuncios audiovisuales, copy de redes sociales, banner para las pantallas de la ETSII, landing page y materiales de presentación.
 
-Aunque el uso de IA fue más moderado durante este sprint, siguió contribuyendo a agilizar tareas pequeñas y repetitivas. Esto permitió reducir tiempo invertido en procesos de documentación, redacción técnica y revisiones menores de código.
+- **Generación y refinamiento con Claude Code:** Claude Code se utilizó intensamente para apoyar la creación de los anuncios audiovisuales para los dos públicos definidos (inversores y clientes), iterando sobre escenas, transiciones, textos en pantalla y narración. La herramienta ayudó tanto en la generación inicial como en la depuración de los scripts de grabación y procesamiento.
+- **Iteración rápida de mensajes:** la IA permitió generar y comparar rápidamente diferentes versiones de eslóganes, copys cortos para redes, llamadas a la acción y descripciones de la propuesta de valor, adaptadas a los distintos canales y audiencias seleccionadas en el plan de marketing.
+- **Coherencia entre piezas:** se usó la IA para revisar que el tono, las palabras clave y la propuesta de valor presentada en anuncios, banner, landing y presentación fueran coherentes entre sí, evitando contradicciones entre materiales que el público objetivo podría ver en momentos distintos.
+- **Apoyo a la accesibilidad y legibilidad:** sugerencias para evitar bloques de texto demasiado densos, mejorar contrastes, simplificar el lenguaje y dejar mensajes más entendibles a primera vista, en línea con el feedback recibido sobre presentaciones anteriores.
+- **Mayor eficiencia en la creación de contenido:** el uso combinado de varias herramientas redujo de forma significativa el tiempo necesario para preparar contenido promocional. Aun así, **toda pieza pública pasó por revisión y personalización final por parte del equipo** antes de ser publicada.
 
-Gracias a ello, el equipo pudo dedicar más atención a tareas de coordinación, validación manual y estabilización del proyecto.
+Es importante destacar que la IA no se usó para **reemplazar la voz** del equipo, sino para **acelerar la fase de borrador** y permitir más iteraciones de calidad en menos tiempo.
 
-## 7. Limitaciones y Supervisión Humana
+---
 
-A pesar del apoyo proporcionado por las herramientas de IA, todas las sugerencias y contenidos generados fueron revisados manualmente antes de ser incorporados al proyecto. La IA se utilizó únicamente como herramienta de asistencia y no como sustituto de decisiones técnicas o de revisión humana.
+## 6. Apoyo en testing, QA y revisión funcional
 
-Esto permitió mantener control sobre la calidad del código, la precisión de la documentación y la coherencia general del proyecto.
+La IA también funcionó como apoyo en tareas de pruebas y validación del sistema:
 
-## 8. Investigación y Resolución de Dudas Técnicas
+- **Identificación de escenarios de error:** ayuda a enumerar posibles flujos problemáticos, entradas inesperadas y combinaciones poco habituales que podrían dejar al producto en mal estado durante una demo.
+- **Sugerencia de casos límite:** generación de listas de casos límite para revisión manual, especialmente en flujos críticos de cara al lanzamiento (registro, login, navegación principal, formularios).
+- **Verificación rápida de fragmentos de código:** revisión asistida para confirmar que ciertos cambios no afectan funcionalidades implementadas previamente, sin necesidad de ejecutar siempre la suite completa.
+- **Cross-checking de la documentación con el comportamiento real:** comparación entre lo descrito en la documentación y lo observado al usar la app, para detectar incoherencias antes de mostrar el producto al público objetivo.
 
-En ocasiones puntuales, las herramientas de IA también se utilizaron para consultar conceptos técnicos específicos, resolver dudas puntuales sobre tecnologías utilizadas en el proyecto y explorar alternativas de implementación.
+La validación final, sin embargo, siempre se realizó **manualmente y en el producto real**, ejecutando los flujos en dispositivos y entornos representativos del usuario final.
+
+---
+
+## 7. Apoyo a documentos de negocio, costes y marketing
+
+Durante PPL, una parte importante del esfuerzo del equipo se ha dedicado a los entregables económicos y estratégicos (estimación de costes por escenarios, break-even, segmentación de mercado, canales de marketing, propuesta de valor, etc.). En todos ellos la IA aportó valor de tres formas:
+
+- **Estructuración inicial:** generación de borradores con la estructura habitual de cada tipo de documento (introducción, objetivo, supuestos, escenarios, conclusiones), sobre los que el equipo trabajó con datos reales.
+- **Coherencia entre documentos:** revisión cruzada para que las cifras y las hipótesis manejadas en un documento (por ejemplo, número de usuarios activos) coincidan con las usadas en otro (por ejemplo, ingresos esperados o coste mensual).
+- **Mejora de la accesibilidad para perfiles no técnicos:** reescritura de párrafos con vocabulario más sencillo en los documentos pensados para audiencias no especializadas (presentación, knowledge base, comunicación externa).
+
+En estos casos, la IA actúa como un **redactor técnico junior**: produce mucho material útil, pero requiere supervisión cercana porque tiende a inventar datos si no se le proporcionan fuentes.
+
+---
+
+## 8. Limitaciones detectadas y supervisión humana
+
+A pesar del apoyo proporcionado por las herramientas de IA, el equipo ha identificado limitaciones claras que justifican una revisión humana sistemática:
+
+- **Datos inventados o desactualizados:** las herramientas pueden generar cifras, fuentes o referencias que parecen sólidas pero no están verificadas. Por eso, todos los datos económicos y de mercado utilizados en el entregable han sido contrastados con las fuentes documentales acordadas por el equipo.
+- **Sesgo hacia respuestas plausibles, no necesariamente correctas:** la IA tiende a producir respuestas coherentes incluso cuando carece de la información real. Esto exige un trabajo activo de verificación, sobre todo en código, comandos y configuraciones.
+- **Pérdida de contexto en sesiones largas:** en interacciones extensas, las herramientas pueden olvidar detalles importantes del proyecto. Para mitigarlo, el equipo ha tendido a **dividir tareas largas en bloques** y a aportar resúmenes explícitos del contexto al inicio de cada sesión.
+- **Riesgo de homogeneización del tono:** cuando se usa IA para redactar muchos documentos seguidos, el tono puede volverse demasiado uniforme. El equipo ha cuidado de **introducir matices propios**, especialmente en los documentos visibles para el público objetivo y en la presentación.
+- **Privacidad y propiedad intelectual:** ningún dato sensible de personas reales, credenciales, claves o información confidencial de terceros se ha compartido con herramientas externas. Las pruebas con datos reales se realizaron en entornos controlados y no en chats de IA.
+
+Como consecuencia, **todas las sugerencias y contenidos generados por IA fueron revisados manualmente antes de incorporarse al proyecto**. La IA se utilizó únicamente como herramienta de asistencia y no como sustituto de decisiones técnicas, económicas o comunicativas.
+
+---
+
+## 9. Investigación y resolución de dudas técnicas
+
+En ocasiones puntuales, las herramientas de IA se utilizaron para:
+
+- consultar conceptos técnicos específicos (frameworks, APIs, formatos de vídeo, configuración de despliegues),
+- resolver dudas concretas sobre tecnologías utilizadas en el proyecto,
+- explorar alternativas de implementación o de configuración,
+- y validar buenas prácticas frente a la documentación oficial de cada herramienta.
+
+En estos casos, el equipo asume que las respuestas de la IA son un **punto de partida**, no una fuente autoritativa. Cuando la respuesta afecta a partes críticas del sistema, la decisión final se contrasta con la documentación oficial.
+
+---
+
+## 10. Diferencias con el uso de IA en sprints anteriores
+
+Comparado con sprints previos, el uso de IA en PPL ha cambiado en varios aspectos:
+
+- **Menos generación de código nuevo:** en sprints anteriores la IA se usaba más para crear funcionalidades desde cero. En PPL, su papel se ha concentrado en mantenimiento, pequeños refactores y depuración.
+- **Más generación de contenido y comunicación:** la IA ha tenido un papel mayor en redacción, copy, anuncios, landing, knowledge base y revisión de presentación.
+- **Más trabajo de coordinación entre documentos:** en lugar de pedir a la IA que produzca un único documento aislado, se ha utilizado para mantener la coherencia entre varios entregables (técnicos, económicos y de marketing).
+- **Mayor exigencia en verificación:** dado que los materiales de PPL son más visibles externamente (público objetivo, evaluación final, posibles inversores), el equipo ha sido más estricto en revisar manualmente cada salida.
+
+Este cambio refleja la propia evolución del proyecto: ya no se trata de construir el producto, sino de **prepararlo para presentarlo al mundo**, lo cual requiere un tipo de apoyo distinto.
+
+---
+
+## 11. Optimización de tiempo y productividad
+
+Aunque el uso de IA fue más moderado durante este sprint, su impacto en productividad sigue siendo significativo:
+
+- **Ahorro de tiempo en tareas repetitivas:** redacción de textos cortos, formateo de tablas, generación de variantes de copy y resúmenes de feedback.
+- **Reducción del coste de revisión inicial:** los borradores iniciales se producen más rápido, lo que deja más margen para la revisión y la mejora.
+- **Mejor reparto del esfuerzo del equipo:** al delegar el trabajo más mecánico a la IA, el grupo pudo dedicar más atención a tareas que exigen criterio humano: coordinación, validación manual, decisiones de producto y estabilización del proyecto.
+- **Más iteraciones de calidad por unidad de tiempo:** especialmente notable en materiales de marketing, donde se pudo comparar varias versiones de un mismo mensaje antes de elegir la final.
+
+Sin embargo, el equipo es consciente de que la IA **no reduce el coste real de un entregable de calidad**, sino que **redistribuye** el esfuerzo: menos tiempo en redacción inicial, más tiempo en verificación, ajuste y personalización.
+
+---
+
+## 12. Consideraciones éticas y de responsabilidad
+
+El uso de IA generativa plantea cuestiones éticas que el equipo ha tenido en cuenta:
+
+- **Atribución:** las herramientas de IA son **apoyo**, no autoría. Los entregables siguen siendo trabajo del equipo, que asume la responsabilidad final del contenido publicado.
+- **Veracidad:** se ha evitado publicar datos o afirmaciones generadas por IA sin verificar, especialmente cifras económicas, estadísticas de mercado o citas atribuidas a terceros.
+- **Privacidad:** no se han compartido con herramientas externas datos personales sensibles, credenciales, configuraciones privadas ni información confidencial de evaluadores, profesores u otros grupos.
+- **Uso razonable:** las herramientas se han utilizado dentro de los términos de uso permitidos y de forma compatible con la finalidad académica del proyecto.
+
+---
+
+## 13. Lecciones aprendidas durante PPL
+
+Como cierre, el equipo destaca varias lecciones aprendidas sobre el uso de IA generativa en esta fase del proyecto:
+
+1. **La IA acelera, pero no decide.** Funciona mejor cuando el equipo aporta criterio, contexto y restricciones claras; sin eso, las respuestas tienden a ser genéricas.
+2. **Iterar en bloques pequeños es más útil que pedir un entregable completo.** Cuanto más acotada es la petición, mejor es la salida.
+3. **Cruzar fuentes mejora la calidad.** Usar más de una herramienta para contrastar respuestas reduce el riesgo de incorporar información incorrecta.
+4. **Documentar el uso de IA es útil incluso para el propio equipo.** Permite identificar qué tareas merece la pena delegar en IA y cuáles no.
+5. **La revisión humana sigue siendo el cuello de botella real.** El tiempo ahorrado en redacción se reinvierte en revisión; el equipo ha aprendido a planificar pensando en eso.
+6. **Para materiales públicos, el último 20 % siempre lo pone una persona.** Tono, matiz, contexto, ejemplos locales y referencias específicas del proyecto son aportaciones humanas, no de la IA.
+
+En resumen, durante PPL la IA generativa ha sido una herramienta valiosa, especialmente en documentación, contenido promocional y mantenimiento. Su uso ha estado supeditado en todo momento a la revisión humana y al criterio del equipo, lo que ha permitido aprovechar sus ventajas sin comprometer la calidad ni la responsabilidad final sobre el proyecto.
