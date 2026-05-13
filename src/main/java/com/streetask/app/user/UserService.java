@@ -155,6 +155,8 @@ public class UserService {
         toUpdate.setUserName(request.getUserName());
         toUpdate.setFirstName(request.getFirstName());
         toUpdate.setLastName(request.getLastName());
+        toUpdate.setBio(request.getBio());
+        toUpdate.setProfilePictureUrl(request.getProfilePictureUrl());
 
         userRepository.save(toUpdate);
         return enrichReputation(toUpdate);
