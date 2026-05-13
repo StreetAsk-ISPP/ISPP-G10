@@ -209,17 +209,19 @@ Este escenario muestra que el producto puede ganar dinero de forma clara si cons
 
 ### 6.1 Definición
 
-Este escenario representa lo que pasa si la aplicación crece más despacio de lo esperado. Puede ocurrir porque llegan menos usuarios, porque la gente participa poco o porque todavía no ve suficiente valor para pagar premium o business.
+Este escenario representa lo que pasa si la aplicación crece más despacio de lo esperado, pero no de forma catastrófica. Es el caso en el que el producto funciona y consigue una comunidad estable, pero la adopción es más lenta y la conversión a planes de pago avanza con dificultad, especialmente en cuentas business.
+
+No es un escenario de fracaso, sino de **crecimiento contenido**: la app vive, mantiene actividad y empieza a generar ingresos, pero tarda años en recuperar la inversión total del proyecto.
 
 ### 6.2 Supuestos
 
 En este caso se contemplan los siguientes comportamientos:
 
-- Entre 50 y 250 usuarios activos mensuales.
-- Menor frecuencia de publicación y respuesta.
-- Conversión premium baja o muy limitada en la fase inicial.
-- Pocas cuentas business durante el arranque.
-- Necesidad de mantener la infraestructura en un nivel reducido.
+- Aproximadamente **1.500 usuarios activos mensuales** tras una fase de captación normal.
+- Frecuencia de publicación y respuesta moderada, suficiente para que la app aporte valor en zonas concretas.
+- Conversión premium ligeramente por debajo del 4,2 % previsto.
+- Adopción business limitada: cuesta convencer a los negocios, aunque algunos sí se apuntan.
+- Infraestructura controlada, todavía en un nivel intermedio de coste.
 
 ### 6.3 Distribución por tipo de usuario
 
@@ -227,31 +229,42 @@ En este escenario, la distribución estimada de usuarios por tipo sería la sigu
 
 | Tipo de usuario | % del total | Por qué este número |
 |---|---:|---|
-| Gratuitos | 98,3% | Casi todo el mundo se queda en el plan gratis. Hay mucha gente, pero poco dinero directo. |
-| Premium | 1,5% | Solo unos pocos "frikis" o usuarios muy intensos pagan los 3 EUR. La mayoría prefiere ver anuncios. |
-| Business | 0,2% | Cuesta muchísimo convencer a los dueños de negocios. Solo se apuntan los más innovadores. |
+| Gratuitos | 95 % | La gran mayoría se queda en el plan gratis. Generan contenido y vienen anuncios. |
+| Premium | 4 % | Conversión moderada-baja, justo por debajo del 4,2 % objetivo. Hay valor percibido, pero pocos pagan todavía. |
+| Business | 1 % | Adopción lenta entre negocios: cuesta convencer, pero algunos comercios innovadores empiezan a probar el formato. |
 
-Resultado: la app sobrevive gracias a la publicidad. Es el escenario de "resistencia" que menciona el documento en su punto 6. Aquí la clave es no gastar nada en marketing y dejar que crezca sola.
+Resultado: la app es viable y crece poco a poco, con ingresos por publicidad como base y una pequeña parte por suscripciones.
 
 ### 6.4 Coste estimado
 
+Con una comunidad activa de en torno a 1.500 MAU, el coste mensual operativo estimado se sitúa en una franja intermedia:
+
 | Escenario de usuarios | Coste mensual estimado |
 |---|---:|
-| 50 usuarios activos | 15 - 35 EUR |
-| 250 usuarios activos | 30 - 70 EUR |
+| 1.000 usuarios activos | 80 - 190 EUR |
+| 1.500 usuarios activos | ~150 EUR (estimación intermedia) |
 
 ### 6.5 Ingresos estimados
 
-En una fase así, los ingresos todavía son pequeños, pero no tienen por qué ser cero:
+Con la distribución anterior, el ingreso medio por usuario y mes (ARPU) sería:
+
+- Ads (95 % gratuitos): 0,95 × 0,60 = **0,570 EUR**
+- Premium (4 %): 0,04 × 2,99 = **0,1196 EUR**
+- Business (1 %): 0,01 × 19,99 = **0,1999 EUR**
+- **ARPU total ≈ 0,8895 EUR/usuario/mes**
+
+Aplicado a la comunidad estimada:
 
 | Concepto | Estimación |
 |---|---:|
-| Publicidad | 30 - 60 EUR |
-| Premium | 0 - 15 EUR |
-| Business | 0 - 40 EUR |
-| Total mensual | 30 - 115 EUR |
+| Publicidad | ~855 EUR/mes |
+| Premium | ~180 EUR/mes |
+| Business | ~300 EUR/mes |
+| **Ingreso bruto mensual** | **~1.334 EUR/mes** |
+| Coste operativo | ~150 EUR/mes |
+| **Ingreso neto mensual** | **~1.184 EUR/mes** |
 
-Lo importante en este escenario no es ganar muchísimo, sino no gastar más de la cuenta mientras se comprueba si la app realmente engancha.
+Lo importante en este escenario no es ganar muchísimo, sino mantener un flujo de ingresos estable mientras la comunidad madura y se valida si la app realmente engancha a más usuarios y negocios.
 
 ### 6.6 Riesgos asociados
 
@@ -375,20 +388,21 @@ Con esta distribución, el **ARPU (Average Revenue Per User) estimado es de 1,32
 
 **Lectura:** En el escenario optimista, alcanzar 10.000 usuarios activos con ese mix permite recuperar la inversión total en aproximadamente **6,5 meses**, incluso asumiendo costes operativos de infraestructura. Este es el escenario más favorable para la sostenibilidad del proyecto.
 
-#### Escenario Pesimista: 98,3% gratuitos, 1,5% premium, 0,2% business
+#### Escenario Pesimista: 95% gratuitos, 4% premium, 1% business
 
-Con esta distribución, el **ARPU estimado es de 0,67463 EUR/usuario/mes**:
-- Ingresos por ads (usuarios gratuitos): 0,983 × 0,60 = 0,5898 EUR
-- Ingresos por premium: 0,015 × 2,99 = 0,04485 EUR
-- Ingresos por business: 0,002 × 19,99 = 0,03998 EUR
+Con esta distribución, el **ARPU estimado es de 0,8895 EUR/usuario/mes**:
+- Ingresos por ads (usuarios gratuitos): 0,95 × 0,60 = 0,570 EUR
+- Ingresos por premium: 0,04 × 2,99 = 0,1196 EUR
+- Ingresos por business: 0,01 × 19,99 = 0,1999 EUR
 
 | Usuarios activos | Ingresos mensuales | Recuperación de inversión total |
 |---:|---:|---:|
-| 250 | 168,66 EUR | 499 meses (sin costes operativos) |
-| 250 (con 30 EUR/mes operativos) | 138,66 EUR | 607 meses |
-| 250 (con 70 EUR/mes operativos) | 98,66 EUR | 853 meses |
+| 1.500 | 1.334,25 EUR | 63 meses (sin costes operativos) |
+| 1.500 (con 110 EUR/mes operativos) | 1.224,25 EUR | 69 meses |
+| 1.500 (con 150 EUR/mes operativos) | 1.184,25 EUR | **~71 meses (≈ 5,9 años)** |
+| 1.500 (con 190 EUR/mes operativos) | 1.144,25 EUR | 74 meses |
 
-**Lectura:** En el escenario pesimista, aunque la app funcione, 250 usuarios activos no son suficientes para recuperar la inversión en un plazo comercial razonable. Este escenario representa un modelo de "supervivencia" donde el producto se sostiene gracias a la publicidad, pero no genera retorno de inversión a corto o medio plazo. Para alcanzar viabilidad económica, sería necesario llegar a un volumen de usuarios significativamente mayor (mínimo 2.500-5.000 usuarios activos mensuales con este mix), lo que ampliaría el horizonte de recuperación a varios años.
+**Lectura:** En el escenario pesimista revisado, con una comunidad estable de 1.500 usuarios activos y una conversión moderada, la inversión total se recupera en torno a **70 meses (unos 6 años)**. Es claramente peor que el escenario esperado (~32 meses) y mucho peor que el optimista (~6,7 meses), pero deja de ser un horizonte irrealista de varias décadas. Este escenario refleja un modelo de **crecimiento lento pero sostenible**: el producto funciona, mantiene actividad y monetiza, aunque el ritmo de retorno obliga a una gestión muy cuidadosa del gasto y a buscar palancas de crecimiento que acerquen al escenario esperado.
 
 #### Conclusión
 
