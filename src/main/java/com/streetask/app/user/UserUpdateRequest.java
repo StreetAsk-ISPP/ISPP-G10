@@ -27,4 +27,7 @@ public class UserUpdateRequest {
     private String bio;
 
     private String profilePictureUrl;
+
+    @Size(min = 6, max = 128)
+    private String password;
 }
