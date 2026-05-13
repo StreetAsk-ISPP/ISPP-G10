@@ -233,8 +233,9 @@ public class BusinessSubscriptionService {
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl,
+                        "payment=success&flow=business-subscription&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel&flow=business-subscription"))
                 .putMetadata("businessId", businessAccount.getId().toString())
                 .putMetadata("durationDays", String.valueOf(resolvedDurationDays))
                 .addLineItem(
@@ -273,8 +274,9 @@ public class BusinessSubscriptionService {
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(appendQuery(successBaseUrl, "payment=success&session_id={CHECKOUT_SESSION_ID}"))
-                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel"))
+                .setSuccessUrl(appendQuery(successBaseUrl,
+                        "payment=success&flow=business-signup&session_id={CHECKOUT_SESSION_ID}"))
+                .setCancelUrl(appendQuery(cancelBaseUrl, "payment=cancel&flow=business-signup"))
                 .putMetadata("email", email)
                 .putMetadata("taxId", taxId)
                 .putMetadata("companyName", companyName)
