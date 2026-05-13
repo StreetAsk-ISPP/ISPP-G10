@@ -32,7 +32,7 @@ export default function InvestorsAd() {
         <Logo size={56} />
       </div>
       <div style={{ position: 'absolute', top: 56, right: 64, zIndex: 30,
-                    fontFamily: 'Space Grotesk', fontSize: 18, color: theme.textDim, letterSpacing: 2 }}>
+                    fontFamily: 'Space Grotesk', fontSize: 22, fontWeight: 700, color: theme.textDim, letterSpacing: 2 }}>
         DECK · INVESTORS · 2026
       </div>
 
@@ -79,7 +79,7 @@ function Hook() {
         initial={{ opacity: 0, letterSpacing: '0.4em' }}
         animate={{ opacity: 1, letterSpacing: '0.08em' }}
         transition={{ duration: 1.2 }}
-        style={{ fontSize: 26, color: theme.textDim, fontWeight: 600, textTransform: 'uppercase' }}
+        style={{ fontSize: 30, color: theme.textDim, fontWeight: 700, textTransform: 'uppercase' }}
       >
         Hiperlocal · Tiempo real · Comunidad
       </motion.div>
@@ -115,7 +115,7 @@ function Hook() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 3, duration: 1 }}
-        style={{ marginTop: 48, fontSize: 28, color: theme.textDim, maxWidth: 900, textAlign: 'center' }}
+        style={{ marginTop: 48, fontSize: 32, fontWeight: 600, color: theme.textDim, maxWidth: 900, textAlign: 'center' }}
       >
         StreetAsk convierte cada calle en un mini-foro en vivo.
       </motion.div>
@@ -143,8 +143,8 @@ function Problem() {
             style={card()}
           >
             <IconChip name={it.icon} color={it.color} size={72} />
-            <div style={{ fontSize: 34, fontWeight: 700, marginTop: 20 }}>{it.t}</div>
-            <div style={{ fontSize: 24, color: theme.textDim, marginTop: 8 }}>{it.s}</div>
+            <div style={{ fontSize: 36, fontWeight: 800, marginTop: 20 }}>{it.t}</div>
+            <div style={{ fontSize: 26, fontWeight: 600, color: theme.textDim, marginTop: 8 }}>{it.s}</div>
           </motion.div>
         ))}
       </div>
@@ -158,7 +158,7 @@ function Solution() {
     <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center', padding: '0 120px', gap: 60 }}>
       <div>
         <SectionTitle eyebrow="LA SOLUCIÓN" title="Pregunta. Responde. En el momento." align="left" />
-        <ul style={{ listStyle: 'none', padding: 0, margin: '40px 0 0', fontSize: 30, lineHeight: 1.7 }}>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '40px 0 0', fontSize: 32, fontWeight: 600, lineHeight: 1.7 }}>
           {[
             { ic: 'pin',    c: theme.red,    t: 'Preguntas ancladas a un radio (50m–1km).' },
             { ic: 'chat',   c: theme.purple, t: 'Mini-foros que viven mientras importan (1–24h).' },
@@ -192,9 +192,9 @@ function Solution() {
 function Market({ localTime }) {
   const start = localTime > 0.5;
   const stats = [
-    { label: 'TAM · UE Q&A local + eventos', value: 18.2, suffix: ' B €', decimals: 1, hint: 'Local search + B2B events' },
-    { label: 'SAM · España + Sur de Europa', value: 1.4, suffix: ' B €', decimals: 1, hint: 'Mercado servible' },
-    { label: 'SOM · Año 3 objetivo', value: 32, suffix: ' M €', decimals: 0, hint: '~250k MAU · 1.8% conversión' },
+    { label: 'TAM · Publicidad geolocalizada', value: 12, suffix: ' B €', decimals: 0, hint: 'Interacción hiperlocal y eventos urbanos' },
+    { label: 'SAM · España · Portugal · Italia', value: 0.9, suffix: ' B €', decimals: 1, hint: 'Sur de Europa · alta densidad urbana' },
+    { label: 'SOM · Medio plazo', value: 5, suffix: ' M €', decimals: 0, hint: '~250k MAU · 1,2 € ARPU' },
   ];
   return (
     <div style={{ ...center(), padding: '0 120px' }}>
@@ -204,7 +204,7 @@ function Market({ localTime }) {
           <motion.div key={i} style={{ ...card(), alignItems: 'center', textAlign: 'center' }}
             initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 + i * 0.2, duration: 0.6 }}>
-            <div style={{ fontSize: 22, color: theme.textDim, letterSpacing: 2, fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 24, color: theme.textDim, letterSpacing: 2, fontWeight: 700 }}>{s.label}</div>
             <div style={{
               fontFamily: 'Space Grotesk', fontSize: 96, fontWeight: 800, lineHeight: 1,
               background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
@@ -213,12 +213,12 @@ function Market({ localTime }) {
             }}>
               <Counter to={s.value} suffix={s.suffix} decimals={s.decimals} duration={2} start={start} />
             </div>
-            <div style={{ fontSize: 22, color: theme.textDim }}>{s.hint}</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: theme.textDim }}>{s.hint}</div>
           </motion.div>
         ))}
       </div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}
-        style={{ marginTop: 56, fontSize: 26, color: theme.textDim }}>
+        style={{ marginTop: 56, fontSize: 26, fontWeight: 600, color: theme.textDim }}>
         Fuentes: estimación interna · Statista local search · GMV eventos UE 2025.
       </motion.div>
     </div>
@@ -231,17 +231,17 @@ function Model({ localTime }) {
   const plans = [
     {
       name: 'Free', price: '0', tag: 'Adquisición',
-      bullets: ['3 preguntas/día', 'Radio 500m · 6h', 'Ads pre-roll'],
+      bullets: ['3 preguntas diarias', 'Visibilidad básica', 'Anuncios intersticiales', 'Radio limitado'],
       color: '#4a4a55',
     },
     {
       name: 'Premium', price: '2,99', tag: 'Conversión 4,2%',
-      bullets: ['Sin ads', 'Radio 50–1000m', 'Notif. prioritarias'],
+      bullets: ['Ausencia de anuncios', 'Mayor radio de interacción', 'Preguntas ilimitadas'],
       color: theme.red, highlight: true,
     },
     {
       name: 'Business', price: '19,99', tag: 'B2B recurrente',
-      bullets: ['Eventos ilimitados', 'Badge verificado', 'Boost +14,99 €'],
+      bullets: ['Distintivo verificado', 'Creación de eventos', 'Respuestas priorizadas', 'Mayor visibilidad'],
       color: theme.gold,
     },
   ];
@@ -262,19 +262,19 @@ function Model({ localTime }) {
               transform: p.highlight ? 'scale(1.04)' : 'none',
             }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 32, fontWeight: 700 }}>{p.name}</div>
+              <div style={{ fontSize: 36, fontWeight: 800 }}>{p.name}</div>
               <div style={{
-                padding: '6px 14px', borderRadius: 999, fontSize: 16, fontWeight: 700,
+                padding: '6px 14px', borderRadius: 999, fontSize: 18, fontWeight: 800,
                 background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}55`,
               }}>{p.tag}</div>
             </div>
             <div style={{ fontFamily: 'Space Grotesk', fontSize: 84, fontWeight: 800, marginTop: 8 }}>
-              {p.price}<span style={{ fontSize: 32, color: theme.textDim, fontWeight: 600 }}> €/mes</span>
+              {p.price}<span style={{ fontSize: 32, color: theme.textDim, fontWeight: 700 }}> €/mes</span>
             </div>
             <div style={{ marginTop: 16 }}>
               {p.bullets.map((b, j) => (
-                <div key={j} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 22 }}>
-                  <span style={{ color: p.color }}>✓</span>{b}
+                <div key={j} style={{ display: 'flex', gap: 10, padding: '6px 0', fontSize: 24, fontWeight: 600 }}>
+                  <span style={{ color: p.color, fontWeight: 800 }}>✓</span>{b}
                 </div>
               ))}
             </div>
@@ -287,8 +287,8 @@ function Model({ localTime }) {
         transition={{ delay: 1.4 }}
         style={{ marginTop: 40, display: 'flex', gap: 60, justifyContent: 'center', flexWrap: 'wrap' }}
       >
-        <KPI label="EBITDA mensual @10k MAU" value={6100} prefix="" suffix=" €" start={start} />
-        <KPI label="Recuperación de inversión" value={7.6} suffix=" meses" decimals={1} start={start} />
+        <KPI label="Ingreso neto @10k MAU" value={13000} prefix="" suffix=" €" start={start} />
+        <KPI label="Recuperación de inversión" value={6} suffix=" meses" decimals={0} start={start} />
         <KPI label="Coste infra @10k MAU" value={500} suffix=" €/mes" start={start} />
       </motion.div>
     </div>
@@ -319,9 +319,9 @@ function CTA() {
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.8 }}
-        style={{ fontSize: 34, color: theme.textDim, textAlign: 'center', maxWidth: 1100 }}>
-        Buscamos <strong style={{ color: theme.text }}>500.000 €</strong> para escalar a 10k MAU,
-        cerrar 200 cuentas Business y entrar en 3 ciudades.
+        style={{ fontSize: 38, fontWeight: 600, color: theme.textDim, textAlign: 'center', maxWidth: 1100 }}>
+        Inversión total estimada <strong style={{ color: theme.text, fontWeight: 800 }}>84.181 €</strong> para alcanzar
+        10k MAU activos y recuperar la inversión en ~6 meses.
       </motion.div>
 
       <motion.div
@@ -331,10 +331,10 @@ function CTA() {
         <div style={{
           padding: '22px 44px', borderRadius: 999,
           background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
-          fontSize: 30, fontWeight: 700,
+          fontSize: 30, fontWeight: 700, color: '#ffffff',
           boxShadow: `0 20px 60px ${theme.red}55`,
         }}>invest@streetask.app</div>
-        <div style={{ fontSize: 22, color: theme.textDim }}>streetask.app</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: theme.textDim }}>streetask.app</div>
       </motion.div>
     </div>
   );
@@ -346,7 +346,7 @@ function SectionTitle({ eyebrow, title, align = 'center' }) {
     <div style={{ textAlign: align, width: '100%' }}>
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ fontSize: 26, color: theme.red, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase' }}>
+        style={{ fontSize: 28, color: theme.red, fontWeight: 800, letterSpacing: 4, textTransform: 'uppercase' }}>
         {eyebrow}
       </motion.div>
       <motion.h2
@@ -366,12 +366,12 @@ function KPI({ label, value, prefix = '', suffix = '', decimals = 0, start }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{
-        fontFamily: 'Space Grotesk', fontSize: 56, fontWeight: 800,
+        fontFamily: 'Space Grotesk', fontSize: 62, fontWeight: 800,
         color: theme.green,
       }}>
         <Counter to={value} prefix={prefix} suffix={suffix} decimals={decimals} duration={1.8} start={start} />
       </div>
-      <div style={{ fontSize: 22, color: theme.textDim, marginTop: 4, letterSpacing: 1 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: theme.textDim, marginTop: 4, letterSpacing: 1 }}>{label}</div>
     </div>
   );
 }

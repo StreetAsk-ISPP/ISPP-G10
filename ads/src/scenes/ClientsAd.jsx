@@ -84,7 +84,7 @@ function Intro() {
       </motion.div>
       <div style={{ position: 'absolute', right: 130, top: 540, zIndex: 6 }}>
         <SpeechBubble tailSide="right" delay={1.4} color={theme.purple}>
-          ¿Cómo está la playa hoy?
+          ¿Dónde juega el Betis hoy?
         </SpeechBubble>
       </div>
 
@@ -98,7 +98,7 @@ function Intro() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           transition={{ delay: 2.6, duration: 0.6 }}
           style={{
-            fontSize: 26, color: theme.textDim, fontWeight: 600,
+            fontSize: 30, color: theme.textDim, fontWeight: 800,
             letterSpacing: 4, textTransform: 'uppercase',
           }}>
           Lo que pasa en tu calle, ahora.
@@ -119,8 +119,8 @@ function Intro() {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           transition={{ delay: 3.8, duration: 0.6 }}
-          style={{ marginTop: 16, fontSize: 36, color: theme.text, fontWeight: 500 }}>
-          En StreetAsk, te responde el <strong>barrio</strong>.
+          style={{ marginTop: 16, fontSize: 40, color: theme.text, fontWeight: 700 }}>
+          En StreetAsk, te responde el <strong style={{ fontWeight: 900 }}>barrio</strong>.
         </motion.div>
       </div>
     </div>
@@ -140,7 +140,7 @@ function UserAsk() {
       {/* Title + map */}
       <div style={{ position: 'absolute', top: 160, left: 100, maxWidth: 760 }}>
         <SectionTitle eyebrow="USUARIO" title="Pregunta a 500 m a la redonda." align="left" />
-        <div style={{ marginTop: 24, fontSize: 28, color: theme.textDim, maxWidth: 640 }}>
+        <div style={{ marginTop: 24, fontSize: 32, fontWeight: 600, color: theme.textDim, maxWidth: 640 }}>
           Sólo la gente que está cerca te responde. Como preguntar al vecino, pero a escala.
         </div>
         <motion.div
@@ -153,11 +153,17 @@ function UserAsk() {
         </motion.div>
       </div>
 
-      {/* Phone — moved a bit left to make room for the character */}
+      {/* Phone — moved a bit left to make room for the character.
+          Slow zoom-in throughout the scene to draw the eye toward the composer. */}
       <motion.div
-        initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.4, duration: 0.7 }}
-        style={{ position: 'absolute', right: 320, top: 200 }}
+        initial={{ opacity: 0, x: 80, scale: 1 }}
+        animate={{ opacity: 1, x: 0, scale: 1.18 }}
+        transition={{
+          opacity: { delay: 0.4, duration: 0.7 },
+          x: { delay: 0.4, duration: 0.7 },
+          scale: { delay: 1.1, duration: 9.5, ease: 'easeOut' },
+        }}
+        style={{ position: 'absolute', right: 320, top: 200, transformOrigin: 'center center' }}
       >
         <PhoneFrame width={340}>
           <ComposerScreen />
@@ -257,7 +263,7 @@ function ComposerScreen() {
         style={{
           marginTop: 'auto', padding: '16px 0', borderRadius: 16,
           background: `linear-gradient(135deg, ${theme.red}, ${theme.purple})`,
-          textAlign: 'center', fontWeight: 700, fontSize: 18,
+          textAlign: 'center', fontWeight: 700, fontSize: 18, color: '#ffffff',
           boxShadow: `0 10px 30px ${theme.red}66`,
         }}>
         Publicar pregunta
@@ -300,7 +306,7 @@ function UserThread() {
                   padding: '0 120px', gap: 60 }}>
       <div>
         <SectionTitle eyebrow="MINI-FORO EN VIVO" title="Respuestas reales en segundos." align="left" />
-        <div style={{ marginTop: 24, fontSize: 24, color: theme.textDim, maxWidth: 520 }}>
+        <div style={{ marginTop: 24, fontSize: 28, fontWeight: 600, color: theme.textDim, maxWidth: 520 }}>
           Vota lo útil. Lo que más sube, gana. Y los negocios verificados aparecen marcados.
         </div>
       </div>
@@ -312,7 +318,7 @@ function UserThread() {
             background: theme.panelStrong, border: `1px solid ${theme.border}`,
           }}>
           <div style={{ display: 'flex', justifyContent: 'space-between',
-                        color: theme.textDim, fontSize: 16, alignItems: 'center' }}>
+                        color: theme.textDim, fontSize: 20, fontWeight: 600, alignItems: 'center' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="pin" size={16} /> Triana · 500 m
             </span>
@@ -320,7 +326,7 @@ function UserThread() {
               <Icon name="clock" size={16} /> caduca en 5h 42m
             </span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 700, marginTop: 10 }}>
+          <div style={{ fontSize: 34, fontWeight: 800, marginTop: 10 }}>
             ¿Hay cola en La Bodega ahora mismo?
           </div>
         </motion.div>
@@ -346,13 +352,13 @@ function UserThread() {
             </div>
             <div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontWeight: 700, fontSize: 18 }}>{a.user}</div>
+                <div style={{ fontWeight: 800, fontSize: 22 }}>{a.user}</div>
                 {a.verified && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 12, padding: '3px 10px', borderRadius: 999,
+                    fontSize: 14, padding: '3px 10px', borderRadius: 999,
                     background: `${theme.gold}33`, color: theme.gold,
-                    fontWeight: 700, border: `1px solid ${theme.gold}66`,
+                    fontWeight: 800, border: `1px solid ${theme.gold}66`,
                   }}>
                     <Icon name="shield" size={12} /> NEGOCIO VERIFICADO
                   </span>
@@ -360,17 +366,17 @@ function UserThread() {
                 {a.top && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 12, padding: '3px 10px', borderRadius: 999,
-                    background: `${theme.green}33`, color: theme.green, fontWeight: 700,
+                    fontSize: 14, padding: '3px 10px', borderRadius: 999,
+                    background: `${theme.green}33`, color: theme.green, fontWeight: 800,
                   }}>
                     <Icon name="trending" size={12} /> TOP
                   </span>
                 )}
-                <div style={{ marginLeft: 'auto', color: theme.textFaint, fontSize: 14 }}>
+                <div style={{ marginLeft: 'auto', color: theme.textFaint, fontSize: 16, fontWeight: 600 }}>
                   {a.time}
                 </div>
               </div>
-              <div style={{ fontSize: 22, lineHeight: 1.4 }}>{a.text}</div>
+              <div style={{ fontSize: 24, fontWeight: 500, lineHeight: 1.4 }}>{a.text}</div>
             </div>
             <motion.div
               animate={{ y: [0, -6, 0] }} transition={{ duration: 1.4, repeat: Infinity }}
@@ -423,9 +429,9 @@ function Rewards({ localTime }) {
             style={{ textAlign: 'center', display: 'flex',
                      flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <IconChip name={it.icon} color={theme.gold} size={64} />
-            <div style={{ fontFamily: 'Space Grotesk', fontSize: 56,
+            <div style={{ fontFamily: 'Space Grotesk', fontSize: 60,
                           fontWeight: 800, color: theme.gold }}>{it.v}</div>
-            <div style={{ fontSize: 20, color: theme.textDim }}>{it.t}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: theme.textDim }}>{it.t}</div>
           </motion.div>
         ))}
       </div>
@@ -445,7 +451,7 @@ function BizIntro() {
       }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          style={{ fontSize: 24, color: theme.gold, fontWeight: 700,
+          style={{ fontSize: 28, color: theme.gold, fontWeight: 800,
                    letterSpacing: 4, textTransform: 'uppercase' }}>
           Para negocios
         </motion.div>
@@ -464,7 +470,7 @@ function BizIntro() {
         </motion.h1>
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-          style={{ marginTop: 12, fontSize: 30, color: theme.textDim, maxWidth: 900 }}>
+          style={{ marginTop: 12, fontSize: 34, fontWeight: 600, color: theme.textDim, maxWidth: 900 }}>
           Publica eventos, responde como negocio verificado, mide el impacto en directo.
         </motion.div>
       </div>
@@ -506,17 +512,17 @@ function BizDash({ localTime }) {
         </div>
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
-          style={{ marginTop: 24, fontSize: 22, color: theme.textDim,
+          style={{ marginTop: 24, fontSize: 26, fontWeight: 600, color: theme.textDim,
                    display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="store" size={20} /> Cuenta Business
+            <Icon name="store" size={22} /> Cuenta Business
           </span>
-          <strong style={{ color: theme.text }}>19,99 €/mes</strong>
+          <strong style={{ color: theme.text, fontWeight: 800 }}>19,99 €/mes</strong>
           <span style={{ color: theme.textFaint }}>·</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="bolt" size={20} /> Boost por evento
+            <Icon name="bolt" size={22} /> Boost por evento
           </span>
-          <strong style={{ color: theme.gold }}>14,99 €</strong>
+          <strong style={{ color: theme.gold, fontWeight: 800 }}>14,99 €</strong>
         </motion.div>
       </div>
       <motion.div
@@ -601,11 +607,11 @@ function BizPhone() {
 function Stat({ label, value, suffix = '', decimals = 0, start, accent, icon }) {
   return (
     <div style={{ ...card(), padding: 22 }}>
-      <div style={{ fontSize: 14, color: theme.textDim,
+      <div style={{ fontSize: 18, color: theme.textDim, fontWeight: 700,
                     letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Icon name={icon} size={16} /> {label}
+        <Icon name={icon} size={18} /> {label}
       </div>
-      <div style={{ fontFamily: 'Space Grotesk', fontSize: 56,
+      <div style={{ fontFamily: 'Space Grotesk', fontSize: 60,
                     fontWeight: 800, color: accent, marginTop: 4 }}>
         <Counter to={value} suffix={suffix} decimals={decimals} duration={1.6} start={start} />
       </div>
@@ -638,9 +644,9 @@ function Outro() {
       </motion.h1>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
-        style={{ marginTop: 24, fontSize: 28, color: theme.textDim,
+        style={{ marginTop: 24, fontSize: 32, fontWeight: 700, color: theme.textDim,
                  display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Icon name="globe" size={24} /> streetask.app · Descárgalo gratis
+        <Icon name="globe" size={26} /> streetask.app · Descárgalo gratis
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -650,7 +656,7 @@ function Outro() {
           <div key={i} style={{
             padding: '16px 32px', borderRadius: 999,
             background: 'rgba(14,14,24,0.05)', border: `1px solid ${theme.border}`,
-            fontSize: 22, fontWeight: 700,
+            fontSize: 24, fontWeight: 800,
           }}>
             {s}
           </div>
@@ -666,7 +672,7 @@ function SectionTitle({ eyebrow, title, align = 'center' }) {
     <div style={{ textAlign: align, width: '100%' }}>
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ fontSize: 22, color: theme.red, fontWeight: 700,
+        style={{ fontSize: 26, color: theme.red, fontWeight: 800,
                  letterSpacing: 4, textTransform: 'uppercase' }}>
         {eyebrow}
       </motion.div>

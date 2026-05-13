@@ -1,17 +1,33 @@
 /**
- * High-quality ad recorder — Playwright (headed) + ffmpeg screen capture.
+ * High-quality ad recorder — deterministic frame-by-frame capture.
  *
- * Strategy: launch a real Chromium window with GPU compositing enabled so
- * Framer Motion animations render at full frame-rate, then capture that
- * window with ffmpeg at 60 fps / high-bitrate H.264.  Output is an MP4
- * that can be uploaded directly to LinkedIn / social platforms.
+ * Strategy: launch headless Chromium. Before any page script runs, inject an
+ * `init script` that overrides the page's clock (Date.now, performance.now,
+ * requestAnimationFrame, setTimeout, setInterval) so they only advance when
+ * we explicitly call `window.__tick(ms)` from the recorder. Then we drive the
+ * timeline one 1/60 s tick at a time, taking a JPEG screenshot per tick,
+ * which ffmpeg encodes to a 60 fps H.264 MP4.
+ *
+ * Benefits:
+ *   - Perfectly smooth 60 fps output regardless of host GPU speed.
+ *   - Independent of host resolution, DPI scaling, or window focus.
+ *   - No "don't touch the mouse" requirement.
+ *
+ * Trade-off: real-world recording takes ~2–4× the video length (capture
+ * + JPEG serialization). A 60 s ad takes ~3 min to render.
  *
  * Requirements:
- *   - ffmpeg in PATH  (winget install ffmpeg  OR  choco install ffmpeg)
+ *   - ffmpeg in PATH  (winget install ffmpeg)
+ *   - Playwright Chromium installed  (`npx playwright install chromium`)
  *   - Dev server running on port 5180  (`npm run dev`)
  *
  * Usage:
  *   node scripts/record.mjs <investors|clients>
+ *
+ * Environment flags:
+ *   DEBUG_FFMPEG=1   stream ffmpeg's stderr (useful when the encoder fails)
+ *   FPS=30           override the default 60 fps for faster captures
+ *   PORT=5181        override the dev-server port (default 5180)
  */
 
 import { chromium } from 'playwright';
@@ -33,23 +49,23 @@ if (!['investors', 'clients'].includes(NAME)) {
   process.exit(1);
 }
 
-const DURATIONS   = { investors: 60, clients: 60 };   // seconds, from scene arrays
-const BUFFER_S    = 2;                                  // extra tail so last frame settles
-const FPS         = 60;
-const WIDTH       = 1920;
-const HEIGHT      = 1080;
-const CRF         = 14;   // 0 = lossless, 18 = visually lossless, 23 = default; 14 = very high
-const PRESET      = 'slow'; // encoding speed vs compression trade-off (slow = smaller & better)
+const DURATIONS = { investors: 60, clients: 60 };  // seconds (matches SCENES arrays)
+const BUFFER_S  = 1;
+const WIDTH     = 1920;
+const HEIGHT    = 1080;
+const FPS       = Number(process.env.FPS) || 60;
+const FRAME_MS  = 1000 / FPS;
+const CRF       = 14;
+const PRESET    = 'slow';
+const JPEG_Q    = 92;
+const PORT      = Number(process.env.PORT) || 5180;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// ffmpeg discovery
 // ---------------------------------------------------------------------------
 
-// Known fallback locations when ffmpeg is not in PATH (winget, CapCut, etc.)
 const FFMPEG_FALLBACKS = [
-  // winget install ffmpeg
   path.join(os.homedir(), 'AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1-full_build/bin/ffmpeg.exe'),
-  // CapCut bundles its own ffmpeg
   path.join(os.homedir(), 'AppData/Local/CapCut/Apps/8.4.0.3562/ffmpeg.exe'),
 ];
 
@@ -63,48 +79,6 @@ function resolveFfmpeg() {
 }
 
 const FFMPEG_BIN = resolveFfmpeg();
-
-/** Returns the best ffmpeg input args for capturing a window/screen on this OS. */
-function ffmpegCaptureArgs(x, y) {
-  const platform = os.platform();
-
-  if (platform === 'win32') {
-    // gdigrab can target the whole desktop; we crop to the browser window via
-    // an ffmpeg crop filter instead of trying to grab a named window title.
-    return [
-      '-f', 'gdigrab',
-      '-framerate', String(FPS),
-      '-offset_x', String(x),
-      '-offset_y', String(y),
-      '-video_size', `${WIDTH}x${HEIGHT}`,
-      '-draw_mouse', '0',
-      '-i', 'desktop',
-    ];
-  }
-
-  if (platform === 'darwin') {
-    // avfoundation: "1" is typically the primary display
-    return [
-      '-f', 'avfoundation',
-      '-framerate', String(FPS),
-      '-capture_cursor', '0',
-      '-i', `1:none`,
-      '-vf', `crop=${WIDTH}:${HEIGHT}:${x}:${y}`,
-    ];
-  }
-
-  // Linux — X11
-  return [
-    '-f', 'x11grab',
-    '-framerate', String(FPS),
-    '-video_size', `${WIDTH}x${HEIGHT}`,
-    '-i', `${process.env.DISPLAY || ':0'}+${x},${y}`,
-  ];
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 if (!FFMPEG_BIN) {
   console.error([
@@ -122,45 +96,36 @@ if (FFMPEG_BIN !== 'ffmpeg') {
   console.log(`ℹ  Using ffmpeg at: ${FFMPEG_BIN}`);
 }
 
-const outDir = path.resolve(__dirname, '..', 'recordings');
+// ---------------------------------------------------------------------------
+// Paths
+// ---------------------------------------------------------------------------
+
+const outDir   = path.resolve(__dirname, '..', 'recordings');
 fs.mkdirSync(outDir, { recursive: true });
 
-const ts       = new Date().toISOString().replace(/[:.]/g, '-');
-const outFile  = path.join(outDir, `${NAME}-${ts}.mp4`);
-const totalMs  = (DURATIONS[NAME] + BUFFER_S) * 1000;
-const url      = `http://localhost:5180/#/${NAME}`;
+const ts          = new Date().toISOString().replace(/[:.]/g, '-');
+const finalMp4    = path.join(outDir, `${NAME}-${ts}.mp4`);
+const totalFrames = (DURATIONS[NAME] + BUFFER_S) * FPS;
+const url         = `http://localhost:${PORT}/?record#/${NAME}`;
 
-console.log(`▶  Launching browser for ${NAME} (${DURATIONS[NAME]}s + ${BUFFER_S}s buffer) …`);
+console.log(`▶  Deterministic capture: ${totalFrames} frames @ ${FPS}fps  (${WIDTH}×${HEIGHT})`);
+console.log(`   Output: recordings/${path.basename(finalMp4)}`);
 
-// Launch Chromium with GPU compositing so CSS/canvas animations are smooth.
+// ---------------------------------------------------------------------------
+// Launch headless Chromium with a clock-override init script
+// ---------------------------------------------------------------------------
+
 const browser = await chromium.launch({
-  headless: false,
+  headless: true,
   args: [
-    // Position & size — top-left corner so gdigrab offset is 0,0
-    '--window-position=0,0',
-    `--window-size=${WIDTH},${HEIGHT}`,
-
-    // Force GPU compositing (prevents software-rendered janky frames)
     '--enable-gpu',
-    '--enable-gpu-rasterization',
-    '--enable-zero-copy',
     '--ignore-gpu-blocklist',
-    '--disable-gpu-sandbox',          // needed on some Windows setups
-
-    // Smooth animations — disable vsync throttle in background
+    '--hide-scrollbars',
+    '--no-first-run',
+    '--no-default-browser-check',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
     '--disable-background-timer-throttling',
-
-    // Remove chrome UI chrome so the viewport fills the window exactly
-    '--app=about:blank',              // kiosk-like: no tab bar / address bar
-    '--disable-infobars',
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--hide-scrollbars',
-
-    // Keep 60 fps even when the window loses focus
-    '--force-device-scale-factor=1',
   ],
 });
 
@@ -168,85 +133,208 @@ const context = await browser.newContext({
   viewport: { width: WIDTH, height: HEIGHT },
   deviceScaleFactor: 1,
 });
+
+// Inject the clock-override script. Runs in the page BEFORE any user script.
+// Only activates when ?record is present in the URL, so normal browsing of
+// the dev server is unaffected.
+await context.addInitScript(() => {
+  if (!new URLSearchParams(location.search).has('record')) return;
+
+  // ---- Disable Web Animations API ----
+  // Framer Motion v11 uses Element.prototype.animate (WAAPI) for opacity /
+  // transform when available. WAAPI is timed by Chromium's compositor in
+  // REAL time, ignoring our rAF / performance.now overrides.
+  //
+  // FM's capability probe is `Object.hasOwnProperty.call(Element.prototype,
+  // "animate")` — it checks for the property's existence, not whether it
+  // works. So we have to actually DELETE it from the prototype to force FM
+  // onto its JS animator fallback (which uses our overridden rAF).
+  delete Element.prototype.animate;
+  delete HTMLElement.prototype.animate;
+
+  let vt = 0;  // virtual time in ms since page load
+
+  const rafQueue = new Map(); // id -> callback(virtualTime)
+  let nextRafId = 1;
+
+  // Timer = { fireAt, cb, args, repeat, interval }
+  const timers = new Map();
+  let nextTimerId = 1;
+
+  // Overrides — keep originals around just in case anything internal needs them.
+  performance.now = () => vt;
+  Date.now = () => Math.floor(vt) + 1700000000000;  // arbitrary fixed epoch
+
+  window.requestAnimationFrame = (cb) => {
+    const id = nextRafId++;
+    rafQueue.set(id, cb);
+    return id;
+  };
+  window.cancelAnimationFrame = (id) => { rafQueue.delete(id); };
+
+  window.setTimeout = (cb, delay = 0, ...args) => {
+    const id = nextTimerId++;
+    timers.set(id, { fireAt: vt + (Number(delay) || 0), cb, args, repeat: false });
+    return id;
+  };
+  window.clearTimeout = (id) => { timers.delete(id); };
+
+  window.setInterval = (cb, interval = 0, ...args) => {
+    const id = nextTimerId++;
+    const i = Number(interval) || 0;
+    timers.set(id, { fireAt: vt + i, cb, args, repeat: true, interval: i });
+    return id;
+  };
+  window.clearInterval = (id) => { timers.delete(id); };
+
+  // Recorder API: advance the virtual clock by `deltaMs`, firing any due
+  // timers and then all pending rAF callbacks (the same order a real browser
+  // tick would).
+  window.__tick = (deltaMs) => {
+    const target = vt + deltaMs;
+    vt = target;
+
+    // Fire all timers whose deadline has passed.
+    let fired;
+    do {
+      fired = false;
+      const due = [];
+      for (const [id, t] of timers) {
+        if (t.fireAt <= vt) due.push([id, t]);
+      }
+      due.sort((a, b) => a[1].fireAt - b[1].fireAt);
+      for (const [id, t] of due) {
+        try { t.cb(...t.args); } catch (e) { console.error('[timer]', e); }
+        fired = true;
+        if (t.repeat) {
+          t.fireAt += t.interval;
+          if (t.fireAt > vt) timers.set(id, t);
+        } else {
+          timers.delete(id);
+        }
+      }
+    } while (fired && timers.size > 0 && [...timers.values()].some(t => t.fireAt <= vt));
+
+    // Fire pending rAF callbacks in submission order (matches spec).
+    const callbacks = Array.from(rafQueue.entries());
+    rafQueue.clear();
+    for (const [_id, cb] of callbacks) {
+      try { cb(vt); } catch (e) { console.error('[rAF]', e); }
+    }
+  };
+
+  window.__virtualTime = () => vt;
+});
+
 const page = await context.newPage();
 
-// Navigate and wait for fonts / first paint to settle.
 try {
-  await page.goto(url, { waitUntil: 'networkidle' });
-} catch {
-  console.error('✗  Could not reach the dev server. Is `npm run dev` running on port 5180?');
+  await page.goto(url, { waitUntil: 'load' });
+} catch (err) {
+  console.error(`✗  Could not reach the dev server at ${url}.`);
+  console.error(`   Is \`npm run dev\` running? If it auto-picked another port,`);
+  console.error(`   re-run with e.g.  $env:PORT=5181; npm run record:${NAME}`);
+  if (process.env.DEBUG_FFMPEG) console.error('   Underlying error:', err?.message);
   await browser.close();
   process.exit(1);
 }
 
-// Extra settle time: fonts + first animation frame.
-await page.waitForTimeout(800);
+// Sanity check: did the override actually attach?
+const overrideActive = await page.evaluate(() => typeof window.__tick === 'function');
+if (!overrideActive) {
+  console.error('✗  Clock override did not attach. Make sure the URL includes ?record.');
+  await browser.close();
+  process.exit(1);
+}
+
+// Pump a couple of microtask cycles so React's mount effects queue their rAFs
+// (no virtual time advances here — we just let synchronous JS settle).
+await page.evaluate(() => new Promise((r) => queueMicrotask(() => queueMicrotask(r))));
 
 // ---------------------------------------------------------------------------
-// Start ffmpeg capture
+// Spawn ffmpeg encoder (reads MJPEG frames from stdin)
 // ---------------------------------------------------------------------------
 
-// On Windows with --app= the window starts at 0,0 but Chrome may add a tiny
-// title-bar.  We grab from (0,0) and size exactly to WIDTH×HEIGHT — the
-// --app flag removes the address bar so the viewport IS the window content.
-const captureArgs = ffmpegCaptureArgs(0, 0);
+console.log(`▶  Starting ffmpeg (libx264 CRF ${CRF}, preset ${PRESET}, tune animation)`);
 
 const ffmpegArgs = [
-  '-y',                              // overwrite output without asking
-  ...captureArgs,
-
-  // Video codec — libx264 high-quality
+  '-y',
+  '-f', 'image2pipe',
+  '-vcodec', 'mjpeg',
+  '-framerate', String(FPS),
+  '-i', '-',
   '-vcodec', 'libx264',
-  '-pix_fmt', 'yuv420p',            // broadest playback compatibility
+  '-pix_fmt', 'yuv420p',
   '-crf', String(CRF),
   '-preset', PRESET,
-  '-tune', 'animation',             // optimises for smooth gradients & flat areas
-
-  // Colour / framerate passthrough
+  '-tune', 'animation',
   '-r', String(FPS),
-  '-movflags', '+faststart',        // move moov atom to front (streaming-friendly)
-
-  outFile,
+  '-movflags', '+faststart',
+  finalMp4,
 ];
 
-console.log(`▶  ffmpeg capturing at ${FPS}fps, CRF ${CRF}, preset ${PRESET} …`);
+const ffmpeg = spawn(FFMPEG_BIN, ffmpegArgs, { stdio: ['pipe', 'ignore', 'pipe'] });
 
-const ffmpegProc = spawn(FFMPEG_BIN, ffmpegArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-
-ffmpegProc.stderr.on('data', (chunk) => {
-  // ffmpeg writes progress to stderr; suppress unless debugging
+ffmpeg.stderr.on('data', (chunk) => {
   if (process.env.DEBUG_FFMPEG) process.stderr.write(chunk);
 });
 
-ffmpegProc.on('error', (err) => {
-  console.error('✗  ffmpeg error:', err.message);
+let ffmpegFailed = false;
+ffmpeg.on('error', (err) => {
+  console.error('\n✗  ffmpeg error:', err.message);
+  ffmpegFailed = true;
 });
 
 // ---------------------------------------------------------------------------
-// Wait for ad to finish, then stop everything
+// Frame loop
 // ---------------------------------------------------------------------------
 
-console.log(`⏳  Recording for ${totalMs / 1000}s …`);
-await page.waitForTimeout(totalMs);
+const tStart = Date.now();
+console.log(`▶  Rendering frames …`);
 
-// Close browser first (stops new frames), then signal ffmpeg to flush & exit.
+for (let i = 0; i < totalFrames; i++) {
+  if (ffmpegFailed) break;
+
+  // Advance the page's virtual clock by one frame. This fires due timers and
+  // all pending rAF callbacks inside the page synchronously.
+  await page.evaluate((dt) => window.__tick(dt), FRAME_MS);
+
+  // Give the renderer a microtask slice to commit any state updates from rAF
+  // callbacks (React batches setState through MessageChannel).
+  await page.evaluate(() => new Promise((r) => queueMicrotask(r)));
+
+  const buf = await page.screenshot({ type: 'jpeg', quality: JPEG_Q });
+
+  if (!ffmpeg.stdin.write(buf)) {
+    await new Promise((resolve) => ffmpeg.stdin.once('drain', resolve));
+  }
+
+  if ((i + 1) % FPS === 0) {
+    const secVirtual = (i + 1) / FPS;
+    const secReal = ((Date.now() - tStart) / 1000).toFixed(1);
+    const fps = (i + 1) / Math.max(0.1, (Date.now() - tStart) / 1000);
+    process.stdout.write(
+      `\r   ${String(secVirtual).padStart(2)}s rendered  ·  ${secReal}s elapsed  ·  ${fps.toFixed(1)} capture-fps     `
+    );
+  }
+}
+
+process.stdout.write('\n');
+
+// ---------------------------------------------------------------------------
+// Flush ffmpeg and close everything
+// ---------------------------------------------------------------------------
+
+ffmpeg.stdin.end();
+await new Promise((resolve) => ffmpeg.on('close', resolve));
+
 await context.close();
 await browser.close();
 
-// Send 'q' to ffmpeg stdin to trigger a clean exit (graceful flush).
-// Since we set stdin to 'ignore', we kill it directly — ffmpeg will flush on SIGINT.
-await new Promise((resolve) => {
-  ffmpegProc.on('close', resolve);
-  // SIGINT triggers ffmpeg's graceful shutdown (writes remaining frames).
-  try { ffmpegProc.kill('SIGINT'); } catch { ffmpegProc.kill(); }
-  // Safety timeout: force-kill after 10 s if it hasn't exited.
-  setTimeout(() => { try { ffmpegProc.kill(); } catch {} }, 10_000);
-});
-
-if (fs.existsSync(outFile)) {
-  const mb = (fs.statSync(outFile).size / 1_048_576).toFixed(1);
-  console.log(`✓  Saved recordings/${path.basename(outFile)}  (${mb} MB)`);
+if (fs.existsSync(finalMp4) && fs.statSync(finalMp4).size > 0) {
+  const mb = (fs.statSync(finalMp4).size / 1_048_576).toFixed(1);
+  console.log(`✓  Saved recordings/${path.basename(finalMp4)}  (${mb} MB)`);
 } else {
-  console.error('✗  Output file not found — ffmpeg may have failed. Re-run with DEBUG_FFMPEG=1 for details.');
+  console.error('✗  Output missing or empty. Re-run with DEBUG_FFMPEG=1 to see encoder errors.');
   process.exit(1);
 }

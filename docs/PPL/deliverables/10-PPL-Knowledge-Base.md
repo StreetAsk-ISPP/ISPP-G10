@@ -1,128 +1,126 @@
-# Link to the shared Knowledge Base
+## Enlace a la Knowledge Base compartida
 
-[https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/ppl/](https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/ppl/)
-
----
-
-## Specific content contributed
-
-Our team contributed:
-
-- Specific feedback received on 30/04/2026 for the PPL deliverable.
-- General feedback annotations collected from the evaluation session across different groups.
-- Consolidation actions derived from the feedback to improve the PPL presentation, launch materials, SEO positioning, market segmentation and communication strategy.
+https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/preparing-project-launch/
 
 ---
 
-## Feedback received
+## Contenido específico aportado
 
-### 30/04/2026 – PPL Feedback
+Nuestro equipo ha aportado:
 
-**Strengths**
-
-- The identification of user profiles was considered a good starting point.
-- The use of a recurring key phrase or slogan was positively valued, especially when it helps connect the presentation, advertisements and product identity.
-- The IA-related visual graph was considered clear and visually effective.
-- The analysis of marketing prices was positively received.
-- The idea of preparing visual launch materials such as a landing page, banner or poster was aligned with the expected PPL deliverable.
-- QR codes were considered useful and should be included in both presentations and promotional materials.
-- Explaining how publications will be uploaded and managed over time was seen as a positive point for the launch strategy.
-
-**Weaknesses**
-
-- The PPL presentation should not start with the use of IA, since IA is not the main value proposition of the product.
-- IA should be presented as part of the company’s working methodology or as support for internal processes, not as the central idea of the project.
-- Market segmentation needs to be more concrete and better justified.
-- User profiles must be better defined: age, hobbies, technological habits, needs, motivations and expected behaviour.
-- The concept of a “common person” or generic user profile is too vague and should be replaced with specific persona characteristics.
-- If proportions between profiles are shown, the expected proportion must be explained and justified.
-- SEO strategy must be presented explicitly.
-- The presentation must include project keywords and explain how they relate to positioning.
-- The product should be sold more convincingly, not merely described.
-- Each slide should communicate one clear idea and avoid excessive text or small font sizes.
-- The presentation flow should be more logical, with better connection between sections.
-- Data included in the presentation must be realistic and supported by appropriate sources.
-- Formal data or statistics should be used to justify why the product is useful for the selected profiles.
-- The audience must clearly understand what the app does, what problem it solves and why it is useful.
-- The speaker delivery should be practised further to ensure confidence, clarity and rhythm.
-- The PPL presentation had less flow than the first presentation and should be better rehearsed.
-- Videos or advertisements should not feel repetitive; each one should have a distinct purpose.
-- Audio quality and voice-over tone must be carefully reviewed.
-- Dark visuals in advertisements can reduce visibility, especially in large rooms or from a distance.
-- The landing page should already be prepared for the PPL deliverable.
-- The banner or poster should not attempt to explain the full functionality of the app, but instead focus on the main value proposition.
-- The launch material must indicate that the project belongs to ISPP, academic year 2025/2026.
+- Feedback específico recibido el 30/04/2026 para el entregable de PPL.
+- Anotaciones sobre el feedback general recogido durante la sesión de evaluación de los distintos grupos.
+- Acciones de consolidación derivadas del feedback para mejorar la presentación de PPL, los materiales de lanzamiento, el posicionamiento SEO, la segmentación de mercado y la estrategia de comunicación.
 
 ---
 
-## General feedback from evaluation session
+## Feedback recibido
 
-### 30/04/2026 – General observations across groups
+### 📅 30/04/2026 – Feedback PPL
 
-**Positive patterns observed**
+**Fortalezas**
 
-- A strong and repeated slogan helps reinforce the identity of the product.
-- A clear visual identity across presentation, advertisements and launch materials improves recognition.
-- Presentations are more effective when every slide has a single clear message.
-- Visual graphs and simplified diagrams help the audience understand key ideas faster.
-- Recorded audio or videos can work well when they are prepared with energy, clarity and a persuasive tone.
-- QR codes are useful to connect the audience directly with landing pages or additional information.
-- Pricing or marketing analysis is more convincing when it is presented visually and linked to real figures.
-- User profiles and market segmentation become more credible when supported by data and concrete characteristics.
-- SEO becomes stronger when keywords are explicitly shown and connected to the product’s positioning strategy.
+- La identificación de perfiles de usuario se valoró como un buen punto de partida.
+- El uso de una frase clave o eslogan recurrente fue valorado positivamente, especialmente por ayudar a conectar presentación, anuncios e identidad del producto.
+- El gráfico visual relacionado con la IA se consideró claro y visualmente eficaz.
+- El análisis de precios de marketing fue bien recibido.
+- La idea de preparar materiales visuales de lanzamiento (landing, banner o póster) está alineada con lo esperado para el entregable de PPL.
+- Los códigos QR se consideran útiles y deben incluirse tanto en presentaciones como en materiales promocionales.
+- Explicar cómo se subirán y gestionarán las publicaciones a lo largo del tiempo se valoró positivamente para la estrategia de lanzamiento.
 
-**Areas for improvement observed**
+**Debilidades**
 
-- PPL presentations should focus first on the product, the users, the market and the launch strategy before discussing IA.
-- IA should be framed as a support mechanism, not as the opening argument of the presentation.
-- Market segmentation should be specific, evidence-based and connected to the expected users.
-- User personas should include concrete demographic, behavioural and technological characteristics.
-- SEO strategy should include explicit keywords, positioning criteria and discoverability actions.
-- Presentations should avoid excessive text and use larger, clearer visual elements.
-- Launch materials should be designed for quick understanding rather than detailed functional explanation.
-- Data must include sources whenever possible.
-- Promotional videos and advertisements should have different objectives to avoid repetition.
-- Audio, lighting and visibility must be checked before the final presentation.
-- The narrative should clearly answer: what problem is solved, for whom, how the product solves it and why it is different.
-- Risks related to not reaching enough users should be identified together with mitigation strategies.
-
-**For the next PPL deliverable**
-
-- Start the presentation with the product vision, the user problem and the launch goal.
-- Introduce IA later as part of the company’s process, workflow or internal support tools.
-- Define specific user profiles with age ranges, needs, habits, interests and technological context.
-- Justify expected proportions between market segments using data or clear assumptions.
-- Include explicit SEO keywords and explain how they support positioning.
-- Add formal sources for market, user or impact data.
-- Prepare the landing page and connect it through a visible QR code.
-- Create a 16:9 banner or poster in 1920×1080 format, suitable for ETSII screens.
-- Include the QR code of the landing page in the banner or poster.
-- Indicate that the product is part of an ISPP project for the 2025/2026 academic year.
-- Keep promotional material focused on the main value proposition, not on a complete feature walkthrough.
-- Rehearse the presentation to improve rhythm, clarity and confidence.
-- Review voice, sound, brightness and readability of all videos and advertisements.
+- La presentación de PPL no debe empezar hablando del uso de IA, ya que la IA no es la propuesta de valor principal del producto.
+- La IA debe presentarse como parte de la metodología de trabajo de la empresa o como apoyo a procesos internos, no como la idea central del proyecto.
+- La segmentación de mercado necesita ser más concreta y estar mejor justificada.
+- Los perfiles de usuario deben definirse mejor: edad, hobbies, hábitos tecnológicos, necesidades, motivaciones y comportamiento esperado.
+- El concepto de "persona común" o perfil genérico es demasiado vago y debe sustituirse por características de *persona* específicas.
+- Si se muestran proporciones entre perfiles, hay que explicar y justificar la proporción esperada.
+- La estrategia SEO debe presentarse de forma explícita.
+- La presentación debe incluir las palabras clave del proyecto y explicar cómo se relacionan con el posicionamiento.
+- Hay que **vender** el producto de forma más convincente, no limitarse a describirlo.
+- Cada diapositiva debe transmitir una sola idea clara y evitar el exceso de texto o tamaños de letra pequeños.
+- El flujo de la presentación debe ser más lógico, con mejor conexión entre secciones.
+- Los datos incluidos en la presentación deben ser realistas y estar respaldados por fuentes apropiadas.
+- Deben usarse datos o estadísticas formales para justificar por qué el producto es útil para los perfiles seleccionados.
+- La audiencia debe entender claramente qué hace la app, qué problema resuelve y por qué es útil.
+- La oratoria del ponente debe practicarse más para asegurar confianza, claridad y ritmo.
+- La presentación de PPL tuvo menos flujo que la primera y debe ensayarse mejor.
+- Los vídeos y anuncios no deben resultar repetitivos: cada uno debe tener un propósito distinto.
+- Hay que revisar con cuidado la calidad del audio y el tono de la voz en off.
+- Los elementos visuales oscuros en los anuncios reducen la visibilidad, especialmente en salas grandes o a distancia.
+- La landing page debería estar ya preparada para el entregable de PPL.
+- El banner o póster no debe intentar explicar toda la funcionalidad de la app, sino centrarse en la propuesta de valor principal.
+- El material de lanzamiento debe indicar que el proyecto pertenece a ISPP, curso académico 2025/2026.
 
 ---
 
-## Consolidation actions that have been carried out
+## Feedback general de la sesión de evaluación
 
-### 30/04/2026 – Consolidation Actions
+### 📅 30/04/2026 – Observaciones generales entre grupos
 
-- **Presentation restructuring:** reorganised the PPL narrative so that the product, target users and launch strategy are introduced before discussing IA.
-- **IA repositioning:** reframed IA as a support element for company processes and productivity, rather than as the main selling point of the project.
-- **Market segmentation improvement:** expanded the definition of target profiles with more concrete demographic, behavioural and technological characteristics.
-- **User persona clarification:** replaced vague descriptions such as “common person” with more specific profile attributes, including age range, interests, needs and technology usage.
-- **Profile proportion justification:** clarified the expected distribution between user profiles and explained the assumptions behind these proportions.
-- **SEO reinforcement:** added explicit project keywords and connected them to the positioning strategy of the product.
-- **Source-based validation:** incorporated formal data sources where available to support the usefulness of the product and the relevance of the selected user profiles.
-- **Slide simplification:** reduced excessive text and redesigned slides so that each one communicates one main idea clearly.
-- **Visual improvement:** prioritised graphs, diagrams and visual summaries to make the presentation easier to follow.
-- **Launch material preparation:** prepared the landing page as a central element of the PPL deliverable.
-- **QR code integration:** added QR codes to connect the presentation and promotional material with the landing page.
-- **Banner/poster creation:** designed a 16:9 promotional banner/poster in 1920×1080 format for ETSII screens.
-- **Academic context clarification:** included a reference indicating that the product is part of an ISPP project for the 2025/2026 academic year.
-- **Promotional focus:** simplified the banner and advertising content to focus on the main value proposition instead of showing the full app functionality.
-- **Video differentiation:** reviewed advertisements to ensure that each one has a distinct purpose and does not repeat the same message.
-- **Audio and visibility review:** checked voice-over quality, sound synchronisation, brightness and readability of videos and visual assets.
-- **Speaker preparation:** reinforced rehearsal of the PPL presentation to improve fluency, confidence and connection between sections.
-- **Risk mitigation:** added strategies to address the risk of not reaching the required number of users during the launch phase.
+**Patrones positivos observados**
+
+- Un eslogan fuerte y repetido refuerza la identidad del producto.
+- Una identidad visual coherente entre presentación, anuncios y materiales de lanzamiento mejora el reconocimiento.
+- Las presentaciones son más eficaces cuando cada diapositiva tiene un único mensaje claro.
+- Los gráficos visuales y diagramas simplificados ayudan a entender las ideas clave más rápido.
+- El audio o los vídeos grabados funcionan bien cuando están preparados con energía, claridad y tono persuasivo.
+- Los códigos QR son útiles para conectar a la audiencia directamente con la landing o con información adicional.
+- El análisis de precios o marketing es más convincente cuando se presenta visualmente y se vincula a cifras reales.
+- Los perfiles de usuario y la segmentación de mercado ganan credibilidad cuando se respaldan con datos y características concretas.
+- El SEO se refuerza cuando las palabras clave se muestran explícitamente y se conectan con la estrategia de posicionamiento del producto.
+
+**Áreas de mejora observadas**
+
+- Las presentaciones de PPL deben centrarse primero en el producto, los usuarios, el mercado y la estrategia de lanzamiento antes de hablar de IA.
+- La IA debe enmarcarse como mecanismo de apoyo, no como argumento de apertura de la presentación.
+- La segmentación de mercado debe ser específica, basada en evidencias y conectada con los usuarios esperados.
+- Las *personas* de usuario deben incluir características demográficas, conductuales y tecnológicas concretas.
+- La estrategia SEO debe incluir palabras clave explícitas, criterios de posicionamiento y acciones de descubribilidad.
+- Las presentaciones deben evitar el exceso de texto y usar elementos visuales más grandes y claros.
+- Los materiales de lanzamiento deben diseñarse para entenderse rápidamente, no para explicar funcionalidades en detalle.
+- Los datos deben incluir fuentes siempre que sea posible.
+- Los vídeos promocionales y anuncios deben tener objetivos diferentes para evitar repeticiones.
+- Hay que comprobar audio, iluminación y visibilidad antes de la presentación final.
+- La narrativa debe responder claramente: qué problema se resuelve, para quién, cómo lo resuelve el producto y por qué es diferente.
+- Los riesgos relacionados con no alcanzar suficientes usuarios deben identificarse junto con estrategias de mitigación.
+
+**Para el próximo entregable de PPL**
+
+- Empezar la presentación con la visión del producto, el problema del usuario y el objetivo de lanzamiento.
+- Introducir la IA más tarde como parte del proceso, flujo de trabajo o herramientas internas de apoyo de la empresa.
+- Definir perfiles de usuario específicos con rangos de edad, necesidades, hábitos, intereses y contexto tecnológico.
+- Justificar las proporciones esperadas entre segmentos de mercado usando datos o suposiciones claras.
+- Incluir palabras clave de SEO explícitas y explicar cómo apoyan el posicionamiento.
+- Añadir fuentes formales para los datos de mercado, usuarios o impacto.
+- Preparar la landing y conectarla mediante un código QR visible.
+- Crear un banner o póster en formato 16:9, 1920×1080, apto para las pantallas de la ETSII.
+- Incluir el QR de la landing en el banner o póster.
+- Indicar que el producto forma parte de un proyecto de ISPP del curso académico 2025/2026.
+- Mantener el material promocional centrado en la propuesta de valor principal, no en un recorrido completo de funcionalidades.
+- Ensayar la presentación para mejorar ritmo, claridad y confianza.
+- Revisar voz, sonido, brillo y legibilidad de todos los vídeos y anuncios.
+
+## Acciones de consolidación llevadas a cabo
+
+### 📅 30/04/2026 – Acciones de consolidación
+
+- **Reestructuración de la presentación:** se ha reorganizado la narrativa del PPL para introducir primero el producto, los usuarios objetivo y la estrategia de lanzamiento antes de hablar de la IA.
+- **Reposicionamiento de la IA:** se ha reenfocado la IA como elemento de apoyo a los procesos y la productividad de la empresa, en lugar de como argumento principal de venta.
+- **Mejora de la segmentación de mercado:** se ha ampliado la definición de los perfiles objetivo con características demográficas, conductuales y tecnológicas más concretas.
+- **Aclaración de las *personas* de usuario:** se han sustituido descripciones vagas como "persona común" por atributos de perfil más específicos (rango de edad, intereses, necesidades y uso de tecnología).
+- **Justificación de las proporciones entre perfiles:** se ha clarificado la distribución esperada entre perfiles de usuario y se han explicado las suposiciones detrás de esas proporciones.
+- **Refuerzo del SEO:** se han añadido palabras clave explícitas del proyecto y se han conectado con la estrategia de posicionamiento del producto.
+- **Validación basada en fuentes:** se han incorporado fuentes formales de datos cuando ha sido posible, para respaldar la utilidad del producto y la relevancia de los perfiles seleccionados.
+- **Simplificación de diapositivas:** se ha reducido el exceso de texto y se han rediseñado las slides para que cada una comunique una idea principal con claridad.
+- **Mejora visual:** se ha priorizado el uso de gráficas, diagramas y resúmenes visuales para facilitar el seguimiento de la presentación.
+- **Preparación del material de lanzamiento:** se ha preparado la landing page como elemento central del entregable de PPL.
+- **Integración de códigos QR:** se han añadido códigos QR para conectar la presentación y el material promocional con la landing.
+- **Creación de banner/póster:** se ha diseñado un banner promocional en formato 16:9, 1920×1080, para las pantallas de la ETSII.
+- **Aclaración del contexto académico:** se ha incluido una referencia indicando que el producto forma parte de un proyecto de ISPP del curso 2025/2026.
+- **Enfoque promocional:** se ha simplificado el contenido del banner y la publicidad para centrarse en la propuesta de valor principal en lugar de mostrar toda la funcionalidad de la app.
+- **Diferenciación de vídeos:** se han revisado los anuncios para asegurar que cada uno tenga un propósito distinto y no repita el mismo mensaje.
+- **Revisión de audio y visibilidad:** se ha comprobado la calidad de la voz en off, la sincronización del sonido, el brillo y la legibilidad de los vídeos y recursos visuales.
+- **Preparación del ponente:** se ha reforzado el ensayo de la presentación de PPL para mejorar fluidez, confianza y conexión entre secciones.
+- **Mitigación de riesgos:** se han añadido estrategias para abordar el riesgo de no alcanzar el número de usuarios necesarios durante la fase de lanzamiento.

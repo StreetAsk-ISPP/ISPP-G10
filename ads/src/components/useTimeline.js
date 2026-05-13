@@ -20,8 +20,10 @@ export function useTimeline(scenes, { autoStart = true, loop = false } = {}) {
 
   useEffect(() => {
     if (!autoStart) return;
-    startRef.current = performance.now();
     const loopFn = (t) => {
+      // Anchor the timeline to the first rAF tick rather than useEffect time,
+      // so deterministic-clock recorders (virtual time at t=0) line up.
+      if (startRef.current === null) startRef.current = t;
       setTick(t);
       rafRef.current = requestAnimationFrame(loopFn);
     };
@@ -29,7 +31,7 @@ export function useTimeline(scenes, { autoStart = true, loop = false } = {}) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [autoStart]);
 
-  const elapsedRaw = startRef.current ? (tick - startRef.current) / 1000 : 0;
+  const elapsedRaw = startRef.current !== null ? (tick - startRef.current) / 1000 : 0;
   const elapsed = loop ? elapsedRaw % total : Math.min(elapsedRaw, total);
   const finished = !loop && elapsedRaw >= total;
 
