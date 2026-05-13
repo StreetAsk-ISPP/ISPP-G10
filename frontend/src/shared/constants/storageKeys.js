@@ -3,7 +3,7 @@
  * Centralizadas para mejorar mantenibilidad y seguridad
  */
 export const STORAGE_KEYS = {
-    // Checkout de registro empresarial
+    // Borrador temporal del checkout de registro empresarial (sessionStorage)
     PENDING_BUSINESS_CHECKOUT: 'streetask.pendingBusinessCheckout',
 
     // Checkout pendiente para suscripción de negocio (usuario BUSINESS autenticado)
