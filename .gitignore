@@ -68,3 +68,6 @@ frontend/ios/Pods/
 
 
 .codex
+
+# Ad recording scripts (dev-only, excluded from Codacy analysis)
+ads/scripts/
