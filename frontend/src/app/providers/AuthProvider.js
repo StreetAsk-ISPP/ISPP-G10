@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
+import apiClient from '../../shared/services/http/apiClient';
 
 const AuthContext = createContext(null);
 const TOKEN_STORAGE_KEY = 'auth_token';
@@ -65,15 +66,57 @@ export function AuthProvider({ children }) {
       const storedToken = await getFromStorage(TOKEN_STORAGE_KEY);
       const userData = await getFromStorage(USER_STORAGE_KEY);
 
-      setToken(storedToken);
-      setIsAuthenticated(Boolean(storedToken));
-
-      if (userData) {
+      // If there's a stored token try to validate it with the backend
+      if (storedToken) {
+        setToken(storedToken);
         try {
-          setUser(JSON.parse(userData));
-        } catch (e) {
-          // Silently fail for invalid user data
+          const resp = await apiClient.get('/api/v1/users/me');
+          // Prefer server-provided user data to ensure roles are up to date
+          const serverUser = resp?.data;
+          if (serverUser) {
+            setUser(serverUser);
+            await saveToStorage(USER_STORAGE_KEY, JSON.stringify(serverUser));
+          } else if (userData) {
+            try {
+              setUser(JSON.parse(userData));
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          setIsAuthenticated(true);
+        } catch (err) {
+          const status = err?.response?.status;
+          // If the token is invalid or unauthorized, clear it. For transient
+          // network errors, don't log the user out automatically; fall back
+          // to local data to avoid surprising UX when offline.
+          if (status === 401 || status === 403) {
+            await removeFromStorage(TOKEN_STORAGE_KEY);
+            await removeFromStorage(USER_STORAGE_KEY);
+            setToken(null);
+            setUser(null);
+            setIsAuthenticated(false);
+          } else {
+            if (userData) {
+              try {
+                setUser(JSON.parse(userData));
+              } catch (e) {
+                // ignore
+              }
+            }
+            setIsAuthenticated(Boolean(storedToken));
+          }
         }
+      } else {
+        setToken(null);
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+          } catch (e) {
+            // Silently fail for invalid user data
+          }
+        }
+        setIsAuthenticated(false);
       }
 
       setIsLoadingAuth(false);
