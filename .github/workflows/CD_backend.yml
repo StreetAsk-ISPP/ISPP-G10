@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - main
-      - feature/despliegue-ppl
+      - feature/despliegue-wpl
   workflow_dispatch:
 jobs:
   build-and-deploy:
@@ -41,6 +41,6 @@ jobs:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
             az containerapp update \
-              --name ppl-backend \
+              --name wpl-backend \
               --resource-group ppl-recursos \
               --image $IMAGE_NAME:$IMAGE_TAG \
