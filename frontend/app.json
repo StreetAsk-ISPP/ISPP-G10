@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ppl-streetask",
-    "slug": "ppl-streetask",
+    "name": "wpl-streetask",
+    "slug": "wpl-streetask",
     "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -35,7 +35,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "824c596d-9dd5-4108-8f0c-6f8ac37e94b3"
+        "projectId": "80e07feb-82bd-495d-9649-e09ef2d25e88"
       }
     },
     "owner": "streetasks-organization"
