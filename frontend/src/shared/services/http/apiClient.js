@@ -2,6 +2,7 @@ import axios from 'axios';
 import { APP_CONFIG } from '../../../app/config/config';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { emitAuthSessionInvalidated } from './authSessionEvents';
 
 const TOKEN_STORAGE_KEY = 'auth_token';
 
@@ -48,7 +49,15 @@ apiClient.interceptors.request.use(async (config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401 || status === 403) {
+      emitAuthSessionInvalidated();
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient;

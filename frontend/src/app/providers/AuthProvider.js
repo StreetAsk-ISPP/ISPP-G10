@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { STORAGE_KEYS } from '../../shared/constants/storageKeys';
 import apiClient from '../../shared/services/http/apiClient';
+import { onAuthSessionInvalidated } from '../../shared/services/http/authSessionEvents';
 
 const AuthContext = createContext(null);
 const TOKEN_STORAGE_KEY = 'auth_token';
@@ -49,6 +50,23 @@ const removeFromStorage = async (key) => {
   }
 };
 
+const parseStoredUser = (rawUser) => {
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawUser);
+  } catch (error) {
+    return null;
+  }
+};
+
+const clearAuthStorage = async () => {
+  await removeFromStorage(TOKEN_STORAGE_KEY);
+  await removeFromStorage(USER_STORAGE_KEY);
+};
+
 const clearPendingBusinessSignupDraft = () => {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.localStorage.removeItem(STORAGE_KEYS.PENDING_BUSINESS_CHECKOUT);
@@ -65,56 +83,53 @@ export function AuthProvider({ children }) {
     const bootstrapAuth = async () => {
       const storedToken = await getFromStorage(TOKEN_STORAGE_KEY);
       const userData = await getFromStorage(USER_STORAGE_KEY);
+      const parsedUser = parseStoredUser(userData);
+
+      const clearSessionState = async () => {
+        await clearAuthStorage();
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+      };
 
       // If there's a stored token try to validate it with the backend
       if (storedToken) {
-        setToken(storedToken);
         try {
           const resp = await apiClient.get('/api/v1/users/me');
           // Prefer server-provided user data to ensure roles are up to date
           const serverUser = resp?.data;
           if (serverUser) {
+            setToken(storedToken);
             setUser(serverUser);
             await saveToStorage(USER_STORAGE_KEY, JSON.stringify(serverUser));
-          } else if (userData) {
-            try {
-              setUser(JSON.parse(userData));
-            } catch (e) {
-              // ignore
-            }
+          } else if (parsedUser) {
+            setToken(storedToken);
+            setUser(parsedUser);
+          } else {
+            await clearSessionState();
+            setIsLoadingAuth(false);
+            return;
           }
 
           setIsAuthenticated(true);
         } catch (err) {
           const status = err?.response?.status;
-          // If the token is invalid or unauthorized, clear it. For transient
-          // network errors, don't log the user out automatically; fall back
-          // to local data to avoid surprising UX when offline.
+          // If the token is invalid or unauthorized, clear it immediately so
+          // the frontend does not keep showing an obsolete authenticated state.
           if (status === 401 || status === 403) {
-            await removeFromStorage(TOKEN_STORAGE_KEY);
-            await removeFromStorage(USER_STORAGE_KEY);
-            setToken(null);
-            setUser(null);
-            setIsAuthenticated(false);
+            await clearSessionState();
           } else {
-            if (userData) {
-              try {
-                setUser(JSON.parse(userData));
-              } catch (e) {
-                // ignore
-              }
+            setToken(storedToken);
+            if (parsedUser) {
+              setUser(parsedUser);
             }
             setIsAuthenticated(Boolean(storedToken));
           }
         }
       } else {
         setToken(null);
-        if (userData) {
-          try {
-            setUser(JSON.parse(userData));
-          } catch (e) {
-            // Silently fail for invalid user data
-          }
+        if (parsedUser) {
+          setUser(parsedUser);
         }
         setIsAuthenticated(false);
       }
@@ -123,6 +138,14 @@ export function AuthProvider({ children }) {
     };
 
     bootstrapAuth();
+
+    const unsubscribe = onAuthSessionInvalidated(() => {
+      logout();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const login = async (newToken, userData) => {
