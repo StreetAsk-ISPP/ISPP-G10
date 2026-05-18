@@ -235,7 +235,7 @@ export default function QuestionsSidebar({
                 : null;
 
             return (
-                <TouchableOpacity style={styles.eventItem} activeOpacity={0.8}>
+                <View style={styles.eventItem}>
                     <View style={styles.eventHeader}>
                         <Text style={styles.eventTitle} numberOfLines={2}>
                             {item.title || 'Untitled event'}
@@ -291,7 +291,7 @@ export default function QuestionsSidebar({
                         <Ionicons name="information-circle-outline" size={16} color="#1d4ed8" />
                         <Text style={styles.eventInfoText}>View event info</Text>
                     </TouchableOpacity>
-                </TouchableOpacity>
+                </View>
             );
         },
         [onEventNavigate, onEventViewDetails]
