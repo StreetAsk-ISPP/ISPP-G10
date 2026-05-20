@@ -196,6 +196,28 @@ public class QuestionService {
 	}
 
 	@Transactional(readOnly = true)
+	public Iterable<Question> findByLocationBetween(double south, double west, double north, double east,
+			Boolean active) {
+		// Normalize bounds (minLat, maxLat, minLng, maxLng)
+		double minLat = Math.min(south, north);
+		double maxLat = Math.max(south, north);
+		double minLng = Math.min(west, east);
+		double maxLng = Math.max(west, east);
+
+		Iterable<Question> res = questionRepository.findByLocationLatitudeBetweenAndLocationLongitudeBetween(
+				minLat, maxLat, minLng, maxLng);
+
+		if (active == null) {
+			return res;
+		}
+
+		java.util.List<Question> filtered = StreamSupport.stream(res.spliterator(), false)
+				.filter(q -> Boolean.TRUE.equals(q.getActive()) == Boolean.TRUE.equals(active))
+				.toList();
+		return filtered;
+	}
+
+	@Transactional(readOnly = true)
 	public Iterable<Question> findByEvent(UUID eventId) {
 		logger.info("[QuestionService] findByEvent called for eventId: {}", eventId);
 		java.util.List<Question> questions = StreamSupport

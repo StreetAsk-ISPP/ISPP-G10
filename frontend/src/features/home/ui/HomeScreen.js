@@ -105,6 +105,7 @@ export default function HomeScreen({ navigation, route }) {
     const latestRequestRef = useRef(0);
     const isBusiness = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const latestEventsRequestRef = useRef(0);
+    const bboxFetchTimeoutRef = useRef(null);
 
     const handleEventAttendanceUpdate = useCallback((updatedEvent) => {
         if (!updatedEvent?.id) {
@@ -139,7 +140,7 @@ export default function HomeScreen({ navigation, route }) {
 
         for (let attempt = 1; attempt <= 3; attempt += 1) {
             try {
-                const res = await apiClient.get('/api/v1/questions');
+                const res = await apiClient.get('/api/v1/questions/compact');
                 const raw = Array.isArray(res?.data) ? res.data : [];
 
                 if (requestId !== latestRequestRef.current) {
@@ -239,6 +240,42 @@ export default function HomeScreen({ navigation, route }) {
         checkPremium();
         return () => { isMounted = false; };
     }, [loadEvents, loadQuestions, user?.id]));
+
+    // Handle map bounds changes coming from MapComponent
+    const handleMapBoundsChange = useCallback((bounds) => {
+        // bounds: { lat, lng, north, south, east, west }
+        setMapCenter(bounds);
+
+        if (!bounds || bounds.north == null) return;
+
+        // Debounce bbox fetch (200ms)
+        if (bboxFetchTimeoutRef.current) clearTimeout(bboxFetchTimeoutRef.current);
+        bboxFetchTimeoutRef.current = setTimeout(async () => {
+            const requestId = ++latestRequestRef.current;
+            try {
+                const res = await apiClient.get('/api/v1/questions/compact/bbox', {
+                    params: {
+                        south: bounds.south,
+                        west: bounds.west,
+                        north: bounds.north,
+                        east: bounds.east,
+                        active: true,
+                    },
+                });
+
+                if (requestId !== latestRequestRef.current) return;
+
+                const raw = Array.isArray(res?.data) ? res.data : [];
+                setQuestions(raw);
+                // update cached questions for web
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    window.localStorage.setItem(STORAGE_KEYS.HOME_QUESTIONS_CACHE, JSON.stringify(raw));
+                }
+            } catch (e) {
+                console.warn('Failed to load bbox questions', e);
+            }
+        }, 200);
+    }, [STORAGE_KEYS.HOME_QUESTIONS_CACHE]);
 
     useEffect(() => {
         const unsub = observeNotifications((n) => {
@@ -705,7 +742,7 @@ export default function HomeScreen({ navigation, route }) {
                             }
                             onLocationChange={setCurrentLocation}
                             onPermissionChange={setHasLocationPermission}
-                            onMapBoundsChange={setMapCenter}
+                            onMapBoundsChange={handleMapBoundsChange}
                             onVisibleQuestionsChange={setVisibleQuestionsIds}
                         />
                     </View>
