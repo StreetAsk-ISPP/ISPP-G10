@@ -207,12 +207,17 @@ public class QuestionService {
 		Iterable<Question> res = questionRepository.findByLocationLatitudeBetweenAndLocationLongitudeBetween(
 				minLat, maxLat, minLng, maxLng);
 
+		// Always exclude questions that are scoped to an Event — those should be shown
+		// as Event markers instead of Question markers on the map.
 		if (active == null) {
-			return res;
+			return StreamSupport.stream(res.spliterator(), false)
+					.filter(q -> q.getEvent() == null)
+					.toList();
 		}
 
 		java.util.List<Question> filtered = StreamSupport.stream(res.spliterator(), false)
 				.filter(q -> Boolean.TRUE.equals(q.getActive()) == Boolean.TRUE.equals(active))
+				.filter(q -> q.getEvent() == null)
 				.toList();
 		return filtered;
 	}
