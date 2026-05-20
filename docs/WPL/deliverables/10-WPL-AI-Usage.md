@@ -1,20 +1,20 @@
-# Informe de Uso de IA — PPL
+# Informe de Uso de IA — WPL
 
 ## 0. Resumen ejecutivo
 
-Durante la fase de **Preparing Project Launch (PPL)**, el uso de herramientas de Inteligencia Artificial Generativa siguió siendo un complemento relevante del trabajo del equipo, aunque con un enfoque distinto al de sprints anteriores. En etapas previas del proyecto, la IA se utilizó principalmente como apoyo al desarrollo intensivo de funcionalidades, pruebas y arquitectura. En PPL, en cambio, el peso del trabajo se desplazó hacia la **estabilización del producto, la preparación del lanzamiento y la generación de materiales de comunicación**, por lo que el uso de IA también cambió de naturaleza: menos generación masiva de código y más apoyo a documentación, validación, redacción, contenidos promocionales y revisión.
+Durante la fase de **World Project Launch (WPL)**, el uso de herramientas de Inteligencia Artificial Generativa siguió siendo un complemento relevante del trabajo del equipo, aunque con un enfoque distinto al de sprints anteriores. En etapas previas del proyecto, la IA se utilizó principalmente como apoyo al desarrollo intensivo de funcionalidades, pruebas y arquitectura. En WPL, en cambio, el peso del trabajo se desplazó hacia la **estabilización del producto, la preparación del lanzamiento y la generación de materiales de comunicación**, por lo que el uso de IA también cambió de naturaleza: menos generación masiva de código y más apoyo a documentación, validación, redacción, contenidos promocionales y revisión.
 
 Las herramientas utilizadas con mayor frecuencia han sido **ChatGPT, Gemini, GitHub Copilot y Claude Code**, cada una con un papel diferenciado dentro del flujo de trabajo. En todos los casos la IA se usó como **herramienta de asistencia**, nunca como sustituto de la revisión humana ni de la responsabilidad técnica del equipo. Cada salida producida por una herramienta de IA fue validada manualmente antes de incorporarse al repositorio, a la presentación o a los materiales públicos del proyecto.
 
-El equipo considera que el principal beneficio aportado por la IA durante PPL ha sido **reducir el tiempo invertido en tareas repetitivas o de baja complejidad** (formato, redacción, revisión, generación de variantes de texto, esquemas iniciales de slides, ideas de copy para anuncios, etc.), permitiendo que las personas se concentren en las decisiones de producto, la coordinación entre áreas y la calidad final del entregable.
+El equipo considera que el principal beneficio aportado por la IA durante WPL ha sido **reducir el tiempo invertido en tareas repetitivas o de baja complejidad** (formato, redacción, revisión, generación de variantes de texto, esquemas iniciales de slides, ideas de copy para anuncios, etc.), permitiendo que las personas se concentren en las decisiones de producto, la coordinación entre áreas y la calidad final del entregable.
 
 ---
 
 ## 1. Herramientas utilizadas y rol asignado
 
-Aunque las herramientas de IA generativa son intercambiables en muchos casos, el equipo ha ido especializando su uso según el tipo de tarea. La siguiente tabla resume el reparto observado durante PPL:
+Aunque las herramientas de IA generativa son intercambiables en muchos casos, el equipo ha ido especializando su uso según el tipo de tarea. La siguiente tabla resume el reparto observado durante WPL:
 
-| Herramienta | Uso principal en PPL | Ventaja diferencial percibida |
+| Herramienta | Uso principal en WPL | Ventaja diferencial percibida |
 |---|---|---|
 | **ChatGPT** | Redacción y revisión de documentación, generación de variantes de copy publicitario, resúmenes de feedback, soporte a la elaboración de la knowledge base. | Buena calidad lingüística en español y flexibilidad para iterar tono. |
 | **Gemini** | Búsqueda complementaria de referencias, contraste de cifras de mercado, exploración de fuentes alternativas para datos económicos y de marketing. | Acceso a información más reciente y verificación cruzada de datos. |
@@ -27,7 +27,7 @@ Esta especialización no es estricta: en muchos casos varias herramientas se usa
 
 ## 2. Soporte en mantenimiento y pequeñas mejoras de código
 
-Dado que en PPL el peso del desarrollo se redujo respecto a sprints anteriores, el papel de la IA en código se limitó a tareas **acotadas y de bajo riesgo**:
+Dado que en WPL el peso del desarrollo se redujo respecto a sprints anteriores, el papel de la IA en código se limitó a tareas **acotadas y de bajo riesgo**:
 
 - **Refactorización ligera:** sugerencias para simplificar componentes ya existentes, renombrar variables, extraer pequeños helpers o eliminar duplicación menor en archivos del frontend y del backend.
 - **Soporte en corrección de bugs:** ante errores pequeños o reportes de comportamientos extraños, se usó la IA para proponer hipótesis sobre la causa probable y validar posibles soluciones antes de aplicarlas.
@@ -40,11 +40,11 @@ En todos los casos, las propuestas de la IA se han tratado como **borradores**: 
 
 ## 3. Actualización y mejora de la documentación
 
-Aunque el desarrollo activo fue menor, mantener la documentación alineada con el estado real del proyecto siguió siendo crítico para el cierre del PPL.
+Aunque el desarrollo activo fue menor, mantener la documentación alineada con el estado real del proyecto siguió siendo crítico para el cierre del WPL.
 
 - **Sincronización con el estado del proyecto:** la IA ayudó a revisar documentos existentes para reflejar la estructura actual del repositorio, las funcionalidades realmente implementadas y los ajustes realizados durante el sprint.
 - **Mejora de claridad:** se usaron herramientas de IA para reorganizar, resumir y simplificar explicaciones técnicas largas, especialmente las dirigidas a perfiles no técnicos (presentación, knowledge base, materiales para el público objetivo).
-- **Formato y consistencia:** la IA contribuyó a mantener una terminología, estructura y tono uniformes a lo largo de los documentos de PPL, evitando contradicciones entre los entregables económicos, técnicos y de marketing.
+- **Formato y consistencia:** la IA contribuyó a mantener una terminología, estructura y tono uniformes a lo largo de los documentos de WPL, evitando contradicciones entre los entregables económicos, técnicos y de marketing.
 - **Traducción y adaptación:** en algunos documentos generados originalmente con apuntes en inglés o con citas de fuentes externas, la IA se usó para producir versiones en español consistentes con el resto del proyecto.
 
 El objetivo no fue *generar documentación de forma automática*, sino **acelerar el trabajo de redacción y revisión** sin perder control sobre el contenido.
@@ -53,7 +53,7 @@ El objetivo no fue *generar documentación de forma automática*, sino **acelera
 
 ## 4. Soporte al flujo de trabajo y al equipo
 
-Las herramientas de IA siguieron apoyando los procesos de colaboración del equipo durante PPL.
+Las herramientas de IA siguieron apoyando los procesos de colaboración del equipo durante WPL.
 
 - **Estructuración de pull requests:** redacción de descripciones de PR más claras, listas de cambios y resúmenes de impacto que facilitan la revisión por parte de otros miembros del equipo.
 - **Reducción del trabajo repetitivo:** automatización ligera o asistida de tareas como reformatear listados, generar checklists de validación, organizar notas de reuniones o preparar versiones limpias de documentos colaborativos.
@@ -66,7 +66,7 @@ En este apartado la IA actúa más como un **asistente operativo** que como herr
 
 ## 5. Creación de anuncios, landing y contenido promocional
 
-Esta ha sido, sin duda, la categoría de uso más visible durante PPL. La preparación del lanzamiento exigió generar **varias piezas de comunicación** alineadas entre sí: anuncios audiovisuales, copy de redes sociales, banner para las pantallas de la ETSII, landing page y materiales de presentación.
+Esta ha sido, sin duda, la categoría de uso más visible durante WPL. La preparación del lanzamiento exigió generar **varias piezas de comunicación** alineadas entre sí: anuncios audiovisuales, copy de redes sociales, banner para las pantallas de la ETSII, landing page y materiales de presentación.
 
 - **Generación y refinamiento con Claude Code:** Claude Code se utilizó intensamente para apoyar la creación de los anuncios audiovisuales para los dos públicos definidos (inversores y clientes), iterando sobre escenas, transiciones, textos en pantalla y narración. La herramienta ayudó tanto en la generación inicial como en la depuración de los scripts de grabación y procesamiento.
 - **Iteración rápida de mensajes:** la IA permitió generar y comparar rápidamente diferentes versiones de eslóganes, copys cortos para redes, llamadas a la acción y descripciones de la propuesta de valor, adaptadas a los distintos canales y audiencias seleccionadas en el plan de marketing.
@@ -93,7 +93,7 @@ La validación final, sin embargo, siempre se realizó **manualmente y en el pro
 
 ## 7. Apoyo a documentos de negocio, costes y marketing
 
-Durante PPL, una parte importante del esfuerzo del equipo se ha dedicado a los entregables económicos y estratégicos (estimación de costes por escenarios, break-even, segmentación de mercado, canales de marketing, propuesta de valor, etc.). En todos ellos la IA aportó valor de tres formas:
+Durante WPL, una parte importante del esfuerzo del equipo se ha dedicado a los entregables económicos y estratégicos (estimación de costes por escenarios, break-even, segmentación de mercado, canales de marketing, propuesta de valor, etc.). En todos ellos la IA aportó valor de tres formas:
 
 - **Estructuración inicial:** generación de borradores con la estructura habitual de cada tipo de documento (introducción, objetivo, supuestos, escenarios, conclusiones), sobre los que el equipo trabajó con datos reales.
 - **Coherencia entre documentos:** revisión cruzada para que las cifras y las hipótesis manejadas en un documento (por ejemplo, número de usuarios activos) coincidan con las usadas en otro (por ejemplo, ingresos esperados o coste mensual).
@@ -132,12 +132,12 @@ En estos casos, el equipo asume que las respuestas de la IA son un **punto de pa
 
 ## 10. Diferencias con el uso de IA en sprints anteriores
 
-Comparado con sprints previos, el uso de IA en PPL ha cambiado en varios aspectos:
+Comparado con sprints previos, el uso de IA en WPL ha cambiado en varios aspectos:
 
-- **Menos generación de código nuevo:** en sprints anteriores la IA se usaba más para crear funcionalidades desde cero. En PPL, su papel se ha concentrado en mantenimiento, pequeños refactores y depuración.
+- **Menos generación de código nuevo:** en sprints anteriores la IA se usaba más para crear funcionalidades desde cero. En WPL, su papel se ha concentrado en mantenimiento, pequeños refactores y depuración.
 - **Más generación de contenido y comunicación:** la IA ha tenido un papel mayor en redacción, copy, anuncios, landing, knowledge base y revisión de presentación.
 - **Más trabajo de coordinación entre documentos:** en lugar de pedir a la IA que produzca un único documento aislado, se ha utilizado para mantener la coherencia entre varios entregables (técnicos, económicos y de marketing).
-- **Mayor exigencia en verificación:** dado que los materiales de PPL son más visibles externamente (público objetivo, evaluación final, posibles inversores), el equipo ha sido más estricto en revisar manualmente cada salida.
+- **Mayor exigencia en verificación:** dado que los materiales de WPL son más visibles externamente (público objetivo, evaluación final, posibles inversores), el equipo ha sido más estricto en revisar manualmente cada salida.
 
 Este cambio refleja la propia evolución del proyecto: ya no se trata de construir el producto, sino de **prepararlo para presentarlo al mundo**, lo cual requiere un tipo de apoyo distinto.
 
@@ -167,7 +167,7 @@ El uso de IA generativa plantea cuestiones éticas que el equipo ha tenido en cu
 
 ---
 
-## 13. Lecciones aprendidas durante PPL
+## 13. Lecciones aprendidas durante WPL
 
 Como cierre, el equipo destaca varias lecciones aprendidas sobre el uso de IA generativa en esta fase del proyecto:
 
@@ -178,4 +178,4 @@ Como cierre, el equipo destaca varias lecciones aprendidas sobre el uso de IA ge
 5. **La revisión humana sigue siendo el cuello de botella real.** El tiempo ahorrado en redacción se reinvierte en revisión; el equipo ha aprendido a planificar pensando en eso.
 6. **Para materiales públicos, el último 20 % siempre lo pone una persona.** Tono, matiz, contexto, ejemplos locales y referencias específicas del proyecto son aportaciones humanas, no de la IA.
 
-En resumen, durante PPL la IA generativa ha sido una herramienta valiosa, especialmente en documentación, contenido promocional y mantenimiento. Su uso ha estado supeditado en todo momento a la revisión humana y al criterio del equipo, lo que ha permitido aprovechar sus ventajas sin comprometer la calidad ni la responsabilidad final sobre el proyecto.
+En resumen, durante WPL la IA generativa ha sido una herramienta valiosa, especialmente en documentación, contenido promocional y mantenimiento. Su uso ha estado supeditado en todo momento a la revisión humana y al criterio del equipo, lo que ha permitido aprovechar sus ventajas sin comprometer la calidad ni la responsabilidad final sobre el proyecto.
