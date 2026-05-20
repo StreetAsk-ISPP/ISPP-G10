@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,9 +43,8 @@ public class EventRestController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<Event>> findAll(@RequestParam(required = false) Boolean active) {
-        Iterable<Event> events = active == null ? eventService.findAll() : eventService.findByActive(active);
-        return new ResponseEntity<>(events, HttpStatus.OK);
+    public ResponseEntity<Iterable<Event>> findAll() {
+        return new ResponseEntity<>(eventService.findAll(), HttpStatus.OK);
     }
 
     @GetMapping(value = "{id}")

@@ -2,11 +2,8 @@ package com.streetask.app.event;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -77,12 +74,13 @@ public class EventService {
 
     @Transactional
     public Iterable<Event> findAll() {
-        return applyVisibilityAndAttendance(eventRepository.findAll());
-    }
-
-    @Transactional
-    public Iterable<Event> findByActive(Boolean active) {
-        return applyVisibilityAndAttendance(eventRepository.findByActive(active));
+        Iterable<Event> events = eventRepository.findAll();
+        LocalDateTime now = LocalDateTime.now();
+        for (Event event : events) {
+            deactivateIfExpired(event, now);
+            applyViewerAttendanceState(event);
+        }
+        return events;
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -248,26 +246,6 @@ public class EventService {
                 .map(attendance -> Boolean.TRUE.equals(attendance.getIsAttending()))
                 .orElse(false);
         event.setMyAttendance(attending);
-    }
-
-    private Iterable<Event> applyVisibilityAndAttendance(Iterable<Event> events) {
-        LocalDateTime now = LocalDateTime.now();
-        Optional<RegularUser> regularUser = findAuthenticatedRegularUser();
-        Set<UUID> attendingEventIds;
-        if (regularUser.isPresent()) {
-            attendingEventIds = new HashSet<>(
-                    eventAttendanceRepository.findAttendingEventIdsByRegularUserId(regularUser.get().getId()));
-        } else {
-            attendingEventIds = Collections.emptySet();
-        }
-
-        for (Event event : events) {
-            deactivateIfExpired(event, now);
-            UUID eventId = event != null ? event.getId() : null;
-            event.setMyAttendance(eventId != null && attendingEventIds.contains(eventId));
-        }
-
-        return events;
     }
 
     private void applyDefaultsOnCreate(Event event) {
