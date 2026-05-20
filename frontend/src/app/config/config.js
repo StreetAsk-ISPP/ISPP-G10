@@ -13,7 +13,7 @@ const wsUrl = `${apiBaseUrl}${WS_ENDPOINT_PATH}`.replace(/\/+$/, '');
 export const APP_CONFIG = {
   appName: 'ISPP Frontend',
   apiBaseUrl,
-  requestTimeoutMs: Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 10000,
+  requestTimeoutMs: Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 60000,
   websocket: {
     url: wsUrl,
     reconnectDelayMs: DEFAULT_WS_RECONNECT_DELAY_MS,
