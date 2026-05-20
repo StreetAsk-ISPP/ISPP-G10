@@ -106,6 +106,7 @@ export default function HomeScreen({ navigation, route }) {
     const isBusiness = Array.isArray(user?.roles) && user.roles.includes('BUSINESS');
     const latestEventsRequestRef = useRef(0);
     const bboxFetchTimeoutRef = useRef(null);
+    const eventsBboxFetchTimeoutRef = useRef(null);
 
     const handleEventAttendanceUpdate = useCallback((updatedEvent) => {
         if (!updatedEvent?.id) {
@@ -248,7 +249,7 @@ export default function HomeScreen({ navigation, route }) {
 
         if (!bounds || bounds.north == null) return;
 
-        // Debounce bbox fetch (200ms)
+        // Debounce bbox fetch (200ms) for questions
         if (bboxFetchTimeoutRef.current) clearTimeout(bboxFetchTimeoutRef.current);
         bboxFetchTimeoutRef.current = setTimeout(async () => {
             const requestId = ++latestRequestRef.current;
@@ -275,7 +276,35 @@ export default function HomeScreen({ navigation, route }) {
                 console.warn('Failed to load bbox questions', e);
             }
         }, 200);
-    }, [STORAGE_KEYS.HOME_QUESTIONS_CACHE]);
+
+        // Debounce bbox fetch (200ms) for events
+        if (eventsBboxFetchTimeoutRef.current) clearTimeout(eventsBboxFetchTimeoutRef.current);
+        eventsBboxFetchTimeoutRef.current = setTimeout(async () => {
+            const requestId = ++latestEventsRequestRef.current;
+            try {
+                const res = await apiClient.get('/api/v1/events/compact/bbox', {
+                    params: {
+                        south: bounds.south,
+                        west: bounds.west,
+                        north: bounds.north,
+                        east: bounds.east,
+                        active: true,
+                    },
+                });
+
+                if (requestId !== latestEventsRequestRef.current) return;
+
+                const raw = Array.isArray(res?.data) ? res.data : [];
+                setEvents(raw);
+                // update cached events for web
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    window.localStorage.setItem(STORAGE_KEYS.HOME_EVENTS_CACHE, JSON.stringify(raw));
+                }
+            } catch (e) {
+                console.warn('Failed to load bbox events', e);
+            }
+        }, 200);
+    }, [STORAGE_KEYS.HOME_QUESTIONS_CACHE, STORAGE_KEYS.HOME_EVENTS_CACHE]);
 
     useEffect(() => {
         const unsub = observeNotifications((n) => {
