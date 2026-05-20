@@ -15,6 +15,11 @@ public interface QuestionRepository extends CrudRepository<Question, UUID> {
 
 	Iterable<Question> findByEventIdOrderByCreatedAtAsc(UUID eventId);
 
+	Iterable<Question> findByLocationLatitudeBetweenAndLocationLongitudeBetween(Double minLatitude,
+			Double maxLatitude,
+			Double minLongitude,
+			Double maxLongitude);
+
 	Iterable<Question> findByActive(Boolean active);
 
 	Iterable<Question> findByCreatorIdAndActive(UUID creatorId, Boolean active);

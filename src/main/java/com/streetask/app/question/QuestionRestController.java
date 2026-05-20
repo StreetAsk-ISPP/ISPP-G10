@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.List;
+import java.util.stream.StreamSupport;
+import com.streetask.app.question.QuestionCompactDto;
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -66,6 +69,52 @@ public class QuestionRestController {
 	@GetMapping(value = "{id}")
 	public ResponseEntity<Question> findById(@PathVariable("id") UUID id) {
 		return new ResponseEntity<>(questionService.findQuestion(id), HttpStatus.OK);
+	}
+
+	@GetMapping("/compact")
+	public ResponseEntity<Iterable<QuestionCompactDto>> findAllCompact(@RequestParam(required = false) UUID creatorId,
+			@RequestParam(required = false) UUID eventId, @RequestParam(required = false) Boolean active) {
+		Iterable<Question> res;
+		if (creatorId != null && eventId != null && active != null) {
+			res = questionService.findByCreatorAndEventAndActive(creatorId, eventId, active);
+		} else if (creatorId != null && eventId != null) {
+			res = questionService.findByCreatorAndEvent(creatorId, eventId);
+		} else if (creatorId != null && active != null) {
+			res = questionService.findByCreatorAndActive(creatorId, active);
+		} else if (eventId != null && active != null) {
+			res = questionService.findByEventAndActive(eventId, active);
+		} else if (creatorId != null) {
+			res = questionService.findByCreator(creatorId);
+		} else if (eventId != null) {
+			res = questionService.findByEvent(eventId);
+		} else if (active != null) {
+			res = questionService.findByActive(active);
+		} else {
+			res = questionService.findAll();
+		}
+
+		List<QuestionCompactDto> dtoList = StreamSupport.stream(res.spliterator(), false)
+				.map(QuestionCompactDto::fromQuestion)
+				.toList();
+
+		return new ResponseEntity<>(dtoList, HttpStatus.OK);
+	}
+
+	@GetMapping("/compact/bbox")
+	public ResponseEntity<Iterable<QuestionCompactDto>> findCompactByBBox(
+			@RequestParam Double south,
+			@RequestParam Double west,
+			@RequestParam Double north,
+			@RequestParam Double east,
+			@RequestParam(required = false) Boolean active) {
+
+		Iterable<Question> res = questionService.findByLocationBetween(south, west, north, east, active);
+
+		List<QuestionCompactDto> dtoList = StreamSupport.stream(res.spliterator(), false)
+				.map(QuestionCompactDto::fromQuestion)
+				.toList();
+
+		return new ResponseEntity<>(dtoList, HttpStatus.OK);
 	}
 
 	@GetMapping("/today-count")
