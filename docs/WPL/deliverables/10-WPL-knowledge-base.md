@@ -8,7 +8,7 @@ sidebar_position: 6
 
 ## Enlace a la Knowledge Base compartida
 
-[https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/wpl/](https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/wpl/)
+[https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/wpl/](https://asoult10.github.io/Knowledge-Base-Turno-De-Tarde-ISPP-25-26/docs/group-10/world-project-launch/)
 
 ---
 
