@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import jakarta.validation.Valid;
 
@@ -83,6 +84,30 @@ public class EventService {
     @Transactional
     public Iterable<Event> findByActive(Boolean active) {
         return applyVisibilityAndAttendance(eventRepository.findByActive(active));
+    }
+
+    @Transactional
+    public Iterable<Event> findByLocationBetween(double south, double west, double north, double east,
+            Boolean active) {
+        // Normalize bounds (minLat, maxLat, minLng, maxLng)
+        double minLat = Math.min(south, north);
+        double maxLat = Math.max(south, north);
+        double minLng = Math.min(west, east);
+        double maxLng = Math.max(west, east);
+
+        Iterable<Event> res = eventRepository.findByLocationLatitudeBetweenAndLocationLongitudeBetween(
+                minLat, maxLat, minLng, maxLng);
+
+        Iterable<Event> filtered = applyVisibilityAndAttendance(res);
+
+        if (active == null) {
+            return filtered;
+        }
+
+        java.util.List<Event> activeFiltered = StreamSupport.stream(filtered.spliterator(), false)
+                .filter(e -> Boolean.TRUE.equals(e.getActive()) == Boolean.TRUE.equals(active))
+                .toList();
+        return activeFiltered;
     }
 
     @Scheduled(cron = "0 * * * * *")
