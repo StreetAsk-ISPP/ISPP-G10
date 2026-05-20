@@ -23,7 +23,6 @@ import com.streetask.app.model.Event;
 import com.streetask.app.model.Question;
 import com.streetask.app.question.QuestionService;
 import com.streetask.app.util.RestPreconditions;
-import java.util.stream.StreamSupport;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.slf4j.Logger;
@@ -45,49 +44,27 @@ public class EventRestController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<EventCompactDto>> findAll(@RequestParam(required = false) Boolean active) {
+    public ResponseEntity<Iterable<Event>> findAll(@RequestParam(required = false) Boolean active) {
         Iterable<Event> events = active == null ? eventService.findAll() : eventService.findByActive(active);
-        Iterable<EventCompactDto> dtos = StreamSupport.stream(events.spliterator(), false)
-                .map(EventCompactDto::fromEvent)
-                .toList();
-        return new ResponseEntity<>(dtos, HttpStatus.OK);
+        return new ResponseEntity<>(events, HttpStatus.OK);
     }
 
     @GetMapping(value = "{id}")
-    public ResponseEntity<EventCompactDto> findById(@PathVariable("id") UUID id) {
-        Event event = eventService.findEvent(id);
-        return new ResponseEntity<>(EventCompactDto.fromEvent(event), HttpStatus.OK);
+    public ResponseEntity<Event> findById(@PathVariable("id") UUID id) {
+        return new ResponseEntity<>(eventService.findEvent(id), HttpStatus.OK);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<EventCompactDto> create(@RequestBody @Valid Event event) {
+    public ResponseEntity<Event> create(@RequestBody @Valid Event event) {
         Event savedEvent = eventService.saveEvent(event);
-        return new ResponseEntity<>(EventCompactDto.fromEvent(savedEvent), HttpStatus.CREATED);
+        return new ResponseEntity<>(savedEvent, HttpStatus.CREATED);
     }
 
     @PostMapping(value = "{eventId}/attendance")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<EventCompactDto> toggleAttendance(@PathVariable("eventId") UUID id) {
-        Event event = eventService.toggleAttendance(id);
-        return new ResponseEntity<>(EventCompactDto.fromEvent(event), HttpStatus.OK);
-    }
-
-    @GetMapping("/compact/bbox")
-    public ResponseEntity<Iterable<EventCompactDto>> findCompactByBBox(
-            @RequestParam Double south,
-            @RequestParam Double west,
-            @RequestParam Double north,
-            @RequestParam Double east,
-            @RequestParam(required = false) Boolean active) {
-
-        Iterable<Event> res = eventService.findByLocationBetween(south, west, north, east, active);
-
-        Iterable<EventCompactDto> dtos = StreamSupport.stream(res.spliterator(), false)
-                .map(EventCompactDto::fromEvent)
-                .toList();
-
-        return new ResponseEntity<>(dtos, HttpStatus.OK);
+    public ResponseEntity<Event> toggleAttendance(@PathVariable("eventId") UUID id) {
+        return new ResponseEntity<>(eventService.toggleAttendance(id), HttpStatus.OK);
     }
 
     @GetMapping(value = "{eventId}/attendees")
@@ -128,11 +105,10 @@ public class EventRestController {
 
     @PutMapping(value = "{eventId}")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<EventCompactDto> update(@PathVariable("eventId") UUID id,
+    public ResponseEntity<Event> update(@PathVariable("eventId") UUID id,
             @RequestBody @Valid Event event) {
         RestPreconditions.checkNotNull(eventService.findEvent(id), "Event", "ID", id);
-        Event updated = this.eventService.updateEvent(event, id);
-        return new ResponseEntity<>(EventCompactDto.fromEvent(updated), HttpStatus.OK);
+        return new ResponseEntity<>(this.eventService.updateEvent(event, id), HttpStatus.OK);
     }
 
     @DeleteMapping(value = "{eventId}")

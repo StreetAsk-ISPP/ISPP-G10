@@ -25,9 +25,4 @@ public interface EventRepository extends CrudRepository<Event, UUID> {
     boolean existsByTitleIgnoreCase(String title);
 
     boolean existsByTitleIgnoreCaseAndIdNot(String title, UUID id);
-
-    Iterable<Event> findByLocationLatitudeBetweenAndLocationLongitudeBetween(Double minLatitude,
-            Double maxLatitude,
-            Double minLongitude,
-            Double maxLongitude);
 }
