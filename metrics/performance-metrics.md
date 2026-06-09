@@ -1,7 +1,7 @@
 # Performance Metrics Report - Individual Contributors
 
 - Repository: `StreetAsk-ISPP/ISPP-G10`
-- Generated at (UTC): `2026-06-02 17:14:36`
+- Generated at (UTC): `2026-06-09 15:50:03`
 - Performance Threshold: `6.0/10`
 - Target Sprint: `ALL`
 
@@ -39,7 +39,7 @@ The following contributors have a minimum score applied before the final 0-10 cl
 | manumnzz | 9.0 | ✅ | 2 | [#111](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/111), [#115](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/115) | [#366](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/366), [#752](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/752) | 1 | 1 | 0 | 0 | 0 |  | - |
 | javpalgon | 9.0 | ✅ | 3 | [#117](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/117), [#121](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/121), [#150](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/150) | - | 2 | 1 | 0 | 0 | 0 |  | - |
 | sfernandez07 | 8.0 | ✅ | 3 | [#120](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/120), [#169](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/169), [#207](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/207) | [#550](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/550) | 0 | 2 | 1 | 0 | 0 |  | javpalgon (1 PR) |
-| josegicar | 8.0 | ✅ | 2 | [#112](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/112), [#141](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/141) | [#187](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/187) | 0 | 2 | 0 | 0 | 0 |  | manumnzz (1 PR) |
+| josegicar | 8.0 | ✅ | 2 | [#112](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/112), [#141](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/141) | [#151](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/151), [#187](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/187) | 0 | 2 | 0 | 0 | 0 |  | manumnzz (1 PR) |
 | 60Manu82 | 8.0 | ✅ | 2 | [#126](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/126), [#140](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/140) | [#168](https://github.com/StreetAsk-ISPP/ISPP-G10/pull/168) | 0 | 2 | 0 | 0 | 0 |  | manumnzz (1 PR) |
 | manortper1 | 7.5 | ✅ | 2 | [#123](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/123), [#148](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/148) | - | 2 | 0 | 0 | 0 | 0 |  | - |
 | darrodsas | 7.5 | ✅ | 2 | [#124](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/124), [#148](https://github.com/StreetAsk-ISPP/ISPP-G10/issues/148) | - | 1 | 1 | 0 | 0 | 0 |  | - |
