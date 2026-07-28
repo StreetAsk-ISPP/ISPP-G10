@@ -1,7 +1,7 @@
 # Agile Metrics Report
 
 - Repository: `StreetAsk-ISPP/ISPP-G10`
-- Generated at (UTC): `2026-07-21 15:04:21`
+- Generated at (UTC): `2026-07-28 15:22:36`
 - Lookback window: last `30` days (weekly metrics use last `7` days)
 
 | Metric | Value | Status | Threshold |
